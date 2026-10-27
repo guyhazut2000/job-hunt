@@ -2,6 +2,7 @@ import type { AtsProvider } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
 import { ingestAllDetailed } from "@/lib/ingestion/run";
+import { resolvePendingLinkedinJobs } from "@/lib/linkedin/resolve";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -40,6 +41,8 @@ async function handle(req: Request) {
     updated: results.reduce((n, r) => n + r.updated, 0),
     deactivated: results.reduce((n, r) => n + r.deactivated, 0),
     deferred: results.reduce((n, r) => n + (r.deferred ?? 0), 0),
+    // Small capped batch of exact LinkedIn posting lookups (Brave); never fails the ingest.
+    linkedin: await resolvePendingLinkedinJobs().catch(() => null),
   };
   return NextResponse.json({ summary, results });
 }

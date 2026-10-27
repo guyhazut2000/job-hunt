@@ -87,20 +87,20 @@ enum ApplicationStatus {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
-  name         String?
-  passwordHash String
-  role         Role          @default(USER)
-  plan         Plan          @default(FREE)
-  locale       String        @default("he")
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  profile      Profile?
-  resumes      Resume[]
-  applications Application[]
-  subscription Subscription?
-  contacts     Contact[]
+  id              String             @id @default(cuid())
+  email           String             @unique
+  name            String?
+  passwordHash    String
+  role            Role               @default(USER)
+  plan            Plan               @default(FREE)
+  locale          String             @default("he")
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  profile         Profile?
+  resumes         Resume[]
+  applications    Application[]
+  subscription    Subscription?
+  contacts        Contact[]
   emailSync       EmailSyncSettings?
   emailAccounts   EmailAccount[]
   emailCandidates EmailCandidate[]
@@ -172,8 +172,8 @@ model ResumeFile {
 }
 
 model Company {
-  id           String      @id @default(cuid())
-  slug         String      @unique
+  id           String         @id @default(cuid())
+  slug         String         @unique
   name         String
   website      String?
   description  String?
@@ -181,11 +181,11 @@ model Company {
   size         String?
   hqLocation   String?
   logoUrl      String?
-  atsProvider  AtsProvider @default(MANUAL)
+  atsProvider  AtsProvider    @default(MANUAL)
   atsBoardId   String?
   lastSyncedAt DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
   jobs         Job[]
   contacts     Contact[]
   salaries     SalaryReport[]
@@ -213,40 +213,44 @@ model SalaryReport {
 }
 
 model Job {
-  id              String         @id @default(cuid())
-  companyId       String
-  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  externalId      String
-  source          AtsProvider
-  title           String
-  roleCategory    String
-  seniority       Seniority
-  location        String
-  workMode        WorkMode
-  techStack       String[]
-  description     String
-  applyUrl        String
-  postedAt        DateTime
+  id                String         @id @default(cuid())
+  companyId         String
+  company           Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  externalId        String
+  source            AtsProvider
+  title             String
+  roleCategory      String
+  seniority         Seniority
+  location          String
+  workMode          WorkMode
+  techStack         String[]
+  description       String
+  applyUrl          String
+  postedAt          DateTime
   /// Broad job function (engineering, data, sales, marketing…) — see src/lib/jobs/classify.ts.
-  jobFunction     String         @default("other")
-  level           JobLevel       @default(MID)
-  employmentType  EmploymentType @default(FULL_TIME)
+  jobFunction       String         @default("other")
+  level             JobLevel       @default(MID)
+  employmentType    EmploymentType @default(FULL_TIME)
   /// Last update time reported by the ATS (Greenhouse `updated_at`); null when the source has none.
-  sourceUpdatedAt DateTime?
+  sourceUpdatedAt   DateTime?
   /// Department / team as published by the ATS (null when the source has none).
-  department      String?
+  department        String?
   /// Pay range stated by the employer in a structured ATS field (Greenhouse pay_input_ranges,
   /// Lever salaryRange, Ashby compensation…). Null when not published. Amounts are in `payCurrency`
   /// per `payPeriod` ("month" | "year" | "hour").
-  payMin          Int?
-  payMax          Int?
-  payCurrency     String?
-  payPeriod       String?
-  isActive        Boolean        @default(true)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  applications    Application[]
-  contacts        Contact[]
+  payMin            Int?
+  payMax            Int?
+  payCurrency       String?
+  payPeriod         String?
+  isActive          Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  applications      Application[]
+  contacts          Contact[]
+  /// Exact LinkedIn posting (https://www.linkedin.com/jobs/view/<id>/) found via Brave Search; null = unknown.
+  linkedinUrl       String?
+  /// Last Brave lookup for linkedinUrl (found or not). Null = never checked.
+  linkedinCheckedAt DateTime?
 
   @@unique([source, externalId])
   @@index([roleCategory, seniority])
@@ -258,23 +262,23 @@ model Job {
 }
 
 model Application {
-  id        String            @id @default(cuid())
-  userId    String
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jobId     String?
-  job       Job?              @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  id             String            @id @default(cuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId          String?
+  job            Job?              @relation(fields: [jobId], references: [id], onDelete: SetNull)
   // For applications tracked manually (jobs found outside the platform)
-  title     String
-  company   String
-  url       String?
-  status    ApplicationStatus @default(SAVED)
-  notes     String?
-  appliedAt DateTime?
+  title          String
+  company        String
+  url            String?
+  status         ApplicationStatus @default(SAVED)
+  notes          String?
+  appliedAt      DateTime?
   // How it got onto the board; EMAIL = detected by email sync (see emailMessageId)
   source         ApplicationSource @default(APP)
   emailMessageId String?
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   @@unique([userId, jobId])
   @@index([userId, status])
@@ -335,6 +339,17 @@ model PeopleSearchCache {
 
   @@unique([companyId, group, queryHash])
   @@index([expiresAt])
+}
+
+/// One row per uncached Brave lookup for a job's LinkedIn posting. Shares the Brave monthly budget with people search.
+model LinkedinJobLookup {
+  id        String   @id @default(cuid())
+  jobId     String
+  found     Boolean
+  trigger   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 /// One row per people-search request: drives the per-user rate limit, daily cap and monthly budget.
