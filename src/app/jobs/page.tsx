@@ -6,9 +6,9 @@ import { FilterSheet } from "@/components/FilterSheet";
 import { JobCard, JobList } from "@/components/JobCard";
 import { JobFilterForm } from "@/components/JobFilters";
 import { Button } from "@/components/ui/button";
-import { computeMatch } from "@/lib/ai/match";
 import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
+import { hasScorableProfile, scoreMatch, toCandidate } from "@/lib/profile/score";
 import { filtersToQuery, filtersToWhere, PAGE_SIZE, parseFilters, type JobFilters } from "@/lib/jobs/filters";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +36,25 @@ export default async function JobsPage({
     session?.user?.id ? db.profile.findUnique({ where: { userId: session.user.id } }) : null,
   ]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const hasProfile = profile && profile.skills.length > 0;
+  const candidate = hasScorableProfile(profile) ? toCandidate(profile) : null;
+  const hasProfile = !!candidate;
+  const welcome = params.welcome === "1";
+  // Best matches across the open catalogue (not just this page). Cheap at our scale: ~600 rows, no descriptions.
+  const top =
+    candidate && filters.page === 1 && FILTER_KEYS.every((k) => !filters[k])
+      ? (
+          await db.job.findMany({
+            include: { company: true },
+            omit: { description: true },
+            orderBy: { postedAt: "desc" },
+            take: 800,
+          })
+        )
+          .map((j) => ({ job: { ...j, description: "" }, score: scoreMatch(candidate, j).score }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3)
+          .filter((x) => x.score >= 40)
+      : [];
   const active = FILTER_KEYS.filter((k) => filters[k]);
   const label = (k: (typeof FILTER_KEYS)[number]) => {
     const v = filters[k]!;
@@ -105,17 +123,41 @@ export default async function JobsPage({
           </p>
         )}
 
+        {welcome && hasProfile && (
+          <p role="status" className="bg-fit-soft border-fit border-s-4 px-4 py-3 text-sm font-semibold">
+            {t.pv2.welcome}
+          </p>
+        )}
+
+        {top.length > 0 && (
+          <section aria-labelledby="top-h" className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 id="top-h" className="kicker">
+                {t.pv2.topMatches}
+              </h2>
+              <Link
+                href="/profile?tab=prefs"
+                className="text-muted-foreground hover:text-foreground inline-flex min-h-11 items-center text-sm underline underline-offset-4"
+              >
+                {t.pv2.tuneMatches}
+              </Link>
+            </div>
+            <JobList>
+              {top.map(({ job, score }) => (
+                <JobCard key={job.id} job={job} t={t} score={score} />
+              ))}
+            </JobList>
+          </section>
+        )}
+
+        {top.length > 0 && <h2 className="kicker pt-2">{t.ui.sortedNewest}</h2>}
+
         {jobs.length === 0 ? (
           <p className="bg-card text-muted-foreground rounded-lg border p-8 text-center">{t.jobs.noResults}</p>
         ) : (
           <JobList>
             {jobs.map((job) => (
-              <JobCard
-                key={job.id}
-                job={job}
-                t={t}
-                score={hasProfile ? computeMatch({ ...profile, skills: profile.skills }, job).score : undefined}
-              />
+              <JobCard key={job.id} job={job} t={t} score={candidate ? scoreMatch(candidate, job).score : undefined} />
             ))}
           </JobList>
         )}
