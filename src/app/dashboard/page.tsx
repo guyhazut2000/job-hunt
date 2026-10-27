@@ -1,10 +1,14 @@
-import { Plus } from "lucide-react";
+import { MailCheck, Plus } from "lucide-react";
+import Link from "next/link";
 import { addManualApplication } from "@/app/actions";
+import { ReviewQueue } from "@/components/email/ReviewQueue";
 import { Kanban } from "@/components/Kanban";
 import { ContactList } from "@/components/outreach/ContactList";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
+import { getReviewItems } from "@/lib/email/review";
 import { getDictionary } from "@/lib/i18n";
+import { emailSyncStrings } from "@/lib/i18n/email-sync";
 import { requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -12,8 +16,9 @@ export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const { t } = await getDictionary();
-  const [apps, contacts] = await Promise.all([
+  const { t, locale } = await getDictionary();
+  const es = emailSyncStrings[locale];
+  const [apps, contacts, review] = await Promise.all([
     db.application.findMany({
       where: { userId: user.id },
       orderBy: { updatedAt: "desc" },
@@ -27,6 +32,7 @@ export default async function DashboardPage() {
         company: { select: { name: true, slug: true } },
       },
     }),
+    getReviewItems(user.id, locale),
   ]);
   const byJob = new Map<string, { total: number; referred: number }>();
   for (const c of contacts) {
@@ -70,6 +76,34 @@ export default async function DashboardPage() {
           </div>
         </dl>
       </header>
+
+      <Link
+        href="/settings/email"
+        className="bg-card hover:bg-muted/60 flex min-h-12 items-center gap-3 rounded-lg border px-4 py-2 transition-colors"
+      >
+        <MailCheck className="text-primary size-5 shrink-0" aria-hidden />
+        <span className="flex min-w-0 flex-col">
+          <span className="font-semibold">{es.emailSettings}</span>
+          <span className="text-muted-foreground truncate text-xs">{es.emailSettingsHint}</span>
+        </span>
+        {review.length > 0 && (
+          <span className="bg-caution-soft text-caution ms-auto rounded-full px-2 py-0.5 font-mono text-xs font-bold">
+            {review.length}
+          </span>
+        )}
+      </Link>
+
+      {review.length > 0 && (
+        <section aria-labelledby="email-review-h" className="flex flex-col gap-3">
+          <div>
+            <h2 id="email-review-h" className="font-heading text-xl font-bold">
+              {es.reviewTitle} <span className="text-caution font-mono text-base">({review.length})</span>
+            </h2>
+            <p className="text-muted-foreground text-sm">{es.reviewLead}</p>
+          </div>
+          <ReviewQueue items={review} s={es} statusLabels={t.status} />
+        </section>
+      )}
 
       <details className="group bg-card rounded-lg border" open={items.length === 0}>
         <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 font-semibold [&::-webkit-details-marker]:hidden">

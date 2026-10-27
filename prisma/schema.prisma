@@ -75,6 +75,9 @@ model User {
   applications Application[]
   subscription Subscription?
   contacts     Contact[]
+  emailSync       EmailSyncSettings?
+  emailAccounts   EmailAccount[]
+  emailCandidates EmailCandidate[]
 }
 
 model Profile {
@@ -159,6 +162,28 @@ model Company {
   updatedAt    DateTime    @updatedAt
   jobs         Job[]
   contacts     Contact[]
+  salaries     SalaryReport[]
+}
+
+/// Anonymous salary report. No user id, no free text: `reporterKey` is an HMAC of the user id
+/// (keyed with AUTH_SECRET) used only for de-duplication and rate limiting. Only aggregates over
+/// >= 5 reports are ever shown (see src/lib/salary).
+model SalaryReport {
+  id              String    @id @default(cuid())
+  reporterKey     String
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  family          String
+  seniority       Seniority
+  yearsExperience Int?
+  monthlyGrossIls Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([reporterKey, companyId, family])
+  @@index([companyId, family, seniority])
+  @@index([family, seniority])
+  @@index([reporterKey, updatedAt])
 }
 
 model Job {
@@ -200,6 +225,9 @@ model Application {
   status    ApplicationStatus @default(SAVED)
   notes     String?
   appliedAt DateTime?
+  // How it got onto the board; EMAIL = detected by email sync (see emailMessageId)
+  source         ApplicationSource @default(APP)
+  emailMessageId String?
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
 
@@ -326,4 +354,101 @@ model Contact {
 
   @@index([userId, jobId])
   @@index([userId, companyId])
+}
+
+// ---------------------------------------------------------------------------
+// Email sync: detect applications / status updates from the user's mailbox.
+// Privacy: we never store email bodies, only message id, sender, subject, date and extracted fields.
+// ---------------------------------------------------------------------------
+
+enum ApplicationSource {
+  APP
+  EMAIL
+}
+
+enum EmailProvider {
+  GMAIL
+  OUTLOOK
+}
+
+enum EmailScanFrequency {
+  MANUAL
+  DAILY
+  EVERY_6H
+}
+
+enum EmailConfidence {
+  STRICT
+  BALANCED
+  AGGRESSIVE
+}
+
+enum EmailCandidateKind {
+  APPLICATION
+  STATUS_UPDATE
+}
+
+enum EmailCandidateStatus {
+  PENDING // waiting for the user in the review queue
+  AUTO_ADDED // created/updated an application automatically
+  APPROVED // approved from the review queue
+  DISMISSED
+  DUPLICATE // already on the board
+}
+
+model EmailSyncSettings {
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lookbackDays        Int                @default(7)
+  frequency           EmailScanFrequency @default(MANUAL)
+  confidence          EmailConfidence    @default(BALANCED)
+  detectStatusUpdates Boolean            @default(true)
+  lastScanAt          DateTime?
+  lastScanSummary     Json?
+  lastScanError       String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+}
+
+model EmailAccount {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider        EmailProvider
+  emailAddress    String
+  /// AES-256-GCM ciphertext (key: EMAIL_TOKEN_ENC_KEY). Never store or log the plain token.
+  refreshTokenEnc String
+  scope           String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([userId, provider])
+}
+
+model EmailCandidate {
+  id             String               @id @default(cuid())
+  userId         String
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider       EmailProvider
+  messageId      String
+  threadId       String?
+  fromAddress    String
+  subject        String
+  receivedAt     DateTime
+  kind           EmailCandidateKind
+  detectedStatus ApplicationStatus?
+  company        String?
+  title          String?
+  /// Best-matching Job / Application ids (plain ids, validated on use)
+  matchedJobId   String?
+  applicationId  String?
+  confidence     Int
+  reasons        String[]
+  status         EmailCandidateStatus @default(PENDING)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@unique([userId, provider, messageId])
+  @@index([userId, status])
 }
