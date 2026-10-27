@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { ArrowRight, ExternalLink } from "lucide-react";
 import { auth } from "@/auth";
 import { JobCard, JobList } from "@/components/JobCard";
+import { LinkedinCompanyLinks } from "@/components/LinkedinCompanyLink";
 import { People } from "@/components/outreach/People";
 import { CompanySalaryBands } from "@/components/salary/CompanySalaryBands";
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
+import { linkedinStrings } from "@/lib/i18n/linkedin";
 import { BackToTop } from "@/components/BackToTop";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +56,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
               <ExternalLink className="size-3.5" aria-hidden />
             </a>
           )}
+          <LinkedinCompanyLinks company={company} s={linkedinStrings(locale)} />
           {company.lastSyncedAt && (
             <span className="text-muted-foreground font-mono text-xs">
               {t.companies.lastSync}: {formatDateTime(company.lastSyncedAt, t.dateLocale)}
