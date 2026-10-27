@@ -1,4 +1,4 @@
-import type { AtsProvider, Seniority, WorkMode } from "@prisma/client";
+import type { AtsProvider, EmploymentType, JobLevel, Seniority, WorkMode } from "@prisma/client";
 
 /** A job normalized from any ATS into our canonical shape. */
 export interface NormalizedJob {
@@ -13,6 +13,10 @@ export interface NormalizedJob {
   description: string;
   applyUrl: string;
   postedAt: Date;
+  jobFunction: string;
+  level: JobLevel;
+  employmentType: EmploymentType;
+  sourceUpdatedAt: Date;
 }
 
 export interface AdapterContext {
