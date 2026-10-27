@@ -2,10 +2,10 @@
 
 Each job card and job page has a secondary LinkedIn link. The primary action is still **Apply on company site** (`applyUrl`).
 
-| State | Label (en / he) | Link |
-| --- | --- | --- |
-| Exact posting found | "View posting on LinkedIn" + "Exact posting" / "צפייה במשרה בלינקדאין" + "המודעה המדויקת" | `https://www.linkedin.com/jobs/view/<id>/` |
-| Not found, not checked yet, or Brave not configured | "Search on LinkedIn" + "may not be this exact posting" / "חיפוש המשרה בלינקדאין" | `https://www.linkedin.com/jobs/search/?keywords=<title company>&location=Israel` |
+| State                                               | Label (en / he)                                                                           | Link                                                                             |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Exact posting found                                 | "View posting on LinkedIn" + "Exact posting" / "צפייה במשרה בלינקדאין" + "המודעה המדויקת" | `https://www.linkedin.com/jobs/view/<id>/`                                       |
+| Not found, not checked yet, or Brave not configured | "Search on LinkedIn" + "may not be this exact posting" / "חיפוש המשרה בלינקדאין"          | `https://www.linkedin.com/jobs/search/?keywords=<title company>&location=Israel` |
 
 ## How the exact posting is found
 
@@ -38,6 +38,6 @@ Each job card and job page has a secondary LinkedIn link. The primary action is 
 - Brave's index coverage of LinkedIn job pages is partial, so many jobs will show the search fallback.
 - The search deep link is a search, not an apply flow. LinkedIn decides what it shows, and a signed-out user may hit a login wall.
 
-## Pulling jobs *from* LinkedIn
+## Pulling jobs _from_ LinkedIn
 
 We don't. There's no open LinkedIn API to read or search jobs. The Job Posting API and Apply Connect are for approved ATS/Talent partners, and LinkedIn's terms forbid scraping. We source jobs from company ATS boards (Greenhouse, Lever, Comeet) instead.
