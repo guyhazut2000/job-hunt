@@ -1,4 +1,4 @@
-import type { LLMMessage, LLMProvider } from "../types";
+import type { CompleteOptions, LLMMessage, LLMProvider } from "../types";
 
 /** Works with OpenAI and any OpenAI-compatible endpoint (Azure OpenAI proxy, OpenRouter, vLLM, Ollama...). */
 export class OpenAICompatibleProvider implements LLMProvider {
@@ -9,7 +9,8 @@ export class OpenAICompatibleProvider implements LLMProvider {
     private readonly baseUrl = "https://api.openai.com/v1",
   ) {}
 
-  async complete(messages: LLMMessage[], opts?: { json?: boolean; maxTokens?: number }) {
+  async complete(messages: LLMMessage[], opts?: CompleteOptions) {
+    const json = opts?.json || !!opts?.schema;
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${this.apiKey}` },
@@ -18,7 +19,7 @@ export class OpenAICompatibleProvider implements LLMProvider {
         messages,
         max_tokens: opts?.maxTokens ?? 800,
         temperature: 0.2,
-        ...(opts?.json ? { response_format: { type: "json_object" } } : {}),
+        ...(json ? { response_format: { type: "json_object" } } : {}),
       }),
     });
     if (!res.ok) throw new Error(`LLM HTTP ${res.status}: ${await res.text()}`);

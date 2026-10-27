@@ -23,7 +23,9 @@
     "db:check-additive": "node scripts/check-migrations-additive.mjs"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.139",
     "@prisma/client": "^6.19.3",
+    "ai": "^6.0.317",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",

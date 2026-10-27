@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ContactCategory, ContactStatus } from "@prisma/client";
-import { getLLMProvider } from "@/lib/ai";
+import { guardedLLM } from "@/lib/ai";
+import { getLocale } from "@/lib/i18n";
+import { aiLimitMessage } from "@/lib/i18n/ai";
 import { track } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { CONTACT_CATEGORIES, isLinkedinProfileUrl } from "@/lib/outreach/links";
@@ -43,13 +45,15 @@ export async function draftOutreach(input: {
     db.user.findUnique({ where: { id: user.id }, select: { name: true } }),
   ]);
   if (!company || (job && job.companyId !== input.companyId)) return { error: "not_found" };
+  const provider = await guardedLLM("outreach", user.id);
   const msg = await generateOutreach(
-    getLLMProvider(),
+    provider,
     input.category,
     outreachContext(company, job, profile, me?.name),
     input.lang,
   );
   track("outreach_drafted", { category: input.category, lang: input.lang, source: msg.source });
+  if (provider.limited) return { ...msg, notice: aiLimitMessage(provider.limited, await getLocale()) };
   return msg;
 }
 

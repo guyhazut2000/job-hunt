@@ -27,6 +27,8 @@ export interface OutreachMessage {
   long: string;
   subject: string;
   source: "template" | "ai";
+  /** Friendly note when AI was skipped because of usage limits (template shown instead). */
+  notice?: string;
 }
 
 /** Length the short note will have once a name of up to NAME_BUDGET chars is filled in. */
@@ -354,7 +356,7 @@ export async function generateOutreach(
           }),
         },
       ],
-      { json: true, maxTokens: 700 },
+      { json: true, schema: aiSchema, maxTokens: 700 },
     );
     const parsed = aiSchema.safeParse(JSON.parse(raw));
     if (!parsed.success) return fallback;

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { getLLMProvider } from ".";
 import { extractTech } from "../taxonomy";
 import type { CvSuggestion, LLMProvider } from "./types";
@@ -46,6 +47,17 @@ export function heuristicSuggestions({ resumeText, job, locale }: CvSuggestionIn
   return out;
 }
 
+const suggestionsSchema = z.object({
+  suggestions: z
+    .array(
+      z.object({
+        kind: z.enum(["missing_skill", "keyword", "impact", "format", "summary"]),
+        text: z.string().min(1).max(600),
+      }),
+    )
+    .max(8),
+});
+
 export async function generateCvSuggestions(
   input: CvSuggestionInput,
   provider: LLMProvider = getLLMProvider(),
@@ -57,17 +69,18 @@ export async function generateCvSuggestions(
         {
           role: "system",
           content:
-            'You are a senior tech recruiter in Israel. Give concrete, honest CV improvement suggestions for a specific job. Never invent experience. Respond as JSON: {"suggestions":[{"kind":"missing_skill|keyword|impact|format|summary","text":string}]}. Max 6 items.',
+            'You are a senior tech recruiter in Israel. Give concrete, honest CV improvement suggestions for a specific job. Never invent experience. Write every \"text\" in the language requested by the user message. Respond as JSON: {"suggestions":[{"kind":"missing_skill|keyword|impact|format|summary","text":string}]}. Max 6 items.',
         },
         {
           role: "user",
           content: `Language: ${input.locale === "he" ? "Hebrew" : "English"}\n\nJOB: ${input.job.title}\nStack: ${input.job.techStack.join(", ")}\n${input.job.description.slice(0, 4000)}\n\nCV:\n${input.resumeText.slice(0, 8000)}`,
         },
       ],
-      { json: true },
+      { json: true, schema: suggestionsSchema, maxTokens: 1200 },
     );
-    const parsed = JSON.parse(raw) as { suggestions?: CvSuggestion[] };
-    return { provider: provider.name, suggestions: (parsed.suggestions ?? []).slice(0, 6) };
+    const parsed = suggestionsSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success || parsed.data.suggestions.length === 0) throw new Error("bad shape");
+    return { provider: provider.name, suggestions: parsed.data.suggestions.slice(0, 6) };
   } catch {
     return { provider: "heuristic-fallback", suggestions: heuristicSuggestions(input) };
   }

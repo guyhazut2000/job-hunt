@@ -8,7 +8,13 @@ import type { CvSuggestion } from "@/lib/ai/types";
 
 export function CvTips({ jobId, label, title }: { jobId: string; label: string; title: string }) {
   const [pending, start] = useTransition();
-  const [result, setResult] = useState<{ error?: string; provider?: string; suggestions?: CvSuggestion[] }>();
+  const [result, setResult] = useState<{
+    error?: string;
+    notice?: string;
+    cached?: boolean;
+    provider?: string;
+    suggestions?: CvSuggestion[];
+  }>();
   return (
     <section className="bg-card flex flex-col gap-3 rounded-lg border p-4" aria-busy={pending}>
       <h2 className="font-heading text-lg font-bold">{title}</h2>
@@ -22,6 +28,7 @@ export function CvTips({ jobId, label, title }: { jobId: string; label: string; 
       </Button>
       <div aria-live="polite">
         {result?.error && <p className="text-destructive text-sm">{result.error}</p>}
+        {result?.notice && <p className="text-muted-foreground pb-2 text-sm">{result.notice}</p>}
         {result?.suggestions && (
           <ol className="flex list-decimal flex-col gap-2 ps-5 text-sm leading-relaxed marker:font-mono">
             {result.suggestions.map((s, i) => (
@@ -30,7 +37,10 @@ export function CvTips({ jobId, label, title }: { jobId: string; label: string; 
           </ol>
         )}
         {result?.provider && (
-          <p className="text-muted-foreground pt-2 font-mono text-xs">provider: {result.provider}</p>
+          <p className="text-muted-foreground pt-2 font-mono text-xs">
+            provider: {result.provider}
+            {result.cached ? " · cached" : ""}
+          </p>
         )}
       </div>
     </section>
