@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { GapPlan } from "@/components/learning/GapPlan";
 import Link from "next/link";
 import type { AtsProvider } from "@prisma/client";
 import { notFound } from "next/navigation";
@@ -161,6 +162,8 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           </header>
 
           <SalarySection job={job} company={job.company} profile={profile} loggedIn={!!userId} locale={locale} />
+
+          {match && profile && userId && <GapPlan job={job} profile={profile} userId={userId} locale={locale} />}
 
           <section aria-labelledby="role-details" className="flex flex-col gap-3">
             <h2 id="role-details" className="kicker">

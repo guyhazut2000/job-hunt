@@ -104,6 +104,7 @@ model User {
   emailSync       EmailSyncSettings?
   emailAccounts   EmailAccount[]
   emailCandidates EmailCandidate[]
+  skillProgress   SkillProgress[]
 }
 
 model Profile {
@@ -540,4 +541,27 @@ model AiUsage {
 
   @@index([userId, createdAt])
   @@index([createdAt, outcome])
+}
+
+/// Learning roadmaps (src/lib/learning): no row = not started.
+enum LearningStatus {
+  LEARNING
+  DONE
+}
+
+/// Per-user progress on a skill-graph node. `skill` is the node id (e.g. "kubernetes").
+model SkillProgress {
+  id             String         @id @default(cuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill          String
+  status         LearningStatus
+  proofUrl       String?
+  /// True when marking DONE added the skill to the profile (so undo removes only what we added).
+  addedToProfile Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([userId, skill])
+  @@index([skill])
 }
