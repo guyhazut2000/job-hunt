@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import Link from "next/link";
+import { Percent } from "@/components/Percent";
 import { Progress } from "@/components/ui/progress";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import type { computeCompleteness } from "@/lib/profile/completeness";
@@ -16,15 +17,14 @@ export function CompletenessMeter({
   return (
     <section aria-labelledby="completeness-h" className="bg-card flex flex-col gap-4 rounded-lg border p-4 sm:p-5">
       <div className="flex items-end justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 id="completeness-h" className="kicker">
             {t.completeness}
           </h2>
           <p className="text-muted-foreground mt-1 text-sm">{t.completenessHint}</p>
         </div>
-        <p className={`font-heading text-5xl leading-none font-black tabular-nums ${tone}`} dir="ltr">
-          {percent}
-          <span className="text-2xl">%</span>
+        <p className={`font-heading shrink-0 text-5xl leading-none font-black ${tone}`}>
+          <Percent value={percent} signClassName="text-2xl" />
         </p>
       </div>
       <Progress value={percent} aria-label={t.completeness} className="h-2" />
