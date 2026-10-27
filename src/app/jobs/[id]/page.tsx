@@ -4,6 +4,7 @@ import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
 import { auth } from "@/auth";
 import { CvTips } from "@/components/CvTips";
 import { MatchMeter } from "@/components/MatchMeter";
+import { People } from "@/components/outreach/People";
 import { SaveJobButton } from "@/components/SaveJobButton";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
@@ -126,6 +127,10 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
               </a>
             </p>
           )}
+
+          <div className="border-rule border-t-2 pt-6">
+            <People company={job.company} job={job} userId={userId} t={t} />
+          </div>
         </article>
 
         <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">

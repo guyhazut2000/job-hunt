@@ -2,7 +2,7 @@
 
 import { useOptimistic, useRef, useTransition } from "react";
 import type { ApplicationStatus } from "@prisma/client";
-import { ExternalLink, GripVertical, Trash2 } from "lucide-react";
+import { ExternalLink, GripVertical, Trash2, Users } from "lucide-react";
 import { removeApplication, updateApplicationStatus } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,8 @@ export interface KanbanItem {
   url: string | null;
   jobId: string | null;
   status: ApplicationStatus;
+  /** Saved outreach contacts for this job (referral tracking). */
+  contacts?: { total: number; referred: number };
 }
 
 const COLUMNS: ApplicationStatus[] = ["SAVED", "APPLIED", "SCREENING", "INTERVIEW", "OFFER", "REJECTED"];
@@ -32,12 +34,14 @@ export function Kanban({
   removeLabel,
   statusLabel,
   emptyLabel,
+  contactsLabel,
 }: {
   items: KanbanItem[];
   labels: Record<string, string>;
   removeLabel: string;
   statusLabel: string;
   emptyLabel: string;
+  contactsLabel?: { count: string; referred: string };
 }) {
   const [, start] = useTransition();
   const board = useRef<HTMLDivElement>(null);
@@ -136,6 +140,17 @@ export function Kanban({
                             )}
                           </p>
                           <p className="text-muted-foreground truncate text-sm">{i.company}</p>
+                          {contactsLabel && i.contacts && i.contacts.total > 0 && (
+                            <p className="text-foreground/80 mt-1 flex items-center gap-1 text-xs font-semibold">
+                              <Users className="size-3.5 shrink-0" aria-hidden />
+                              {contactsLabel.count.replace("{n}", String(i.contacts.total))}{" "}
+                              {i.contacts.referred > 0 && (
+                                <span className="text-fit">
+                                  · {i.contacts.referred} {contactsLabel.referred}
+                                </span>
+                              )}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5">

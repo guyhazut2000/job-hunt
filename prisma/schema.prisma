@@ -74,6 +74,7 @@ model User {
   resumes      Resume[]
   applications Application[]
   subscription Subscription?
+  contacts     Contact[]
 }
 
 model Profile {
@@ -157,6 +158,7 @@ model Company {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   jobs         Job[]
+  contacts     Contact[]
 }
 
 model Job {
@@ -178,6 +180,7 @@ model Job {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   applications Application[]
+  contacts     Contact[]
 
   @@unique([source, externalId])
   @@index([roleCategory, seniority])
@@ -226,4 +229,43 @@ model IngestionRun {
   updated     Int         @default(0)
   deactivated Int         @default(0)
   error       String?
+}
+
+enum ContactCategory {
+  TEAM_LEAD
+  RECRUITER
+  PEER
+  SENIOR_MGMT
+  FOUNDER
+  HR
+}
+
+enum ContactStatus {
+  NOT_CONTACTED
+  SENT
+  REPLIED
+  REFERRED
+}
+
+/// A person the user found (manually, via a LinkedIn/Google search link) for a referral or intro.
+/// We never scrape LinkedIn: every field here is typed by the user.
+model Contact {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId       String?
+  job         Job?            @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  companyId   String?
+  company     Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  name        String
+  title       String?
+  linkedinUrl String?
+  category    ContactCategory
+  status      ContactStatus   @default(NOT_CONTACTED)
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([userId, jobId])
+  @@index([userId, companyId])
 }
