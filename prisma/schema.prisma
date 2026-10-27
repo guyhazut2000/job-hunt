@@ -259,6 +259,64 @@ model IngestionRun {
   error       String?
 }
 
+/// People search (docs/people-search.md): Brave web-search results for `site:linkedin.com/in` queries.
+/// Only fields derived from the result's title/description/url are kept — we never fetch LinkedIn.
+enum PeopleGroup {
+  RECRUITER
+  TEAM_LEAD
+  ENGINEER
+  MANAGER
+  SENIOR_MGMT
+  FOUNDER
+}
+
+enum PeopleSuppressionReason {
+  HIDDEN
+  REPORTED
+}
+
+/// Shared, short-lived cache of parsed search results (one row per company × group × query/page).
+model PeopleSearchCache {
+  id        String      @id @default(cuid())
+  companyId String
+  group     PeopleGroup
+  queryHash String
+  query     String
+  page      Int         @default(0)
+  results   Json
+  hasMore   Boolean     @default(false)
+  fetchedAt DateTime    @default(now())
+  expiresAt DateTime
+
+  @@unique([companyId, group, queryHash])
+  @@index([expiresAt])
+}
+
+/// One row per people-search request: drives the per-user rate limit, daily cap and monthly budget.
+model PeopleSearchUsage {
+  id        String      @id @default(cuid())
+  userId    String
+  companyId String
+  group     PeopleGroup
+  cached    Boolean
+  createdAt DateTime    @default(now())
+
+  @@index([userId, createdAt])
+  @@index([cached, createdAt])
+}
+
+/// "Hide" (per user) and "report / removal request" (hidden for everyone) for a profile URL.
+model PeopleSearchSuppression {
+  id         String                  @id @default(cuid())
+  userId     String
+  profileKey String
+  reason     PeopleSuppressionReason
+  createdAt  DateTime                @default(now())
+
+  @@unique([userId, profileKey])
+  @@index([profileKey, reason])
+}
+
 enum ContactCategory {
   TEAM_LEAD
   RECRUITER

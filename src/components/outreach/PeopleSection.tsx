@@ -13,6 +13,9 @@ import { cn } from "@/lib/utils";
 import { ContactForm } from "./ContactForm";
 import { ContactList, type ContactRow } from "./ContactList";
 import { CopyButton } from "./CopyButton";
+import { PeopleCards } from "./PeopleCards";
+import type { Locale } from "@/lib/i18n/dictionaries";
+import type { PeopleSearchStrings } from "@/lib/i18n/people-search";
 
 export interface PeopleCategoryItem {
   category: ContactCategory;
@@ -21,6 +24,14 @@ export interface PeopleCategoryItem {
   /** Domain label for team-scoped categories, e.g. "Backend". */
   domain: string | null;
   messages: Record<OutreachLang, OutreachMessage>;
+}
+
+/** Person cards from web search (docs/people-search.md). */
+export interface PeopleSearchProps {
+  enabled: boolean;
+  locale: Locale;
+  savedKeys: string[];
+  s: PeopleSearchStrings;
 }
 
 export function PeopleSection({
@@ -32,6 +43,7 @@ export function PeopleSection({
   canAi,
   defaultLang,
   t,
+  search,
 }: {
   company: { id: string; name: string };
   jobId?: string | null;
@@ -41,6 +53,7 @@ export function PeopleSection({
   canAi: boolean;
   defaultLang: OutreachLang;
   t: Dictionary["people"];
+  search?: PeopleSearchProps;
 }) {
   const uid = useId();
   const [lang, setLang] = useState<OutreachLang>(defaultLang);
@@ -94,6 +107,20 @@ export function PeopleSection({
           </div>
         </fieldset>
       </div>
+
+      {search && (
+        <PeopleCards
+          company={company}
+          jobId={jobId}
+          enabled={search.enabled}
+          loggedIn={loggedIn}
+          lang={lang}
+          locale={search.locale}
+          categories={Object.fromEntries(items.map((i) => [i.category, i]))}
+          savedKeys={search.savedKeys}
+          s={search.s}
+        />
+      )}
 
       <ul className="flex flex-col gap-3">
         {items.map((item, i) => (
