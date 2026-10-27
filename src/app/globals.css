@@ -1,41 +1,224 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-@theme {
-  --color-brand-50: #eef6ff;
-  --color-brand-100: #d9eaff;
-  --color-brand-500: #2f6bff;
-  --color-brand-600: #1f54e0;
-  --color-brand-700: #1a43b4;
-  --color-ink: #0f172a;
-  --font-sans: "Rubik", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * job-hunt design system — "Classifieds"
+ * Warm newsprint paper, near-black ink, one vermilion signal colour for action,
+ * and a deep cypress green for "fits you". Serif display (Frank Ruhl Libre),
+ * humanist sans body (Assistant), monospaced data (IBM Plex Mono).
+ * All three families cover Hebrew + Latin (Plex Mono is Latin; used for tech tokens & numbers).
+ */
+
+:root {
+  /* surfaces */
+  --background: oklch(0.972 0.009 85);
+  --foreground: oklch(0.21 0.014 60);
+  --card: oklch(0.993 0.004 85);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --paper-deep: oklch(0.94 0.014 82);
+
+  /* action & semantic */
+  --primary: oklch(0.52 0.18 34); /* vermilion — 5.3:1 against white text */
+  --primary-foreground: oklch(0.99 0.004 85);
+  --secondary: oklch(0.925 0.016 82);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.945 0.012 82);
+  --muted-foreground: oklch(0.46 0.016 60); /* ≥ 6:1 on paper */
+  --accent: oklch(0.93 0.035 160);
+  --accent-foreground: oklch(0.33 0.07 160);
+  --fit: oklch(0.42 0.085 160); /* cypress — match / success */
+  --fit-soft: oklch(0.93 0.035 160);
+  --caution: oklch(0.47 0.11 65);
+  --caution-soft: oklch(0.94 0.045 80);
+  --destructive: oklch(0.52 0.2 27);
+
+  --border: oklch(0.875 0.013 80);
+  --input: oklch(0.84 0.014 80);
+  --ring: oklch(0.52 0.18 34);
+  --rule: oklch(0.21 0.014 60); /* heavy ink rules */
+
+  --radius: 0.4rem;
+
+  --chart-1: var(--primary);
+  --chart-2: var(--fit);
+  --chart-3: var(--caution);
+  --chart-4: oklch(0.6 0.02 60);
+  --chart-5: oklch(0.35 0.02 60);
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* layout */
+  --bottom-nav-h: 4rem;
 }
 
-html {
-  color-scheme: light;
+@theme inline {
+  --font-sans: var(--font-body), "Assistant", system-ui, sans-serif;
+  --font-heading: var(--font-display), "Frank Ruhl Libre", Georgia, serif;
+  --font-mono: var(--font-data), ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-paper-deep: var(--paper-deep);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-fit: var(--fit);
+  --color-fit-soft: var(--fit-soft);
+  --color-caution: var(--caution);
+  --color-caution-soft: var(--caution-soft);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-rule: var(--rule);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+
+  /* type scale (fluid, 360 → 1280) */
+  --text-display: clamp(2.25rem, 1.4rem + 3.8vw, 4.5rem);
+  --text-display--line-height: 1.02;
+  --text-title: clamp(1.6rem, 1.25rem + 1.4vw, 2.25rem);
+  --text-title--line-height: 1.15;
+
+  --animate-rise: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
-body {
-  @apply text-ink bg-slate-50 antialiased;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    color-scheme: light;
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    /* faint newsprint grain */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.16 0 0 0 0 0.1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading text-balance;
+    letter-spacing: -0.01em;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 22%, transparent);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
+/* ---- legacy helpers, now token-based (used by forms & secondary pages) ---- */
 @utility card {
-  @apply rounded-xl border border-slate-200 bg-white p-5 shadow-sm;
+  @apply bg-card rounded-lg border p-5 shadow-[0_1px_0_var(--border)];
 }
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50;
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50;
 }
 @utility btn-primary {
-  @apply btn bg-brand-600 hover:bg-brand-700 text-white;
+  @apply btn bg-primary text-primary-foreground hover:bg-primary/88;
 }
 @utility btn-ghost {
-  @apply btn border border-slate-300 bg-white hover:bg-slate-100;
+  @apply btn border-input bg-card hover:bg-muted border;
 }
 @utility input {
-  @apply focus:border-brand-500 focus:ring-brand-100 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2;
+  @apply border-input bg-card focus-visible:border-primary focus-visible:ring-primary/20 min-h-11 w-full rounded-md border px-3 py-2 text-base outline-none focus-visible:ring-3 sm:text-sm;
 }
 @utility label {
-  @apply mb-1 block text-sm font-medium text-slate-700;
+  @apply text-foreground/85 mb-1.5 block text-sm font-semibold;
 }
 @utility chip {
-  @apply inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-700;
+  @apply bg-muted text-foreground/80 inline-flex items-center rounded-sm border border-transparent px-2 py-0.5 font-mono text-[0.72rem] tracking-tight;
+}
+/* small mono caption, e.g. section kickers */
+@utility kicker {
+  @apply text-muted-foreground font-mono text-[0.7rem] font-medium tracking-[0.14em] uppercase;
+}
+/* the double ink rule under mastheads */
+@utility rule-double {
+  border-bottom: 3px double var(--rule);
+}
+/* page offset for mobile bottom nav */
+@utility pb-safe-nav {
+  padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 1.5rem);
+}
+@utility select-native {
+  @apply input appearance-none pe-9;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23574f45' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  &:dir(rtl) {
+    background-position: left 0.75rem center;
+  }
+}
+/* Hebrew has no case and suffers from tracking — kickers switch to the body face there */
+:lang(he) .kicker {
+  font-family: var(--font-body);
+  letter-spacing: 0.02em;
+  font-size: 0.78rem;
+  font-weight: 700;
 }

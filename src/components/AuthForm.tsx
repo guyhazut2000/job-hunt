@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { login, register, type FormState } from "@/app/actions";
+import { Button } from "@/components/ui/button";
 
 interface Labels {
   email: string;
@@ -13,7 +14,7 @@ interface Labels {
 export function AuthForm({ mode, labels, next }: { mode: "login" | "register"; labels: Labels; next?: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(mode === "login" ? login : register, undefined);
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="flex flex-col gap-4" aria-busy={pending}>
       {next && <input type="hidden" name="next" value={next} />}
       {mode === "register" && (
         <div>
@@ -27,7 +28,16 @@ export function AuthForm({ mode, labels, next }: { mode: "login" | "register"; l
         <label className="label" htmlFor="email">
           {labels.email}
         </label>
-        <input id="email" name="email" type="email" required className="input" autoComplete="email" dir="ltr" />
+        <input
+          id="email"
+          name="email"
+          type="email"
+          required
+          className="input"
+          autoComplete="email"
+          inputMode="email"
+          dir="ltr"
+        />
       </div>
       <div>
         <label className="label" htmlFor="password">
@@ -45,13 +55,13 @@ export function AuthForm({ mode, labels, next }: { mode: "login" | "register"; l
         />
       </div>
       {state?.error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="border-destructive text-destructive border-s-4 ps-3 text-sm">
           {state.error}
         </p>
       )}
-      <button className="btn-primary w-full" disabled={pending} type="submit">
+      <Button size="lg" className="w-full" disabled={pending} type="submit">
         {pending ? "…" : labels.submit}
-      </button>
+      </Button>
     </form>
   );
 }

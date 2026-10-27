@@ -41,7 +41,7 @@ export function ProfileForm({
       <label className="label" htmlFor={name}>
         {label}
       </label>
-      <select id={name} name={name} defaultValue={value ?? ""} className="input">
+      <select id={name} name={name} defaultValue={value ?? ""} className="select-native">
         <option value="">{labels.any}</option>
         {opts.map(([v, l]) => (
           <option key={v} value={v}>
@@ -112,8 +112,8 @@ export function ProfileForm({
         <button className="btn-primary" disabled={pending} type="submit">
           {labels.save}
         </button>
-        {state?.ok && <span className="text-sm text-emerald-700">{state.ok}</span>}
-        {state?.error && <span className="text-sm text-red-600">{state.error}</span>}
+        {state?.ok && <span className="text-fit text-sm">{state.ok}</span>}
+        {state?.error && <span className="text-destructive text-sm">{state.error}</span>}
       </div>
     </form>
   );

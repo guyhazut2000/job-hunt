@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/format";
 import { adminAddCompany, adminSyncAll } from "@/app/actions";
 import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
@@ -24,21 +25,21 @@ export default async function AdminPage() {
     [t.admin.applications, applications],
   ] as const;
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t.admin.title}</h1>
+    <div className="flex flex-col gap-6">
+      <h1 className="text-title font-black">{t.admin.title}</h1>
       <div className="grid gap-4 sm:grid-cols-4">
         {stats.map(([label, n]) => (
           <div key={label} className="card">
-            <div className="text-sm text-slate-500">{label}</div>
+            <div className="text-muted-foreground text-sm">{label}</div>
             <div className="text-2xl font-bold">{n}</div>
           </div>
         ))}
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
-        <form action={adminAddCompany} className="card space-y-3">
+        <form action={adminAddCompany} className="card flex flex-col gap-3">
           <h2 className="font-semibold">{t.admin.addCompany}</h2>
           <input name="name" required placeholder={t.admin.name} className="input" />
-          <select name="provider" className="input" aria-label={t.admin.provider}>
+          <select name="provider" className="select-native" aria-label={t.admin.provider}>
             {SUPPORTED_PROVIDERS.map((p) => (
               <option key={p}>{p}</option>
             ))}
@@ -49,7 +50,7 @@ export default async function AdminPage() {
             {t.admin.add}
           </button>
         </form>
-        <div className="card space-y-3">
+        <div className="card flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">{t.admin.runs}</h2>
             <form action={adminSyncAll}>
@@ -58,32 +59,34 @@ export default async function AdminPage() {
               </button>
             </form>
           </div>
-          <table className="w-full text-start text-xs">
-            <thead className="text-slate-500">
-              <tr>
-                <th className="text-start">provider</th>
-                <th className="text-start">started</th>
-                <th>+</th>
-                <th>~</th>
-                <th>−</th>
-                <th className="text-start">error</th>
-              </tr>
-            </thead>
-            <tbody>
-              {runs.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100">
-                  <td>{r.provider}</td>
-                  <td>{r.startedAt.toLocaleString("he-IL")}</td>
-                  <td className="text-center">{r.created}</td>
-                  <td className="text-center">{r.updated}</td>
-                  <td className="text-center">{r.deactivated}</td>
-                  <td className="max-w-40 truncate text-red-600" title={r.error ?? ""}>
-                    {r.error}
-                  </td>
+          <div className="-mx-4 overflow-x-auto px-4">
+            <table className="w-full min-w-[32rem] text-start font-mono text-xs">
+              <thead className="text-muted-foreground">
+                <tr>
+                  <th className="text-start">provider</th>
+                  <th className="text-start">started</th>
+                  <th>+</th>
+                  <th>~</th>
+                  <th>−</th>
+                  <th className="text-start">error</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {runs.map((r) => (
+                  <tr key={r.id} className="border-border border-t">
+                    <td className="py-2">{r.provider}</td>
+                    <td className="py-2">{formatDateTime(r.startedAt, t.dateLocale)}</td>
+                    <td className="text-center">{r.created}</td>
+                    <td className="text-center">{r.updated}</td>
+                    <td className="text-center">{r.deactivated}</td>
+                    <td className="text-destructive max-w-40 truncate" title={r.error ?? ""}>
+                      {r.error}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

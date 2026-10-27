@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format";
 import { mergeCvSkills } from "@/app/actions";
 import { CvUpload } from "@/components/CvUpload";
 import { ProfileForm } from "@/components/ProfileForm";
@@ -17,8 +18,8 @@ export default async function ProfilePage() {
     db.resume.findFirst({ where: { userId: user.id, isPrimary: true } }),
   ]);
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t.profile.title}</h1>
+    <div className="flex flex-col gap-6">
+      <h1 className="text-title font-black">{t.profile.title}</h1>
       <ProfileForm
         values={profile ?? { skills: [] }}
         labels={{ ...t.profile, years: t.profile.years, linkedin: t.profile.linkedin, any: t.jobs.any }}
@@ -28,15 +29,15 @@ export default async function ProfilePage() {
           workModes: WORK_MODES.map((w) => [w, t.workMode[w]]),
         }}
       />
-      <section className="card space-y-4">
+      <section className="card flex flex-col gap-4">
         <h2 className="text-lg font-semibold">{t.profile.cv}</h2>
         <CvUpload label={t.profile.upload} button={t.profile.uploadBtn} detected={t.profile.detected} />
-        <div className="border-t border-slate-200 pt-4 text-sm">
+        <div className="border-border border-t pt-4 text-sm">
           <div className="font-medium">{t.profile.current}</div>
           {resume ? (
-            <div className="space-y-2 pt-1">
-              <div className="text-slate-600">
-                {resume.fileName} · {resume.createdAt.toLocaleDateString("he-IL")}
+            <div className="flex flex-col gap-2 pt-1">
+              <div className="text-muted-foreground">
+                {resume.fileName} · {formatDate(resume.createdAt, t.dateLocale, { year: "numeric" })}
               </div>
               <div className="flex flex-wrap gap-1" dir="ltr">
                 {resume.skills.map((s) => (
@@ -52,7 +53,7 @@ export default async function ProfilePage() {
               </form>
             </div>
           ) : (
-            <p className="text-slate-500">{t.profile.none}</p>
+            <p className="text-muted-foreground">{t.profile.none}</p>
           )}
         </div>
       </section>
