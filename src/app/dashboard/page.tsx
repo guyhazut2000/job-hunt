@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import { addManualApplication } from "@/app/actions";
 import { Kanban } from "@/components/Kanban";
+import { ContactList } from "@/components/outreach/ContactList";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
@@ -12,11 +13,44 @@ export const metadata = { title: "Dashboard" };
 export default async function DashboardPage() {
   const user = await requireUser();
   const { t } = await getDictionary();
-  const items = await db.application.findMany({
-    where: { userId: user.id },
-    orderBy: { updatedAt: "desc" },
-    select: { id: true, title: true, company: true, url: true, jobId: true, status: true },
-  });
+  const [apps, contacts] = await Promise.all([
+    db.application.findMany({
+      where: { userId: user.id },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, title: true, company: true, url: true, jobId: true, status: true },
+    }),
+    db.contact.findMany({
+      where: { userId: user.id },
+      orderBy: { updatedAt: "desc" },
+      include: {
+        job: { select: { id: true, title: true } },
+        company: { select: { name: true, slug: true } },
+      },
+    }),
+  ]);
+  const byJob = new Map<string, { total: number; referred: number }>();
+  for (const c of contacts) {
+    if (!c.jobId) continue;
+    const e = byJob.get(c.jobId) ?? { total: 0, referred: 0 };
+    e.total++;
+    if (c.status === "REFERRED") e.referred++;
+    byJob.set(c.jobId, e);
+  }
+  const items = apps.map((a) => ({ ...a, contacts: a.jobId ? byJob.get(a.jobId) : undefined }));
+  const contactRows = contacts.map((c) => ({
+    id: c.id,
+    name: c.name,
+    title: c.title,
+    linkedinUrl: c.linkedinUrl,
+    category: c.category,
+    status: c.status,
+    notes: c.notes,
+    context: c.job
+      ? { label: `${c.job.title} · ${c.company?.name ?? ""}`, href: `/jobs/${c.job.id}` }
+      : c.company
+        ? { label: c.company.name, href: `/companies/${c.company.slug}` }
+        : null,
+  }));
   const active = items.filter((i) => !["SAVED", "REJECTED"].includes(i.status)).length;
   return (
     <div className="flex flex-col gap-6">
@@ -75,7 +109,30 @@ export default async function DashboardPage() {
         removeLabel={t.dashboard.remove}
         statusLabel={t.ui.status}
         emptyLabel={t.ui.emptyColumn}
+        contactsLabel={{ count: t.people.trackerCount, referred: t.people.trackerReferred }}
       />
+
+      <section aria-labelledby="outreach-h" className="border-rule flex flex-col gap-3 border-t-2 pt-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="outreach-h" className="font-heading text-xl font-bold">
+            {t.people.outreach}
+          </h2>
+          {contacts.length > 0 && (
+            <p className="text-muted-foreground text-sm">
+              {t.people.trackerCount.replace("{n}", String(contacts.length))}
+              {" · "}
+              <span className="text-fit font-semibold">
+                {contacts.filter((c) => c.status === "REFERRED").length} {t.people.trackerReferred}
+              </span>
+            </p>
+          )}
+        </div>
+        {contacts.length === 0 ? (
+          <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm">{t.people.outreachEmpty}</p>
+        ) : (
+          <ContactList contacts={contactRows} t={t.people} />
+        )}
+      </section>
     </div>
   );
 }
