@@ -72,9 +72,7 @@ export function CompanyPicker({
                 }
                 className="accent-primary size-4"
               />
-              <span className="flex-1 truncate font-medium">
-                {c.name}
-              </span>
+              <span className="flex-1 truncate font-medium">{c.name}</span>
               <span className="text-muted-foreground font-mono text-xs">{c.count}</span>
             </label>
           </li>
