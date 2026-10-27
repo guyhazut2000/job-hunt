@@ -4,6 +4,7 @@ import type { AtsProvider } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
 import { auth } from "@/auth";
+import { BackToTop } from "@/components/BackToTop";
 import { CvTips } from "@/components/CvTips";
 import { LinkedinJobButton, type LinkedinLink } from "@/components/LinkedinJobLink";
 import { OutboundLink } from "@/components/OutboundLink";
@@ -251,6 +252,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         )}
       </div>
       <div aria-hidden className="h-16 lg:hidden" />
+      <BackToTop label={t.ui.backToTop} placement="action-bar" />
     </div>
   );
 }
