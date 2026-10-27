@@ -1,0 +1,34 @@
+[
+  {
+    "id": "aaaa-1111",
+    "text": "Full Stack Team Leader",
+    "hostedUrl": "https://jobs.lever.co/acme/aaaa-1111",
+    "applyUrl": "https://jobs.lever.co/acme/aaaa-1111/apply",
+    "createdAt": 1792540800000,
+    "country": "IL",
+    "workplaceType": "hybrid",
+    "categories": { "location": "Petach Tikva", "allLocations": ["Petach Tikva"], "team": "R&D" },
+    "descriptionPlain": "React, Node.js and PostgreSQL.",
+    "lists": [{ "text": "Requirements", "content": "<li>TypeScript</li><li>AWS</li>" }]
+  },
+  {
+    "id": "bbbb-2222",
+    "text": "Firmware Engineer",
+    "hostedUrl": "https://jobs.lever.co/acme/bbbb-2222",
+    "createdAt": 1792540800000,
+    "country": "US",
+    "workplaceType": "onsite",
+    "categories": { "location": "New York, NY", "allLocations": ["New York, NY", "ירושלים"] },
+    "descriptionPlain": "C, RTOS"
+  },
+  {
+    "id": "cccc-3333",
+    "text": "Data Scientist",
+    "hostedUrl": "https://jobs.lever.co/acme/cccc-3333",
+    "createdAt": 1792540800000,
+    "country": "DE",
+    "workplaceType": "remote",
+    "categories": { "location": "Berlin", "allLocations": ["Berlin"] },
+    "descriptionPlain": "Python"
+  }
+]

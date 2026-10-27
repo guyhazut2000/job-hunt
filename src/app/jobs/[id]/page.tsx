@@ -11,6 +11,16 @@ import { getDictionary } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
+function hostOf(url: string) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
+const SOURCE_LABELS = { GREENHOUSE: "Greenhouse", LEVER: "Lever", COMEET: "Comeet", MANUAL: "" } as const;
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const job = await db.job.findUnique({ where: { id: (await params).id }, include: { company: true } });
   return { title: job ? `${job.title} @ ${job.company.name}` : "Job" };
@@ -59,6 +69,14 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             <SaveJobButton jobId={job.id} saved={!!application} label={t.jobs.save} savedLabel={t.jobs.saved} />
           )}
         </div>
+        {job.source !== "MANUAL" && (
+          <p className="text-xs text-slate-500">
+            {t.jobs.sourcedFrom.replace("{source}", SOURCE_LABELS[job.source])}{" "}
+            <a href={job.applyUrl} target="_blank" rel="noopener noreferrer" className="underline" dir="ltr">
+              {hostOf(job.applyUrl)}
+            </a>
+          </p>
+        )}
         <div className="text-sm leading-relaxed whitespace-pre-line text-slate-700" dir="auto">
           {job.description}
         </div>

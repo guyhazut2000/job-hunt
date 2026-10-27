@@ -28,5 +28,7 @@ export interface AdapterContext {
 export interface AtsAdapter<Raw = unknown> {
   provider: AtsProvider;
   fetchRaw(ctx: AdapterContext): Promise<Raw[]>;
+  /** Whether the raw posting is located in Israel (or remote from Israel). */
+  isInIsrael(raw: Raw): boolean;
   normalize(raw: Raw): NormalizedJob | null;
 }

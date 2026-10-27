@@ -39,4 +39,24 @@ describe("taxonomy", () => {
   it("slugifies", () => {
     expect(slugify("Cloud Nest Ltd.")).toBe("cloud-nest-ltd");
   });
+  it("handles real-world titles from Israeli boards", () => {
+    expect(inferSeniority("Senior Product Manager")).toBe("SENIOR");
+    expect(inferSeniority("Product Manager")).toBe("MID");
+    expect(inferSeniority("Engineering Manager")).toBe("MANAGER");
+    expect(inferSeniority("Backend Team Leader")).toBe("LEAD");
+    expect(inferSeniority("Staff Engineer - Office of the CTO")).toBe("LEAD");
+    expect(inferRoleCategory("Sales Engineer")).toBe("other");
+    expect(inferRoleCategory("Account Executive")).toBe("other");
+    expect(inferRoleCategory("Rapid Prototyping Engineer")).toBe("backend");
+    expect(inferRoleCategory("API Engineer")).toBe("backend");
+    expect(inferRoleCategory("FPGA Design Engineer")).toBe("hardware");
+    expect(inferRoleCategory("Product Designer")).toBe("design");
+    expect(inferRoleCategory("Director of Product, Growth")).toBe("product");
+    expect(inferRoleCategory("Malware Researcher")).toBe("security");
+    expect(inferRoleCategory("R&D Team Leader")).toBe("backend");
+  });
+
+  it("decodes numeric HTML entities", () => {
+    expect(htmlToText("it&#39;s &#x2014; ok")).toBe("it's \u2014 ok");
+  });
 });
