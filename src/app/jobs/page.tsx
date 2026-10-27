@@ -10,6 +10,7 @@ import { SortMenu } from "@/components/SortMenu";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
+import { BackToTop } from "@/components/BackToTop";
 import { fill, jobSearchStrings } from "@/lib/i18n/job-search";
 import { hasScorableProfile, scoreMatch, toCandidate } from "@/lib/profile/score";
 import {
@@ -340,6 +341,7 @@ export default async function JobsPage({
           </nav>
         )}
       </section>
+      <BackToTop label={t.ui.backToTop} />
     </div>
   );
 }

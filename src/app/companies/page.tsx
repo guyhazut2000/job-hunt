@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { groupByLetter, HEBREW, LATIN, letterAnchor, OTHER } from "@/lib/alpha";
 import { getDictionary } from "@/lib/i18n";
 import { linkedinStrings } from "@/lib/i18n/linkedin";
+import { BackToTop } from "@/components/BackToTop";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -145,6 +146,7 @@ export default async function CompaniesPage() {
           );
         })}
       </div>
+      <BackToTop label={t.ui.backToTop} />
     </div>
   );
 }
