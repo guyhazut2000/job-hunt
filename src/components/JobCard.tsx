@@ -4,6 +4,7 @@ import type { Company, Job } from "@prisma/client";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { formatAge } from "@/lib/format";
 import { MatchMeter } from "./MatchMeter";
+import { TruncatedText } from "./TruncatedText";
 
 export function JobCard({ job, t, score }: { job: Job & { company: Company }; t: Dictionary; score?: number }) {
   return (
@@ -12,9 +13,9 @@ export function JobCard({ job, t, score }: { job: Job & { company: Company }; t:
         <div className="text-muted-foreground flex items-center gap-2 text-sm">
           <Link
             href={`/companies/${job.company.slug}`}
-            className="text-foreground relative z-10 -my-2 inline-flex min-h-11 items-center truncate font-bold hover:underline sm:min-h-0"
+            className="text-foreground relative z-10 -my-2 inline-flex min-h-11 min-w-0 items-center font-bold hover:underline sm:min-h-0"
           >
-            {job.company.name}
+            <TruncatedText text={job.company.name} />
           </Link>
           <span aria-hidden>·</span>
           <time dateTime={job.postedAt.toISOString()} className="shrink-0 font-mono text-xs">
@@ -27,7 +28,8 @@ export function JobCard({ job, t, score }: { job: Job & { company: Company }; t:
             className="group-hover:text-primary decoration-primary/40 underline-offset-4 after:absolute after:inset-0 after:content-[''] hover:underline"
             dir="auto"
           >
-            {job.title}
+            {/* above the card-wide ::after overlay so hovering the title can reveal the tooltip */}
+            <TruncatedText text={job.title} lines={2} className="relative z-[1]" />
           </Link>
         </h3>
         <p className="text-foreground/75 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">

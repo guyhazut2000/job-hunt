@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { MobileNav } from "@/components/MobileNav";
 import { DirectionProvider } from "@/components/ui/direction";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { getDictionary, isRtl } from "@/lib/i18n";
 import { auth } from "@/auth";
 import { cn } from "@/lib/utils";
@@ -38,35 +39,37 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale} dir={dir} className={cn(body.variable, display.variable, data.variable)}>
       <body className="flex min-h-dvh flex-col overflow-x-clip">
         <DirectionProvider dir={dir}>
-          <a
-            href="#main"
-            className="bg-primary text-primary-foreground sr-only z-50 rounded-md px-4 py-3 focus:not-sr-only focus:fixed focus:start-3 focus:top-3"
-          >
-            {t.ui.skip}
-          </a>
-          <Header />
-          <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-10 md:px-6 md:pt-10 md:pb-16">
-            {children}
-          </main>
-          <Footer />
-          <MobileNav
-            locale={locale}
-            user={user ? { role: user.role } : null}
-            labels={{
-              jobs: t.nav.jobs,
-              companies: t.nav.companies,
-              tracker: t.ui.tracker,
-              profile: t.ui.profile,
-              more: t.ui.more,
-              login: t.nav.login,
-              register: t.nav.register,
-              logout: t.nav.logout,
-              pricing: t.nav.pricing,
-              admin: t.nav.admin,
-              language: t.nav.language,
-              account: t.ui.account,
-            }}
-          />
+          <TooltipProvider delayDuration={300}>
+            <a
+              href="#main"
+              className="bg-primary text-primary-foreground sr-only z-50 rounded-md px-4 py-3 focus:not-sr-only focus:fixed focus:start-3 focus:top-3"
+            >
+              {t.ui.skip}
+            </a>
+            <Header />
+            <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-10 md:px-6 md:pt-10 md:pb-16">
+              {children}
+            </main>
+            <Footer />
+            <MobileNav
+              locale={locale}
+              user={user ? { role: user.role } : null}
+              labels={{
+                jobs: t.nav.jobs,
+                companies: t.nav.companies,
+                tracker: t.ui.tracker,
+                profile: t.ui.profile,
+                more: t.ui.more,
+                login: t.nav.login,
+                register: t.nav.register,
+                logout: t.nav.logout,
+                pricing: t.nav.pricing,
+                admin: t.nav.admin,
+                language: t.nav.language,
+                account: t.ui.account,
+              }}
+            />
+          </TooltipProvider>
         </DirectionProvider>
       </body>
     </html>
