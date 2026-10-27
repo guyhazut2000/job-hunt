@@ -4,6 +4,7 @@ import { ArrowRight, ExternalLink } from "lucide-react";
 import { auth } from "@/auth";
 import { JobCard, JobList } from "@/components/JobCard";
 import { People } from "@/components/outreach/People";
+import { CompanySalaryBands } from "@/components/salary/CompanySalaryBands";
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
@@ -17,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function CompanyPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [{ t }, session] = await Promise.all([getDictionary(), auth()]);
+  const [{ t, locale }, session] = await Promise.all([getDictionary(), auth()]);
   const company = await db.company.findUnique({
     where: { slug },
     include: { jobs: { where: { isActive: true }, orderBy: { postedAt: "desc" }, include: { company: true } } },
@@ -60,6 +61,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
         </div>
       </header>
       <People company={company} userId={session?.user?.id} t={t} />
+      <CompanySalaryBands company={company} jobs={company.jobs} loggedIn={!!session?.user?.id} locale={locale} />
       <h2 className="font-heading border-rule border-t-2 pt-6 text-xl font-bold">
         <span className="font-mono">{company.jobs.length}</span> {t.companies.openRoles}
       </h2>
