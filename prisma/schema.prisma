@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+enum Seniority {
+  INTERN
+  JUNIOR
+  MID
+  SENIOR
+  LEAD
+  MANAGER
+}
+
+enum WorkMode {
+  ONSITE
+  HYBRID
+  REMOTE
+}
+
+enum AtsProvider {
+  GREENHOUSE
+  LEVER
+  COMEET
+  MANUAL
+}
+
+enum ApplicationStatus {
+  SAVED
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFER
+  REJECTED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  passwordHash String
+  role         Role          @default(USER)
+  plan         Plan          @default(FREE)
+  locale       String        @default("he")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  profile      Profile?
+  resumes      Resume[]
+  applications Application[]
+  subscription Subscription?
+}
+
+model Profile {
+  id              String     @id @default(cuid())
+  userId          String     @unique
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline        String?
+  desiredRole     String?
+  seniority       Seniority?
+  location        String?
+  workMode        WorkMode?
+  yearsExperience Int?
+  skills          String[]
+  linkedinUrl     String?
+  updatedAt       DateTime   @updatedAt
+}
+
+model Resume {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileName  String
+  mimeType  String
+  sizeBytes Int
+  text      String
+  skills    String[]
+  isPrimary Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Company {
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  name         String
+  website      String?
+  description  String?
+  industry     String?
+  size         String?
+  hqLocation   String?
+  logoUrl      String?
+  atsProvider  AtsProvider @default(MANUAL)
+  atsBoardId   String?
+  lastSyncedAt DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  jobs         Job[]
+}
+
+model Job {
+  id           String        @id @default(cuid())
+  companyId    String
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  externalId   String
+  source       AtsProvider
+  title        String
+  roleCategory String
+  seniority    Seniority
+  location     String
+  workMode     WorkMode
+  techStack    String[]
+  description  String
+  applyUrl     String
+  postedAt     DateTime
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  applications Application[]
+
+  @@unique([source, externalId])
+  @@index([roleCategory, seniority])
+  @@index([isActive, postedAt])
+}
+
+model Application {
+  id        String            @id @default(cuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId     String?
+  job       Job?              @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  // For applications tracked manually (jobs found outside the platform)
+  title     String
+  company   String
+  url       String?
+  status    ApplicationStatus @default(SAVED)
+  notes     String?
+  appliedAt DateTime?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([userId, jobId])
+  @@index([userId, status])
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                 Plan      @default(FREE)
+  status               String    @default("inactive")
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  currentPeriodEnd     DateTime?
+  updatedAt            DateTime  @updatedAt
+}
+
+model IngestionRun {
+  id          String      @id @default(cuid())
+  provider    AtsProvider
+  companyId   String?
+  startedAt   DateTime    @default(now())
+  finishedAt  DateTime?
+  created     Int         @default(0)
+  updated     Int         @default(0)
+  deactivated Int         @default(0)
+  error       String?
+}
