@@ -162,6 +162,28 @@ model Company {
   updatedAt    DateTime    @updatedAt
   jobs         Job[]
   contacts     Contact[]
+  salaries     SalaryReport[]
+}
+
+/// Anonymous salary report. No user id, no free text: `reporterKey` is an HMAC of the user id
+/// (keyed with AUTH_SECRET) used only for de-duplication and rate limiting. Only aggregates over
+/// >= 5 reports are ever shown (see src/lib/salary).
+model SalaryReport {
+  id              String    @id @default(cuid())
+  reporterKey     String
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  family          String
+  seniority       Seniority
+  yearsExperience Int?
+  monthlyGrossIls Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([reporterKey, companyId, family])
+  @@index([companyId, family, seniority])
+  @@index([family, seniority])
+  @@index([reporterKey, updatedAt])
 }
 
 model Job {

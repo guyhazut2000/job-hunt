@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { CvTips } from "@/components/CvTips";
 import { MatchMeter } from "@/components/MatchMeter";
 import { People } from "@/components/outreach/People";
+import { SalarySection } from "@/components/salary/SalarySection";
 import { SaveJobButton } from "@/components/SaveJobButton";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
@@ -33,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function JobPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [{ t }, session, job] = await Promise.all([
+  const [{ t, locale }, session, job] = await Promise.all([
     getDictionary(),
     auth(),
     db.job.findUnique({ where: { id }, include: { company: true } }),
@@ -100,6 +101,8 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
               </ul>
             )}
           </header>
+
+          <SalarySection job={job} company={job.company} profile={profile} loggedIn={!!userId} locale={locale} />
 
           <section aria-labelledby="role-details" className="flex flex-col gap-3">
             <h2 id="role-details" className="kicker">

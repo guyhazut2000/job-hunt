@@ -3,6 +3,9 @@ import { MapPin } from "lucide-react";
 import type { Company, Job } from "@prisma/client";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { formatAge } from "@/lib/format";
+import { localeOf, salaryStrings } from "@/lib/i18n/salary";
+import { estimateSalary } from "@/lib/salary/estimate";
+import { SalaryChip } from "./salary/SalaryChip";
 import { MatchMeter } from "./MatchMeter";
 import { TruncatedText } from "./TruncatedText";
 
@@ -51,6 +54,7 @@ export function JobCard({ job, t, score }: { job: Job & { company: Company }; t:
             </span>
           ))}
         </p>
+        <SalaryChip estimate={estimateSalary({ job, company: job.company })} s={salaryStrings(localeOf(t))} />
         {job.techStack.length > 0 && (
           <ul className="flex flex-wrap gap-1 pt-1" dir="ltr" aria-label={t.jobs.tech}>
             {job.techStack.slice(0, 6).map((s) => (
