@@ -47,7 +47,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {t.ui.skip}
             </a>
             <Header />
-            <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-10 md:px-6 md:pt-10 md:pb-16">
+            <main
+              id="main"
+              tabIndex={-1}
+              className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-10 outline-none md:px-6 md:pt-10 md:pb-16"
+            >
               {children}
             </main>
             <Footer />

@@ -8,6 +8,7 @@ import { CompanySalaryBands } from "@/components/salary/CompanySalaryBands";
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
+import { BackToTop } from "@/components/BackToTop";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
           ))}
         </JobList>
       )}
+      <BackToTop label={t.ui.backToTop} />
     </div>
   );
 }
