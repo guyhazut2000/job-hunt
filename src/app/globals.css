@@ -226,6 +226,20 @@
     background-position: left 0.75rem center;
   }
 }
+/* checkbox/radio rendered as a pressable chip: <label class="toggle-chip"><input class="sr-only" …/>…</label> */
+@utility toggle-chip {
+  @apply border-input bg-card text-foreground/85 hover:bg-muted inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3.5 text-sm font-semibold transition-colors select-none;
+  &:has(:checked) {
+    @apply border-foreground bg-foreground text-background hover:bg-foreground/90;
+  }
+  &:has(:focus-visible) {
+    @apply ring-primary/40 ring-3;
+  }
+}
+/* section heading with a heavy ink rule, used in long forms */
+@utility form-section {
+  @apply border-rule flex flex-col gap-4 border-t-2 pt-4;
+}
 /* Hebrew has no case and suffers from tracking — kickers switch to the body face there */
 :lang(he) .kicker {
   font-family: var(--font-body);

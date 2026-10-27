@@ -6,18 +6,17 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import type { ApplicationStatus, AtsProvider, Seniority, WorkMode } from "@prisma/client";
+import type { ApplicationStatus, AtsProvider } from "@prisma/client";
 import { signIn, signOut } from "@/auth";
 import { generateCvSuggestions } from "@/lib/ai/cv-suggestions";
 import type { CvSuggestion } from "@/lib/ai/types";
 import { track } from "@/lib/analytics";
 import { canUseAiReview, createCheckoutUrl } from "@/lib/billing";
-import { ALLOWED_CV_TYPES, extractText, MAX_CV_BYTES, parseCvText } from "@/lib/cv/parse";
 import { db } from "@/lib/db";
 import { getDictionary, LOCALE_COOKIE } from "@/lib/i18n";
 import { ingestAll } from "@/lib/ingestion/run";
 import { requireAdmin, requireUser } from "@/lib/session";
-import { ROLE_CATEGORIES, SENIORITIES, slugify, WORK_MODES } from "@/lib/taxonomy";
+import { slugify } from "@/lib/taxonomy";
 
 export type FormState = { error?: string; ok?: string } | undefined;
 
@@ -45,6 +44,7 @@ export async function register(_: FormState, formData: FormData): Promise<FormSt
     data: { name, email, passwordHash: await bcrypt.hash(password, 10), profile: { create: { skills: [] } } },
   });
   track("signup");
+  formData.set("next", "/onboarding");
   return login(undefined, formData);
 }
 
@@ -113,89 +113,6 @@ export async function addManualApplication(formData: FormData) {
     data: { userId: user.id, title: parsed.data.title, company: parsed.data.company, url: parsed.data.url || null },
   });
   revalidatePath("/dashboard");
-}
-
-const profileSchema = z.object({
-  headline: z.string().trim().max(120).optional(),
-  desiredRole: z.string().optional(),
-  seniority: z.string().optional(),
-  location: z.string().trim().max(60).optional(),
-  workMode: z.string().optional(),
-  yearsExperience: z.string().optional(),
-  skills: z.string().max(1000).optional(),
-  linkedinUrl: z.union([z.literal(""), z.string().url().max(300)]).optional(),
-});
-
-export async function saveProfile(_: FormState, formData: FormData): Promise<FormState> {
-  const user = await requireUser();
-  const { t } = await getDictionary();
-  const parsed = profileSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
-  const d = parsed.data;
-  const data = {
-    headline: d.headline || null,
-    desiredRole: d.desiredRole && (ROLE_CATEGORIES as readonly string[]).includes(d.desiredRole) ? d.desiredRole : null,
-    seniority: SENIORITIES.includes(d.seniority as Seniority) ? (d.seniority as Seniority) : null,
-    location: d.location || null,
-    workMode: WORK_MODES.includes(d.workMode as WorkMode) ? (d.workMode as WorkMode) : null,
-    yearsExperience: d.yearsExperience ? Math.max(0, Math.min(50, Number.parseInt(d.yearsExperience, 10) || 0)) : null,
-    skills: [
-      ...new Set(
-        (d.skills ?? "")
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-      ),
-    ].slice(0, 60),
-    linkedinUrl: d.linkedinUrl || null,
-  };
-  await db.profile.upsert({ where: { userId: user.id }, create: { userId: user.id, ...data }, update: data });
-  revalidatePath("/profile");
-  revalidatePath("/jobs");
-  return { ok: t.profile.saved };
-}
-
-export async function uploadCv(_: FormState, formData: FormData): Promise<FormState> {
-  const user = await requireUser();
-  const file = formData.get("cv");
-  if (!(file instanceof File) || file.size === 0) return { error: "No file" };
-  if (file.size > MAX_CV_BYTES) return { error: "File too large (max 5MB)" };
-  if (!(ALLOWED_CV_TYPES as readonly string[]).includes(file.type)) return { error: "Unsupported file type" };
-  let text: string;
-  try {
-    text = await extractText(Buffer.from(await file.arrayBuffer()), file.type);
-  } catch {
-    return { error: "Could not read this file" };
-  }
-  const parsed = parseCvText(text);
-  // NOTE: we store extracted text only (not the binary). Add object storage (S3/R2) if originals are needed.
-  await db.$transaction([
-    db.resume.updateMany({ where: { userId: user.id }, data: { isPrimary: false } }),
-    db.resume.create({
-      data: {
-        userId: user.id,
-        fileName: file.name.slice(0, 200),
-        mimeType: file.type,
-        sizeBytes: file.size,
-        text: parsed.text.slice(0, 50_000),
-        skills: parsed.skills,
-        isPrimary: true,
-      },
-    }),
-  ]);
-  track("cv_uploaded", { mime: file.type, skills: parsed.skills.length });
-  revalidatePath("/profile");
-  return { ok: parsed.skills.join(", ") };
-}
-
-export async function mergeCvSkills() {
-  const user = await requireUser();
-  const resume = await db.resume.findFirst({ where: { userId: user.id, isPrimary: true } });
-  if (!resume) return;
-  const profile = await db.profile.findUnique({ where: { userId: user.id } });
-  const skills = [...new Set([...(profile?.skills ?? []), ...resume.skills])];
-  await db.profile.upsert({ where: { userId: user.id }, create: { userId: user.id, skills }, update: { skills } });
-  revalidatePath("/profile");
 }
 
 export async function getCvSuggestions(
