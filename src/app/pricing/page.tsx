@@ -12,10 +12,10 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
   const plan = session?.user?.id ? (await db.user.findUnique({ where: { id: session.user.id } }))?.plan : undefined;
   const showDisabled = sp.billing === "disabled" || !billingEnabled();
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold">{t.pricing.title}</h1>
-        <p className="mt-2 text-slate-600">{t.pricing.subtitle}</p>
+    <div className="flex flex-col gap-8">
+      <div className="rule-double pb-4 text-center">
+        <h1 className="text-title font-black">{t.pricing.title}</h1>
+        <p className="text-muted-foreground mt-2">{t.pricing.subtitle}</p>
       </div>
       <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
         <PlanCard
@@ -44,7 +44,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
           }
         />
       </div>
-      {showDisabled && <p className="text-center text-sm text-slate-500">{t.pricing.billingDisabled}</p>}
+      {showDisabled && <p className="text-muted-foreground text-center text-sm">{t.pricing.billingDisabled}</p>}
     </div>
   );
 }
@@ -65,12 +65,14 @@ function PlanCard({
   highlight?: boolean;
 }) {
   return (
-    <div className={`card flex flex-col gap-4 ${highlight ? "border-brand-500 ring-brand-100 ring-2" : ""}`}>
+    <div
+      className={`card flex flex-col gap-4 ${highlight ? "border-primary border-2 shadow-[4px_4px_0_var(--primary)]" : ""}`}
+    >
       <h2 className="text-xl font-semibold">{name}</h2>
       <div>
-        <span className="text-3xl font-bold">₪{price}</span> <span className="text-slate-500">{per}</span>
+        <span className="text-3xl font-bold">₪{price}</span> <span className="text-muted-foreground">{per}</span>
       </div>
-      <ul className="flex-1 space-y-2 text-sm">
+      <ul className="flex flex-1 flex-col gap-2 text-sm">
         {features.map((f) => (
           <li key={f}>✓ {f}</li>
         ))}

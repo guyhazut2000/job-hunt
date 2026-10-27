@@ -5,11 +5,11 @@ export const metadata = { title: "Privacy" };
 export default async function PrivacyPage() {
   const { t, locale } = await getDictionary();
   return (
-    <article className="card mx-auto max-w-3xl space-y-4 leading-relaxed">
-      <p className="rounded bg-amber-50 px-3 py-2 text-sm text-amber-800">{t.legal.draft}</p>
+    <article className="mx-auto flex max-w-[68ch] flex-col gap-4 text-lg leading-relaxed">
+      <p className="border-caution bg-caution-soft text-caution border-s-4 px-3 py-2 text-sm">{t.legal.draft}</p>
       {locale === "he" ? (
         <>
-          <h1 className="text-2xl font-bold">מדיניות פרטיות</h1>
+          <h1 className="text-title font-black">מדיניות פרטיות</h1>
           <p>
             אנו אוספים רק את המידע הדרוש להפעלת השירות: פרטי חשבון, פרופיל מקצועי, טקסט קורות חיים שהעלית ונתוני מעקב
             מועמדויות.
@@ -22,7 +22,7 @@ export default async function PrivacyPage() {
         </>
       ) : (
         <>
-          <h1 className="text-2xl font-bold">Privacy Policy</h1>
+          <h1 className="text-title font-black">Privacy Policy</h1>
           <p>
             We collect only what is needed to run the service: account details, your professional profile, the text of
             CVs you upload and your application tracking data.

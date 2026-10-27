@@ -6,7 +6,7 @@ import { uploadCv, type FormState } from "@/app/actions";
 export function CvUpload({ label, button, detected }: { label: string; button: string; detected: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(uploadCv, undefined);
   return (
-    <form action={action} className="space-y-3">
+    <form action={action} className="flex flex-col gap-3">
       <label className="label" htmlFor="cv">
         {label}
       </label>
@@ -21,9 +21,9 @@ export function CvUpload({ label, button, detected }: { label: string; button: s
       <button className="btn-primary" disabled={pending} type="submit">
         {pending ? "…" : button}
       </button>
-      {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state?.error && <p className="text-destructive text-sm">{state.error}</p>}
       {state?.ok !== undefined && (
-        <p className="text-sm text-emerald-700">
+        <p className="text-fit text-sm">
           {detected}: <span dir="ltr">{state.ok || "—"}</span>
         </p>
       )}
