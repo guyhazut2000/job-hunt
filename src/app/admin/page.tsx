@@ -1,6 +1,16 @@
 import { formatDateTime } from "@/lib/format";
-import { adminAddCompany, adminSyncAll } from "@/app/actions";
+import {
+  adminAddCompany,
+  adminApproveCandidate,
+  adminRejectCandidate,
+  adminRunDiscovery,
+  adminSetSyncMode,
+  adminSyncAll,
+} from "@/app/actions";
 import { CompanyLinkedinForm } from "@/components/admin/CompanyLinkedinForm";
+import { ManualCompanyForm } from "@/components/admin/ManualCompanyForm";
+import { PendingButton } from "@/components/admin/PendingButton";
+import { careersLink, isManualCompany, isSyncFailing, SYNC_FAILING_THRESHOLD } from "@/lib/companies/status";
 import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
 import { linkedinStrings } from "@/lib/i18n/linkedin";
@@ -8,20 +18,30 @@ import { SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
 import { requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
+// "Sync all" and "Run discovery" server actions run for up to ~4 minutes.
+export const maxDuration = 300;
 export const metadata = { title: "Admin" };
 
 export default async function AdminPage() {
   await requireAdmin();
   const { t, locale } = await getDictionary();
-  const [users, jobs, companies, applications, runs, perSource, companyList] = await Promise.all([
-    db.user.count(),
-    db.job.count({ where: { isActive: true } }),
-    db.company.count(),
-    db.application.count(),
-    db.ingestionRun.findMany({ orderBy: { startedAt: "desc" }, take: 15 }),
-    sourceStats(),
-    db.company.findMany({ select: { id: true, name: true, linkedinUrl: true }, orderBy: { name: "asc" } }),
-  ]);
+  const [users, jobs, companies, applications, runs, perSource, companyList, manualList, autoList, discovery] =
+    await Promise.all([
+      db.user.count(),
+      db.job.count({ where: { isActive: true } }),
+      db.company.count(),
+      db.application.count(),
+      db.ingestionRun.findMany({ orderBy: { startedAt: "desc" }, take: 15 }),
+      sourceStats(),
+      db.company.findMany({ select: { id: true, name: true, linkedinUrl: true }, orderBy: { name: "asc" } }),
+      manualCompanies(),
+      db.company.findMany({
+        where: { syncMode: "AUTO", atsProvider: { not: "MANUAL" }, atsBoardId: { not: null } },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+      discoveryStats(),
+    ]);
   const stats = [
     [t.admin.users, users],
     [t.admin.jobs, jobs],
@@ -70,7 +90,7 @@ export default async function AdminPage() {
           </table>
         </div>
       </section>
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         <form action={adminAddCompany} className="card flex flex-col gap-3">
           <h2 className="font-semibold">{t.admin.addCompany}</h2>
           <input name="name" required placeholder={t.admin.name} className="input" />
@@ -127,8 +147,270 @@ export default async function AdminPage() {
           </div>
         </div>
       </div>
+      <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
+        <ManualCompanyForm
+          labels={{
+            title: t.admin.addManual,
+            hint: t.admin.addManualHint,
+            name: t.admin.name,
+            website: t.admin.website,
+            careersUrl: t.admin.careersUrl,
+            notesHe: t.admin.notesHe,
+            notesEn: t.admin.notesEn,
+            submit: t.admin.save,
+          }}
+        />
+        <form action={adminSetSyncMode} className="card flex flex-col gap-3">
+          <h2 className="font-semibold">{t.admin.switchCompany}</h2>
+          <input type="hidden" name="mode" value="MANUAL" />
+          <label className="label" htmlFor="switch-company">
+            {t.admin.chooseCompany}
+          </label>
+          <select
+            id="switch-company"
+            name="companyId"
+            required
+            className="select-native w-full max-w-full"
+            defaultValue=""
+          >
+            <option value="" disabled>
+              {t.admin.chooseCompany}
+            </option>
+            {autoList.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <button className="btn-ghost min-h-11 self-start" type="submit">
+            {t.admin.makeManual}
+          </button>
+        </form>
+      </div>
+      <section className="card flex flex-col gap-3" aria-labelledby="manual-heading" data-admin-manual>
+        <h2 id="manual-heading" className="font-semibold">
+          {t.admin.manualCompanies} <span className="text-muted-foreground font-normal">({manualList.total})</span>
+        </h2>
+        {manualList.total > manualList.rows.length && (
+          <p className="text-muted-foreground text-sm">
+            {t.admin.showingFirst.replace("{n}", String(manualList.rows.length))}
+          </p>
+        )}
+        <div className="relative -mx-4 overflow-x-auto px-4">
+          <table className="w-full min-w-[40rem] text-start text-sm">
+            <thead className="text-muted-foreground text-xs">
+              <tr>
+                <th className="text-start font-medium">{t.admin.name}</th>
+                <th className="text-start font-medium">{t.admin.mode}</th>
+                <th className="text-start font-medium">{t.admin.careersUrl}</th>
+                <th className="text-start font-medium">{t.admin.lastError}</th>
+                <th className="sr-only">{t.admin.mode}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {manualList.rows.map((c) => {
+                const manual = isManualCompany(c);
+                const link = careersLink(c);
+                const canAuto = manual && c.syncMode === "MANUAL" && c.atsProvider !== "MANUAL" && !!c.atsBoardId;
+                return (
+                  <tr key={c.id} className="border-border border-t align-top">
+                    <td className="py-2 font-medium">
+                      <a href={`/companies/${c.slug}`} className="hover:underline">
+                        {c.name}
+                      </a>
+                    </td>
+                    <td className="py-2">
+                      {manual ? (
+                        t.admin.manual
+                      ) : (
+                        <span className="text-destructive">
+                          {t.admin.auto} · {c.syncFailures}× ✕
+                        </span>
+                      )}
+                    </td>
+                    <td className="max-w-56 truncate py-2" dir="ltr">
+                      {link && (
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          {link.replace(/^https?:\/\//, "")}
+                        </a>
+                      )}
+                    </td>
+                    <td
+                      className="text-destructive max-w-48 truncate py-2 font-mono text-xs"
+                      title={c.lastSyncError ?? ""}
+                    >
+                      {c.lastSyncError}
+                    </td>
+                    <td className="py-1 text-end">
+                      {(!manual || canAuto) && (
+                        <form action={adminSetSyncMode}>
+                          <input type="hidden" name="companyId" value={c.id} />
+                          <input type="hidden" name="mode" value={manual ? "AUTO" : "MANUAL"} />
+                          <button className="btn-ghost min-h-11 text-xs" type="submit">
+                            {manual ? t.admin.makeAuto : t.admin.makeManual}
+                          </button>
+                        </form>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section className="card flex flex-col gap-3" aria-labelledby="discovery-heading" data-admin-discovery>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="discovery-heading" className="font-semibold">
+            {t.admin.discovery}
+          </h2>
+          <form action={adminRunDiscovery}>
+            <PendingButton pendingLabel={t.admin.running}>{t.admin.runDiscovery}</PendingButton>
+          </form>
+        </div>
+        <p className="text-muted-foreground text-sm">{t.admin.discoveryHint}</p>
+        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+          {(
+            [
+              [t.admin.candidates, discovery.total],
+              [t.admin.added, discovery.added],
+              [t.admin.pending, discovery.pendingChecked],
+              [t.admin.rejected, discovery.rejected],
+            ] as const
+          ).map(([label, n]) => (
+            <div key={label}>
+              <dt className="text-muted-foreground">{label}</dt>
+              <dd className="text-xl font-bold tabular-nums">{n}</dd>
+            </div>
+          ))}
+        </dl>
+        {discovery.lastRun && (
+          <p className="text-muted-foreground text-xs">
+            {t.admin.lastRun}: {formatDateTime(discovery.lastRun.startedAt, t.dateLocale)} ({t.admin.israelTime}) ·{" "}
+            {t.admin.checked} {discovery.lastRun.checked} · {t.admin.added} {discovery.lastRun.addedAuto}
+            {discovery.lastRun.error && <span className="text-destructive"> · {discovery.lastRun.error}</span>}
+          </p>
+        )}
+        <h3 className="text-sm font-semibold">{t.admin.pending}</h3>
+        {discovery.queue.length === 0 ? (
+          <p className="text-muted-foreground text-sm">{t.admin.noPending}</p>
+        ) : (
+          <ul className="divide-border divide-y" data-discovery-queue>
+            {discovery.queue.map((c) => (
+              <li key={c.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2 text-sm">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium">
+                    {c.name}{" "}
+                    <span className="text-muted-foreground text-xs">
+                      · {c.source}
+                      {c.size ? ` · ${c.size}` : ""}
+                      {c.industry ? ` · ${c.industry}` : ""}
+                    </span>
+                  </div>
+                  <a
+                    href={c.careersUrl ?? c.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary text-xs break-all hover:underline"
+                    dir="ltr"
+                  >
+                    {(c.careersUrl ?? c.website).replace(/^https?:\/\//, "")}
+                  </a>
+                  {(c.detectedProvider || c.checkError) && (
+                    <div className="text-muted-foreground text-xs">
+                      {c.detectedProvider
+                        ? `${t.admin.detected}: ${c.detectedProvider} · ${t.admin.israelJobs}: ${c.israelJobs ?? 0}`
+                        : c.checkError}
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <form action={adminApproveCandidate}>
+                    <input type="hidden" name="candidateId" value={c.id} />
+                    <button className="btn-ghost min-h-11 text-xs" type="submit">
+                      {t.admin.approveManual}
+                    </button>
+                  </form>
+                  <form action={adminRejectCandidate}>
+                    <input type="hidden" name="candidateId" value={c.id} />
+                    <button className="btn-ghost text-muted-foreground min-h-11 text-xs" type="submit">
+                      {t.admin.reject}
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="text-muted-foreground text-xs">
+          {t.admin.sourceCredit}{" "}
+          <a href="https://github.com/mluggy/techmap" target="_blank" rel="noopener noreferrer" className="underline">
+            github.com/mluggy/techmap
+          </a>
+        </p>
+      </section>
     </div>
   );
+}
+
+/** Manual companies and AUTO companies whose feed keeps failing — never hidden, listed here for review. */
+async function manualCompanies() {
+  const where = {
+    OR: [
+      { syncMode: "MANUAL" as const },
+      { atsProvider: "MANUAL" as const },
+      { atsBoardId: null },
+      { syncFailures: { gte: SYNC_FAILING_THRESHOLD } },
+    ],
+  };
+  const [total, rows] = await Promise.all([
+    db.company.count({ where }),
+    db.company.findMany({
+      where,
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        website: true,
+        careersUrl: true,
+        syncMode: true,
+        atsProvider: true,
+        atsBoardId: true,
+        syncFailures: true,
+        lastSyncError: true,
+      },
+      orderBy: [{ syncFailures: "desc" }, { name: "asc" }],
+      take: 150,
+    }),
+  ]);
+  return { total, rows: rows.sort((a, b) => Number(isSyncFailing(b)) - Number(isSyncFailing(a))) };
+}
+
+async function discoveryStats() {
+  const [byStatus, pendingChecked, queue, lastRun] = await Promise.all([
+    db.startupCandidate.groupBy({ by: ["status"], _count: { _all: true } }),
+    db.startupCandidate.count({ where: { status: "PENDING", checkedAt: { not: null } } }),
+    db.startupCandidate.findMany({
+      where: { status: "PENDING", checkedAt: { not: null } },
+      orderBy: [{ priority: "desc" }, { name: "asc" }],
+      take: 30,
+    }),
+    db.discoveryRun.findFirst({ orderBy: { startedAt: "desc" } }),
+  ]);
+  const n = (s: string) => byStatus.find((b) => b.status === s)?._count._all ?? 0;
+  return {
+    total: byStatus.reduce((sum, b) => sum + b._count._all, 0),
+    added: n("ADDED"),
+    rejected: n("REJECTED"),
+    pendingChecked,
+    queue,
+    lastRun,
+  };
 }
 
 /** Per ATS: configured companies, active jobs, latest successful sync, and boards whose latest run failed. */

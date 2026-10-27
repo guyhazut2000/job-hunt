@@ -18,6 +18,8 @@ import { getDictionary, LOCALE_COOKIE } from "@/lib/i18n";
 import { aiLimitMessage } from "@/lib/i18n/ai";
 import { SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
 import { ingestAll } from "@/lib/ingestion/run";
+import { safeHttpUrl } from "@/lib/companies/status";
+import { addCandidateAsManual, ingestDiscovered, runDiscovery } from "@/lib/discovery/run";
 import { requireAdmin, requireUser } from "@/lib/session";
 import { slugify } from "@/lib/taxonomy";
 
@@ -177,8 +179,105 @@ export async function adminAddCompany(formData: FormData) {
       atsProvider: provider as AtsProvider,
       atsBoardId: boardId,
       website: website || null,
+      syncMode: "AUTO",
+      addedVia: "admin",
     },
-    update: { atsProvider: provider as AtsProvider, atsBoardId: boardId },
+    update: { atsProvider: provider as AtsProvider, atsBoardId: boardId, syncMode: "AUTO" },
   });
+  revalidatePath("/admin");
+  revalidatePath("/companies");
+}
+
+/** An optional http(s) URL; LinkedIn and other non-company pages are rejected (see safeHttpUrl). */
+const optionalUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .optional()
+  .transform((v, ctx) => {
+    if (!v) return null;
+    const url = safeHttpUrl(/^https?:\/\//i.test(v) ? v : `https://${v}`);
+    if (!url) ctx.addIssue({ code: "custom", message: "invalid url" });
+    return url;
+  });
+
+const manualCompanySchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  website: optionalUrl,
+  careersUrl: optionalUrl,
+  notesHe: z.string().trim().max(1000).optional(),
+  notesEn: z.string().trim().max(1000).optional(),
+});
+
+/** Add (or update) a company the user checks by hand: no feed, just its careers site and notes. */
+export async function adminAddManualCompany(_: FormState, formData: FormData): Promise<FormState> {
+  await requireAdmin();
+  const { t } = await getDictionary();
+  const parsed = manualCompanySchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: t.admin.invalidManual };
+  const { name, website, careersUrl, notesHe, notesEn } = parsed.data;
+  if (!website && !careersUrl) return { error: t.admin.invalidManual };
+  const slug = slugify(name);
+  if (!slug) return { error: t.admin.invalidManual };
+  const fields = {
+    name,
+    website: website ?? careersUrl,
+    careersUrl: careersUrl ?? website,
+    notesHe: notesHe || null,
+    notesEn: notesEn || null,
+  };
+  const existing = await db.company.findUnique({ where: { slug }, select: { id: true } });
+  if (existing) {
+    // Keep its feed configuration; the admin can switch it to manual explicitly.
+    await db.company.update({ where: { id: existing.id }, data: fields });
+  } else {
+    await db.company.create({
+      data: { slug, ...fields, atsProvider: "MANUAL", syncMode: "MANUAL", addedVia: "admin" },
+    });
+  }
+  revalidatePath("/admin");
+  revalidatePath("/companies");
+  return { ok: t.admin.savedManual };
+}
+
+/** Flip a company between automatic sync and manual checking. Jobs already pulled stay as they are. */
+export async function adminSetSyncMode(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("companyId") ?? "");
+  const mode = formData.get("mode") === "AUTO" ? "AUTO" : "MANUAL";
+  const company = await db.company.findUnique({ where: { id }, select: { atsBoardId: true, atsProvider: true } });
+  if (!company) return;
+  // AUTO needs a configured board; otherwise it would silently never sync.
+  if (mode === "AUTO" && (!company.atsBoardId || company.atsProvider === "MANUAL")) return;
+  await db.company.update({
+    where: { id },
+    data: { syncMode: mode, ...(mode === "AUTO" ? { syncFailures: 0 } : {}) },
+  });
+  revalidatePath("/admin");
+  revalidatePath("/companies");
+}
+
+export async function adminRunDiscovery() {
+  await requireAdmin();
+  const started = Date.now();
+  await runDiscovery({ trigger: "admin", timeBudgetMs: 200_000 });
+  await ingestDiscovered(started + 230_000).catch(() => 0);
+  revalidatePath("/admin");
+  revalidatePath("/companies");
+}
+
+export async function adminApproveCandidate(formData: FormData) {
+  await requireAdmin();
+  const candidate = await db.startupCandidate.findUnique({ where: { id: String(formData.get("candidateId") ?? "") } });
+  if (!candidate || candidate.status !== "PENDING") return;
+  await addCandidateAsManual(candidate, "admin");
+  revalidatePath("/admin");
+  revalidatePath("/companies");
+}
+
+export async function adminRejectCandidate(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("candidateId") ?? "");
+  await db.startupCandidate.updateMany({ where: { id, status: "PENDING" }, data: { status: "REJECTED" } });
   revalidatePath("/admin");
 }

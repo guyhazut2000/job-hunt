@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, ExternalLink } from "lucide-react";
+import { AlertTriangle, ArrowRight, ExternalLink, Hand } from "lucide-react";
 import { auth } from "@/auth";
 import { JobCard, JobList } from "@/components/JobCard";
 import { LinkedinCompanyLinks } from "@/components/LinkedinCompanyLink";
 import { People } from "@/components/outreach/People";
 import { CompanySalaryBands } from "@/components/salary/CompanySalaryBands";
+import { careersLink, isManualCompany, isSyncFailing, safeHttpUrl } from "@/lib/companies/status";
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
@@ -27,6 +28,11 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
     include: { jobs: { where: { isActive: true }, orderBy: { postedAt: "desc" }, include: { company: true } } },
   });
   if (!company) notFound();
+  const manual = isManualCompany(company);
+  const failing = isSyncFailing(company);
+  const careers = careersLink(company);
+  const website = safeHttpUrl(company.website);
+  const note = (locale === "he" ? company.notesHe : company.notesEn) ?? company.notesHe ?? company.notesEn;
   return (
     <div className="flex flex-col gap-6">
       <Link
@@ -45,14 +51,26 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
           </p>
         )}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-          {company.website && (
+          {website && (
             <a
               className="text-primary inline-flex min-h-11 items-center gap-1 font-semibold underline-offset-4 hover:underline"
-              href={company.website}
+              href={website}
               target="_blank"
               rel="noopener noreferrer"
             >
               {t.companies.website}
+              <ExternalLink className="size-3.5" aria-hidden />
+            </a>
+          )}
+          {careers && careers !== website && (
+            <a
+              className="text-primary inline-flex min-h-11 items-center gap-1 font-semibold underline-offset-4 hover:underline"
+              href={careers}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-careers-link
+            >
+              {t.companies.careersSite}
               <ExternalLink className="size-3.5" aria-hidden />
             </a>
           )}
@@ -64,6 +82,52 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
           )}
         </div>
       </header>
+      {(manual || failing) && (
+        <section
+          data-manual-notice={manual ? "manual" : "failing"}
+          aria-labelledby="sync-notice-h"
+          className={
+            manual
+              ? "border-primary/40 bg-primary/5 flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-start sm:gap-4"
+              : "border-destructive/40 bg-destructive/5 flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-start sm:gap-4"
+          }
+        >
+          {manual ? (
+            <Hand className="text-primary size-6 shrink-0" aria-hidden />
+          ) : (
+            <AlertTriangle className="text-destructive size-6 shrink-0" aria-hidden />
+          )}
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <h2 id="sync-notice-h" className="font-heading text-lg leading-tight font-bold">
+              {manual ? t.companies.manualTitle : t.companies.failingTitle}
+            </h2>
+            <p className="text-foreground/85 max-w-[68ch] leading-relaxed">
+              {manual ? t.companies.manualBody : t.companies.failingBody}
+            </p>
+            {note && (
+              <p className="text-muted-foreground max-w-[68ch] text-sm" dir="auto">
+                {note}
+              </p>
+            )}
+            {failing && company.lastSyncError && (
+              <p className="text-muted-foreground font-mono text-xs break-words" dir="ltr">
+                {t.companies.lastError}: {company.lastSyncError}
+              </p>
+            )}
+            {careers && (
+              <a
+                href={careers}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 inline-flex min-h-11 w-fit items-center gap-2 rounded-md px-4 text-sm font-semibold"
+              >
+                {t.companies.openCareers}
+                <ExternalLink className="size-4" aria-hidden />
+              </a>
+            )}
+          </div>
+        </section>
+      )}
       <People company={company} userId={session?.user?.id} t={t} />
       <CompanySalaryBands company={company} jobs={company.jobs} loggedIn={!!session?.user?.id} locale={locale} />
       <h2 className="font-heading border-rule border-t-2 pt-6 text-xl font-bold">
