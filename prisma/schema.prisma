@@ -191,6 +191,87 @@ model Company {
   jobs         Job[]
   contacts     Contact[]
   salaries     SalaryReport[]
+
+  /// AUTO = jobs are pulled from `atsProvider`/`atsBoardId`; MANUAL = no working feed, the user checks
+  /// `careersUrl` by hand. Companies are never hidden or deleted because a feed is missing or failing.
+  syncMode          CompanySyncMode @default(AUTO)
+  /// The company's own careers page (never a LinkedIn URL).
+  careersUrl        String?
+  notesHe           String?
+  notesEn           String?
+  /// Last ingest error for an AUTO company (cleared on the next successful sync).
+  lastSyncError     String?
+  lastSyncErrorAt   DateTime?
+  /// Consecutive failed syncs; >= SYNC_FAILING_THRESHOLD shows a "feed failing" note in the UI.
+  syncFailures      Int             @default(0)
+  /// How the company got here: "curated", "manual-seed", "admin", "discovery:YC", "discovery:WIKIDATA"…
+  addedVia          String?
+  startupCandidates StartupCandidate[]
+}
+
+enum CompanySyncMode {
+  AUTO
+  MANUAL
+}
+
+enum StartupCandidateStatus {
+  /// Waiting for an admin (no supported ATS with Israeli openings was detected).
+  PENDING
+  /// Became a Company (AUTO if an ATS feed was detected, otherwise MANUAL).
+  ADDED
+  REJECTED
+  /// Already in the app under another name/source.
+  DUPLICATE
+}
+
+/// Startup discovery (docs/startup-discovery.md): companies found in public directories, waiting to be
+/// checked for a careers page / ATS and added. One row per website domain.
+model StartupCandidate {
+  id               String                 @id @default(cuid())
+  domain           String                 @unique
+  name             String
+  website          String
+  source           String
+  sourceUrl        String?
+  description      String?
+  location         String?
+  industry         String?
+  /// TechMap size bucket (xs 1-10, s 11-50, m 51-200, l 201-1,000, xl 1,001+) when known.
+  size             String?
+  foundedYear      Int?
+  /// Higher = checked first (bigger companies, known ATS hints, hiring signals).
+  priority         Int                    @default(0)
+  /// ATS identifiers the source already knows (e.g. TechMap greenhouseId / leverId / comeetId).
+  hints            Json?
+  status           StartupCandidateStatus @default(PENDING)
+  /// Result of the last ATS check of the company's own site.
+  careersUrl       String?
+  detectedProvider AtsProvider?
+  detectedBoardId  String?
+  israelJobs       Int?
+  checkedAt        DateTime?
+  checkError       String?
+  companyId        String?
+  company          Company?               @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  @@index([status, checkedAt])
+  @@index([checkedAt, priority])
+}
+
+/// One discovery cron/admin run: import from the public directories and/or check a batch of candidates.
+model DiscoveryRun {
+  id         String    @id @default(cuid())
+  trigger    String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  /// New candidates per source, e.g. {"TECHMAP": 812, "YC": 20}.
+  imported   Json?
+  checked    Int       @default(0)
+  addedAuto  Int       @default(0)
+  pending    Int       @default(0)
+  error      String?
 }
 
 /// Anonymous salary report. No user id, no free text: `reporterKey` is an HMAC of the user id
