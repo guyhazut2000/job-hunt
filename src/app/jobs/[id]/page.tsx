@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
 import { auth } from "@/auth";
 import { BackToTop } from "@/components/BackToTop";
+import { CollapsibleText } from "@/components/CollapsibleText";
 import { CvTips } from "@/components/CvTips";
 import { LinkedinJobButton, type LinkedinLink } from "@/components/LinkedinJobLink";
 import { OutboundLink } from "@/components/OutboundLink";
@@ -161,12 +162,13 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             <h2 id="role-details" className="kicker">
               {t.ui.roleDetails}
             </h2>
-            <div
+            <CollapsibleText
+              moreLabel={t.ui.showMore}
+              lessLabel={t.ui.showLess}
               className="text-foreground/90 max-w-[68ch] text-[1.02rem] leading-relaxed whitespace-pre-line"
-              dir="auto"
             >
-              {job.description}
-            </div>
+              <div dir="auto">{job.description}</div>
+            </CollapsibleText>
           </section>
 
           {job.source !== "MANUAL" && (
