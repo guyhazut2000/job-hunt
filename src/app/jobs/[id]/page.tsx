@@ -1,8 +1,11 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
 import { auth } from "@/auth";
 import { CvTips } from "@/components/CvTips";
+import { LinkedinJobButton, type LinkedinLink } from "@/components/LinkedinJobLink";
+import { OutboundLink } from "@/components/OutboundLink";
 import { MatchMeter } from "@/components/MatchMeter";
 import { People } from "@/components/outreach/People";
 import { SalarySection } from "@/components/salary/SalarySection";
@@ -12,6 +15,9 @@ import { track } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
+import { linkedinStrings, type LinkedinStrings } from "@/lib/i18n/linkedin";
+import { linkedinLinkFor, needsLinkedinCheck } from "@/lib/linkedin/jobs";
+import { resolveLinkedinJob } from "@/lib/linkedin/resolve";
 import { MatchReasons } from "@/components/profile/MatchReasons";
 import { hasScorableProfile, scoreMatch, toCandidate } from "@/lib/profile/score";
 
@@ -24,6 +30,20 @@ function hostOf(url: string) {
     return url;
   }
 }
+
+/** Waits (streamed, inside Suspense) for the lazy LinkedIn lookup started by the page. */
+async function LinkedinSlot(props: {
+  pending: Promise<LinkedinLink>;
+  jobId: string;
+  s: LinkedinStrings;
+  placement: "page" | "bar";
+  className?: string;
+}) {
+  return <LinkedinJobButton link={await props.pending} {...props} />;
+}
+
+/** Brave lookups are paced; never hold the LinkedIn slot longer than this on a first view. */
+const LINKEDIN_WAIT_MS = 4000;
 
 const SOURCE_LABELS = { GREENHOUSE: "Greenhouse", LEVER: "Lever", COMEET: "Comeet", MANUAL: "" } as const;
 
@@ -50,12 +70,31 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   const match = hasScorableProfile(profile) ? scoreMatch(toCandidate(profile), job) : null;
   track("job_view", { jobId: id, source: job.source });
 
-  const applyButton = (
+  // Lazy exact-posting lookup (Brave, cached on the Job, capped). One promise shared by both slots.
+  const li = linkedinStrings(locale);
+  const known = linkedinLinkFor(job);
+  const pendingLinkedin: Promise<LinkedinLink> = needsLinkedinCheck(job)
+    ? Promise.race([
+        resolveLinkedinJob(job.id, "view")
+          .then((r) => linkedinLinkFor({ ...job, linkedinUrl: r.url }))
+          .catch(() => known),
+        new Promise<LinkedinLink>((r) => setTimeout(() => r(known), LINKEDIN_WAIT_MS)),
+      ])
+    : Promise.resolve(known);
+  const linkedinSlot = (placement: "page" | "bar", className?: string) => (
+    <Suspense
+      fallback={<LinkedinJobButton link={known} jobId={job.id} s={li} placement={placement} className={className} />}
+    >
+      <LinkedinSlot pending={pendingLinkedin} jobId={job.id} s={li} placement={placement} className={className} />
+    </Suspense>
+  );
+
+  const applyButton = (placement: "page" | "bar") => (
     <Button asChild size="lg" className="w-full">
-      <a href={job.applyUrl} target="_blank" rel="noopener noreferrer">
+      <OutboundLink href={job.applyUrl} event="job_apply_click" kind="company" jobId={job.id} placement={placement}>
         {t.jobs.apply}
         <ExternalLink data-icon="inline-end" aria-hidden />
-      </a>
+      </OutboundLink>
     </Button>
   );
 
@@ -100,6 +139,8 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
                 ))}
               </ul>
             )}
+            {/* mobile: the action bar keeps only the primary apply button */}
+            {linkedinSlot("page", "pt-1 sm:max-w-sm lg:hidden")}
           </header>
 
           <SalarySection job={job} company={job.company} profile={profile} loggedIn={!!userId} locale={locale} />
@@ -138,7 +179,8 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
 
         <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
           <div className="bg-card hidden flex-col gap-2 rounded-lg border p-4 lg:flex">
-            {applyButton}
+            {applyButton("page")}
+            {linkedinSlot("page")}
             {userId && (
               <SaveJobButton jobId={job.id} saved={!!application} label={t.jobs.save} savedLabel={t.jobs.saved} />
             )}
@@ -192,7 +234,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
 
       {/* mobile action bar — sits above the bottom nav */}
       <div className="bg-background/95 fixed inset-x-0 bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] z-30 flex gap-2 border-t px-4 py-3 backdrop-blur-md md:bottom-0 lg:hidden">
-        <div className="flex-1">{applyButton}</div>
+        <div className="flex-1">{applyButton("bar")}</div>
         {userId && (
           <SaveJobButton jobId={job.id} saved={!!application} label={t.jobs.save} savedLabel={t.jobs.saved} compact />
         )}

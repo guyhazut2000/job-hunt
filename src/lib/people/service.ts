@@ -32,12 +32,14 @@ function pacer(minIntervalMs: number) {
 
 async function counts(userId: string, now: Date) {
   const at = (ms: number) => new Date(now.getTime() - ms);
-  const [lastMinute, lastDayUncached, lastMonthUncached] = await Promise.all([
+  const [lastMinute, lastDayUncached, lastMonthPeople, lastMonthJobLinks] = await Promise.all([
     db.peopleSearchUsage.count({ where: { userId, createdAt: { gt: at(MINUTE) } } }),
     db.peopleSearchUsage.count({ where: { userId, cached: false, createdAt: { gt: at(DAY) } } }),
     db.peopleSearchUsage.count({ where: { cached: false, createdAt: { gt: at(MONTH) } } }),
+    // LinkedIn job-link lookups share the same Brave monthly budget.
+    db.linkedinJobLookup.count({ where: { createdAt: { gt: at(MONTH) } } }),
   ]);
-  return { lastMinute, lastDayUncached, lastMonthUncached };
+  return { lastMinute, lastDayUncached, lastMonthUncached: lastMonthPeople + lastMonthJobLinks };
 }
 
 async function visible(people: PersonCard[], userId: string) {
