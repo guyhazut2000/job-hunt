@@ -2,9 +2,13 @@ import type { Company, Job } from "@prisma/client";
 import { getLLMProvider } from "@/lib/ai";
 import { db } from "@/lib/db";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n";
+import { peopleSearchStrings } from "@/lib/i18n/people-search";
 import { outreachContext } from "@/lib/outreach/context";
 import { DOMAIN_SCOPED, domainTerms, peopleLinks } from "@/lib/outreach/links";
 import { templateMessage } from "@/lib/outreach/messages";
+import { peopleSearchConfig } from "@/lib/people/config";
+import { normalizeProfileUrl } from "@/lib/people/parse";
 import { PeopleSection, type PeopleCategoryItem } from "./PeopleSection";
 
 /**
@@ -41,6 +45,8 @@ export async function People({
     domain: hasDomain && DOMAIN_SCOPED.has(l.category) && roleCategory ? t.roles[roleCategory] : null,
     messages: { he: templateMessage(l.category, ctx, "he"), en: templateMessage(l.category, ctx, "en") },
   }));
+  const locale = await getLocale();
+  const savedKeys = contacts.flatMap((c) => normalizeProfileUrl(c.linkedinUrl)?.key ?? []);
   return (
     <PeopleSection
       company={{ id: company.id, name: company.name }}
@@ -51,6 +57,7 @@ export async function People({
       canAi={!!userId && getLLMProvider().name !== "mock"}
       defaultLang="he"
       t={t.people}
+      search={{ enabled: peopleSearchConfig().enabled, locale, savedKeys, s: peopleSearchStrings[locale] }}
     />
   );
 }
