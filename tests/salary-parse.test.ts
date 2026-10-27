@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsePostedSalary } from "@/lib/salary/parse";
+import { parsePostedSalary, statedSalary } from "@/lib/salary/parse";
 
 describe("parsePostedSalary", () => {
   it.each([
@@ -57,5 +57,33 @@ describe("parsePostedSalary", () => {
   it("handles null/undefined", () => {
     expect(parsePostedSalary(null)).toBeNull();
     expect(parsePostedSalary(undefined)).toBeNull();
+  });
+});
+
+describe("statedSalary (structured ATS ranges)", () => {
+  it("accepts a monthly ILS range", () => {
+    expect(statedSalary({ min: 30_000, max: 40_000, currency: "ILS", period: "month" })).toMatchObject({
+      currency: "ILS",
+      period: "month",
+      monthlyMinIls: 30_000,
+      monthlyMaxIls: 40_000,
+    });
+  });
+  it("converts an annual ILS range to monthly", () => {
+    expect(statedSalary({ min: 480_000, max: 600_000, currency: "ILS", period: "year" })).toMatchObject({
+      monthlyMinIls: 40_000,
+      monthlyMaxIls: 50_000,
+    });
+  });
+  it("keeps foreign ranges without an ILS conversion", () => {
+    expect(statedSalary({ min: 150_000, max: 190_000, currency: "USD", period: "year" })).toMatchObject({
+      currency: "USD",
+      monthlyMinIls: null,
+    });
+  });
+  it("rejects implausible, unsupported or missing ranges", () => {
+    expect(statedSalary({ min: 5, max: 9, currency: "ILS", period: "month" })).toBeNull();
+    expect(statedSalary({ min: 100_000, max: 120_000, currency: "CAD", period: "year" })).toBeNull();
+    expect(statedSalary(null)).toBeNull();
   });
 });

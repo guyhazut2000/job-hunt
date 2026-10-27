@@ -1,7 +1,7 @@
 /** Israeli city canonicalization (English + Hebrew spellings seen on ATS boards). */
 const CITIES: [label: string, re: RegExp][] = [
   ["Tel Aviv", /tel[\s-]?aviv|תל[\s-]?אביב|\btlv\b/i],
-  ["Herzliya", /herzl?iy?ah?|הרצליה/i],
+  ["Herzliya", /herz[e]?l?iy?ah?|הרצליה/i],
   ["Ramat Gan", /ramat[\s-]?gan|רמת[\s-]?גן/i],
   ["Petah Tikva", /pet(?:a|ah|ach)[\s-]?ti[kq]v?v?a|פתח[\s-]?תקוו?ה/i],
   ["Haifa", /haifa|חיפה/i],
@@ -12,7 +12,7 @@ const CITIES: [label: string, re: RegExp][] = [
   ["Yokneam", /yo[kq]ne?'?am|יקנעם/i],
   ["Rehovot", /rehovot|רחובות/i],
   ["Hod Hasharon", /hod[\s-]?hasharon|הוד[\s-]?השרון/i],
-  ["Kfar Saba", /kfar[\s-]?saba|כפר[\s-]?סבא/i],
+  ["Kfar Saba", /k(?:e)?far[\s-]?sa[bv]a|כפר[\s-]?סבא/i],
   ["Rosh HaAyin", /rosh[\s-]?ha'?ayin|ראש[\s-]?העין/i],
   ["Caesarea", /caesarea|קיסריה/i],
   ["Or Yehuda", /or[\s-]?yehuda|אור[\s-]?יהודה/i],
@@ -24,6 +24,21 @@ const CITIES: [label: string, re: RegExp][] = [
   ["Rishon LeZion", /rishon|ראשון[\s-]?לציון/i],
   ["Lod", /\blod\b|לוד/i],
   ["Kiryat Gat", /kiryat[\s-]?gat|קריית[\s-]?גת/i],
+  ["Ness Ziona", /ne(?:s|ss)[\s-]?ziona|נס[\s-]?ציונה/i],
+  ["Yavne", /\byavne\b|יבנה/i],
+  ["Ashdod", /ashdod|אשדוד/i],
+  ["Ashkelon", /ashkelon|אשקלון/i],
+  ["Hadera", /hadera|חדרה/i],
+  ["Karmiel", /karmiel|כרמיאל/i],
+  ["Migdal HaEmek", /migdal[\s-]?ha'?emek|מגדל[\s-]?העמק/i],
+  ["Tel Hai", /tel[\s-]?hai|תל[\s-]?חי/i],
+  ["Kiryat Shmona", /kiryat[\s-]?shmona|קריית[\s-]?שמונה/i],
+  ["Ramat HaSharon", /ramat[\s-]?hasharon|רמת[\s-]?השרון/i],
+  ["Yehud", /\byehud\b|יהוד(?!ה)/i],
+  ["Shefayim", /shefayim|שפיים/i],
+  ["Zichron Ya'akov", /zi[ck]h?ron[\s-]?ya'?akov|זכרון[\s-]?יעקב/i],
+  ["Beit Shemesh", /beit[\s-]?shemesh|בית[\s-]?שמש/i],
+  ["Misgav", /\bmisgav\b|משגב/i],
 ];
 
 const COUNTRY = /israel|ישראל|\bisr\b/i;

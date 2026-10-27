@@ -1,0 +1,30 @@
+{
+  "offset": 0,
+  "limit": 100,
+  "totalFound": 2,
+  "content": [
+    {
+      "id": "744000000000001",
+      "name": "Frontend Team Lead",
+      "releasedDate": "2026-10-08T09:00:00.000Z",
+      "location": {
+        "city": "Tel Aviv-Yafo",
+        "region": "Tel Aviv District",
+        "country": "il",
+        "remote": false,
+        "hybrid": true,
+        "fullLocation": "Tel Aviv-Yafo, Tel Aviv District, Israel"
+      },
+      "department": { "label": "R&D" },
+      "typeOfEmployment": { "label": "Full-time" },
+      "company": { "identifier": "Acme1" }
+    },
+    {
+      "id": "744000000000002",
+      "name": "QA Engineer",
+      "releasedDate": "2026-10-09T09:00:00.000Z",
+      "location": { "city": "Be'er Sheva", "country": "il", "remote": false, "fullLocation": "Be'er Sheva, Israel" },
+      "company": { "identifier": "Acme1" }
+    }
+  ]
+}

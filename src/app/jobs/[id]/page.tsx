@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import type { AtsProvider } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
 import { auth } from "@/auth";
@@ -45,7 +46,17 @@ async function LinkedinSlot(props: {
 /** Brave lookups are paced; never hold the LinkedIn slot longer than this on a first view. */
 const LINKEDIN_WAIT_MS = 4000;
 
-const SOURCE_LABELS = { GREENHOUSE: "Greenhouse", LEVER: "Lever", COMEET: "Comeet", MANUAL: "" } as const;
+const SOURCE_LABELS: Record<AtsProvider, string> = {
+  GREENHOUSE: "Greenhouse",
+  LEVER: "Lever",
+  COMEET: "Comeet",
+  ASHBY: "Ashby",
+  WORKABLE: "Workable",
+  SMARTRECRUITERS: "SmartRecruiters",
+  WORKDAY: "Workday",
+  RECRUITEE: "Recruitee",
+  MANUAL: "",
+};
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const job = await db.job.findUnique({ where: { id: (await params).id }, include: { company: true } });

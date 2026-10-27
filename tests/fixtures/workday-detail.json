@@ -1,0 +1,15 @@
+{
+  "jobPostingInfo": {
+    "id": "abc123",
+    "title": "Physical Design Engineer",
+    "jobDescription": "<p>Own physical design of CPU blocks. Verilog, STA.</p>",
+    "location": "Israel, Haifa",
+    "additionalLocations": ["Israel, Petah Tikva"],
+    "startDate": "2026-10-24",
+    "postedOn": "Posted 3 Days Ago",
+    "timeType": "Full time",
+    "jobReqId": "JR0001",
+    "country": { "descriptor": "Israel" },
+    "externalUrl": "https://acme.wd1.myworkdayjobs.com/External/job/Israel-Haifa/Physical-Design-Engineer_JR0001"
+  }
+}
