@@ -4,6 +4,7 @@ import { logout, setLocale } from "@/app/actions";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { getDictionary } from "@/lib/i18n";
+import { learningStrings } from "@/lib/i18n/learning";
 import { Brand } from "./Brand";
 import { NavLinks } from "./NavLinks";
 
@@ -13,6 +14,7 @@ export async function Header() {
   const links = [
     { href: "/jobs", label: t.nav.jobs },
     { href: "/companies", label: t.nav.companies },
+    { href: "/learn", label: learningStrings(locale).nav },
     ...(user
       ? [
           { href: "/dashboard", label: t.nav.dashboard },

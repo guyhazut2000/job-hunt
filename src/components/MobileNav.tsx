@@ -20,6 +20,7 @@ type Labels = Record<
   | "register"
   | "logout"
   | "pricing"
+  | "learn"
   | "admin"
   | "language"
   | "account",
@@ -88,6 +89,11 @@ export function MobileNav({ user, labels, locale }: { user: { role: string } | n
                 <SheetTitle className="font-heading text-lg">{labels.account}</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-2 px-4">
+                <SheetClose asChild>
+                  <Button asChild variant="outline" className="justify-start">
+                    <Link href="/learn">{labels.learn}</Link>
+                  </Button>
+                </SheetClose>
                 <SheetClose asChild>
                   <Button asChild variant="outline" className="justify-start">
                     <Link href="/pricing">{labels.pricing}</Link>
