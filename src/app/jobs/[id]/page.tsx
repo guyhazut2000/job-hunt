@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { AtsProvider } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
 import { auth } from "@/auth";
@@ -25,7 +26,17 @@ function hostOf(url: string) {
   }
 }
 
-const SOURCE_LABELS = { GREENHOUSE: "Greenhouse", LEVER: "Lever", COMEET: "Comeet", MANUAL: "" } as const;
+const SOURCE_LABELS: Record<AtsProvider, string> = {
+  GREENHOUSE: "Greenhouse",
+  LEVER: "Lever",
+  COMEET: "Comeet",
+  ASHBY: "Ashby",
+  WORKABLE: "Workable",
+  SMARTRECRUITERS: "SmartRecruiters",
+  WORKDAY: "Workday",
+  RECRUITEE: "Recruitee",
+  MANUAL: "",
+};
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const job = await db.job.findUnique({ where: { id: (await params).id }, include: { company: true } });

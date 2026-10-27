@@ -1,20 +1,27 @@
+import type { AtsProvider } from "@prisma/client";
 import { db } from "../db";
 import { sleep } from "./http";
 import { getAdapter } from "./registry";
 import { JOB_SOURCES, type JobSource } from "./sources";
+import type { NormalizedJob } from "./types";
 
 export interface IngestionResult {
   companyId: string;
   company?: string;
+  provider?: AtsProvider;
   fetched: number;
   created: number;
   updated: number;
   deactivated: number;
+  /** New postings whose details were not fetched this run (detail budget / deadline); picked up next run. */
+  deferred?: number;
   error?: string;
 }
 
-/** Pause between companies so we never hammer a job-board API. */
+/** Pause between two companies of the same provider so we never hammer a job-board API. */
 const POLITE_DELAY_MS = 750;
+/** Max detail requests per company per run for list-only sources (Workday, SmartRecruiters). */
+export const DETAIL_BUDGET = 60;
 
 /**
  * Upsert the curated sources (src/lib/ingestion/sources.ts) as Company rows. No network access.
@@ -35,13 +42,20 @@ export async function syncSources(sources: JobSource[] = JOB_SOURCES): Promise<n
   return sources.length;
 }
 
+export interface IngestOptions {
+  /** Epoch ms after which no new detail requests are started. */
+  deadline?: number;
+  detailBudget?: number;
+}
+
 /** Sync one company's Israeli jobs from its ATS. Idempotent: upserts by (source, externalId). */
-export async function ingestCompany(companyId: string): Promise<IngestionResult> {
+export async function ingestCompany(companyId: string, options: IngestOptions = {}): Promise<IngestionResult> {
   const company = await db.company.findUniqueOrThrow({ where: { id: companyId } });
   const adapter = getAdapter(company.atsProvider);
   const result: IngestionResult = {
     companyId,
     company: company.name,
+    provider: company.atsProvider,
     fetched: 0,
     created: 0,
     updated: 0,
@@ -51,34 +65,67 @@ export async function ingestCompany(companyId: string): Promise<IngestionResult>
     result.error = "No ATS adapter/board configured";
     return result;
   }
+  const ctx = { boardId: company.atsBoardId };
   const run = await db.ingestionRun.create({ data: { provider: company.atsProvider, companyId } });
   try {
-    const raws = await adapter.fetchRaw({ boardId: company.atsBoardId });
+    const raws = (await adapter.fetchRaw(ctx)).filter((r) => adapter.isInIsrael(r));
     result.fetched = raws.length;
-    const jobs = raws
-      .filter((r) => adapter.isInIsrael(r))
-      .map((r) => adapter.normalize(r))
-      .filter((j) => j !== null);
-    const existing = new Set(
-      (
-        await db.job.findMany({
-          where: { source: company.atsProvider, externalId: { in: jobs.map((j) => j.externalId) } },
-          select: { externalId: true },
-        })
-      ).map((j) => j.externalId),
-    );
     const seen = new Set<string>();
-    for (const job of jobs) {
-      if (seen.has(job.externalId)) continue;
-      seen.add(job.externalId);
-      await db.job.upsert({
-        where: { source_externalId: { source: job.source, externalId: job.externalId } },
-        create: { ...job, companyId },
-        update: { ...job, companyId, isActive: true },
-      });
-      if (existing.has(job.externalId)) result.updated++;
-      else result.created++;
+
+    if (adapter.detail) {
+      // List-only source: refresh known postings cheaply, fetch details for new ones within budget.
+      const detail = adapter.detail;
+      const ids = raws.map((r) => detail.externalId(r, ctx));
+      const known = await existingIds(company.atsProvider, ids);
+      let budget = options.detailBudget ?? DETAIL_BUDGET;
+      let deferred = 0;
+      for (const [i, raw] of raws.entries()) {
+        const id = ids[i];
+        if (seen.has(id)) continue;
+        if (known.has(id)) {
+          seen.add(id);
+          await db.job.update({
+            where: { source_externalId: { source: company.atsProvider, externalId: id } },
+            data: { isActive: true, companyId },
+          });
+          result.updated++;
+          continue;
+        }
+        if (budget <= 0 || (options.deadline && Date.now() > options.deadline)) {
+          deferred++;
+          continue;
+        }
+        budget--;
+        let full: unknown;
+        try {
+          full = await detail.fetch(raw, ctx);
+        } catch {
+          deferred++;
+          continue;
+        }
+        if (!adapter.isInIsrael(full)) continue;
+        const job = adapter.normalize(full);
+        if (!job) continue;
+        seen.add(job.externalId);
+        await upsertJob(job, companyId);
+        result.created++;
+      }
+      if (deferred) result.deferred = deferred;
+    } else {
+      const jobs = raws.map((r) => adapter.normalize(r)).filter((j): j is NormalizedJob => j !== null);
+      const known = await existingIds(
+        company.atsProvider,
+        jobs.map((j) => j.externalId),
+      );
+      for (const job of jobs) {
+        if (seen.has(job.externalId)) continue;
+        seen.add(job.externalId);
+        await upsertJob(job, companyId);
+        if (known.has(job.externalId)) result.updated++;
+        else result.created++;
+      }
     }
+
     const stale = await db.job.updateMany({
       where: { companyId, source: company.atsProvider, isActive: true, externalId: { notIn: [...seen] } },
       data: { isActive: false },
@@ -102,17 +149,87 @@ export async function ingestCompany(companyId: string): Promise<IngestionResult>
   return result;
 }
 
-export async function ingestAll(options: { syncSources?: boolean } = {}): Promise<IngestionResult[]> {
+async function existingIds(source: AtsProvider, ids: string[]) {
+  if (!ids.length) return new Set<string>();
+  const rows = await db.job.findMany({ where: { source, externalId: { in: ids } }, select: { externalId: true } });
+  return new Set(rows.map((r) => r.externalId));
+}
+
+function upsertJob(job: NormalizedJob, companyId: string) {
+  return db.job.upsert({
+    where: { source_externalId: { source: job.source, externalId: job.externalId } },
+    create: { ...job, companyId },
+    update: { ...job, companyId, isActive: true },
+  });
+}
+
+export interface IngestAllOptions {
+  syncSources?: boolean;
+  /** Only these providers (the cron splits providers across invocations). */
+  providers?: AtsProvider[];
+  /**
+   * Wall-clock budget in ms. Companies not started by then are skipped (they are the freshest ones,
+   * since we go stalest-first, so every board is still visited across runs).
+   */
+  timeBudgetMs?: number;
+}
+
+export interface IngestAllResult {
+  results: IngestionResult[];
+  /** Companies not reached before the time budget ran out. */
+  skipped: number;
+}
+
+/**
+ * Parallel lanes per provider. Workday boards are separate tenant hosts (each still paced by
+ * http.ts), so a few run side by side; shared-host APIs (Greenhouse, Lever, ...) stay serial.
+ */
+const PROVIDER_LANES: Partial<Record<AtsProvider, number>> = { WORKDAY: 4 };
+
+/**
+ * Ingest every configured company. Providers run concurrently (they are different hosts); companies
+ * of one provider run one at a time with a polite delay, stalest first.
+ */
+export async function ingestAllDetailed(options: IngestAllOptions = {}): Promise<IngestAllResult> {
+  const started = Date.now();
   if (options.syncSources !== false) await syncSources();
   const companies = await db.company.findMany({
-    where: { atsProvider: { not: "MANUAL" }, atsBoardId: { not: null } },
-    select: { id: true },
+    where: {
+      atsProvider: options.providers?.length ? { in: options.providers } : { not: "MANUAL" },
+      atsBoardId: { not: null },
+    },
+    select: { id: true, atsProvider: true },
     orderBy: { lastSyncedAt: { sort: "asc", nulls: "first" } },
   });
+  const deadline = options.timeBudgetMs ? started + options.timeBudgetMs : undefined;
+  const byProvider = new Map<AtsProvider, string[]>();
+  for (const c of companies) byProvider.set(c.atsProvider, [...(byProvider.get(c.atsProvider) ?? []), c.id]);
+
   const results: IngestionResult[] = [];
-  for (const [i, c] of companies.entries()) {
-    if (i > 0) await sleep(POLITE_DELAY_MS);
-    results.push(await ingestCompany(c.id));
-  }
-  return results;
+  let skipped = 0;
+  await Promise.all(
+    [...byProvider.entries()].flatMap(([provider, ids]) => {
+      // Lanes pull from one shared queue; >1 lane only where every board is its own host.
+      let next = 0;
+      const lanes = Math.min(PROVIDER_LANES[provider] ?? 1, ids.length);
+      return Array.from({ length: lanes }, async () => {
+        for (let first = true; next < ids.length; first = false) {
+          // Leave headroom for the slowest single board (detail fetches stop at the deadline too).
+          if (deadline && Date.now() > deadline) {
+            skipped += ids.length - next;
+            next = ids.length;
+            return;
+          }
+          const id = ids[next++];
+          if (!first) await sleep(POLITE_DELAY_MS);
+          results.push(await ingestCompany(id, { deadline }));
+        }
+      });
+    }),
+  );
+  return { results, skipped };
+}
+
+export async function ingestAll(options: IngestAllOptions = {}): Promise<IngestionResult[]> {
+  return (await ingestAllDetailed(options)).results;
 }

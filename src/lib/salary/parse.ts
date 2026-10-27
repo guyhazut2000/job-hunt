@@ -142,3 +142,22 @@ export function parsePostedSalary(text: string | null | undefined): PostedSalary
   // Prefer ILS (local contract), then the first occurrence.
   return found.find((f) => f.currency === "ILS") ?? found[0] ?? null;
 }
+
+const CURRENCIES: Currency[] = ["ILS", "USD", "EUR", "GBP"];
+const SYMBOL: Record<Currency, string> = { ILS: "₪", USD: "$", EUR: "€", GBP: "£" };
+
+/**
+ * A pay range from a structured ATS field (Greenhouse pay_input_ranges, Lever salaryRange, Ashby
+ * compensation, Recruitee salary). Goes through the same plausibility checks as a parsed range.
+ */
+export function statedSalary(
+  pay: { min: number | null; max: number | null; currency: string | null; period: string | null } | null | undefined,
+): PostedSalary | null {
+  if (!pay || pay.min == null || pay.max == null || !pay.currency) return null;
+  const currency = CURRENCIES.find((c) => c === pay.currency?.toUpperCase());
+  const period = (["month", "year", "hour"] as const).find((p) => p === pay.period);
+  if (!currency || !period) return null;
+  const fmt = (n: number) => `${SYMBOL[currency]}${n.toLocaleString("en-US")}`;
+  const raw = `${fmt(pay.min)}–${fmt(pay.max)} per ${period}`;
+  return finish(pay.min, pay.max, currency, ["", ` per ${period}`], raw);
+}

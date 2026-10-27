@@ -104,12 +104,13 @@ describe("Comeet adapter (fixture)", () => {
 
 describe("curated sources", () => {
   it("has unique slugs/boards and valid formats", () => {
-    expect(JOB_SOURCES.length).toBeGreaterThanOrEqual(30);
+    expect(JOB_SOURCES.length).toBeGreaterThanOrEqual(140);
     expect(new Set(JOB_SOURCES.map((s) => s.slug)).size).toBe(JOB_SOURCES.length);
     expect(new Set(JOB_SOURCES.map((s) => `${s.provider}:${s.boardId}`)).size).toBe(JOB_SOURCES.length);
     for (const s of JOB_SOURCES) {
       expect(s.website).toMatch(/^https:\/\//);
-      expect(s.provider).not.toBe("COMEET"); // Comeet needs a company-issued token; none are configured.
+      if (s.provider === "COMEET") expect(s.boardId).toMatch(/^[0-9A-F]{2}\.[0-9A-F]{3}:[0-9A-F]{20,}$/);
+      if (s.provider === "WORKDAY") expect(s.boardId).toMatch(/^[a-z0-9]+\/wd\d+\/[\w-]+$/);
     }
   });
 });

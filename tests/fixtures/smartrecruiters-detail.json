@@ -1,0 +1,15 @@
+{
+  "id": "744000000000001",
+  "name": "Frontend Team Lead",
+  "postingUrl": "https://jobs.smartrecruiters.com/Acme1/744000000000001-frontend-team-lead",
+  "jobAd": {
+    "sections": {
+      "companyDescription": { "title": "About Acme", "text": "<p>We build websites.</p>" },
+      "jobDescription": {
+        "title": "Job Description",
+        "text": "<p>Lead a team building React and TypeScript apps.</p>"
+      },
+      "qualifications": { "title": "Qualifications", "text": "<p>5+ years of frontend experience.</p>" }
+    }
+  }
+}

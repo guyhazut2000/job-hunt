@@ -5,8 +5,9 @@ import type { AtsAdapter } from "../types";
 
 /**
  * Comeet public Careers API (v2). boardId format: "<companyUid>:<token>".
- * The token is issued by the company (Careers Website settings), so only add Comeet sources
- * with credentials the company provided. https://developers.comeet.com/reference/careers-api-overview
+ * The token is a public, read-only careers-site token: we only use tokens the company itself publishes
+ * in its own careers page (the Comeet widget embed / Comeet-hosted careers page it links to) — see
+ * docs/sources.md. https://developers.comeet.com/reference/careers-api-overview
  */
 export interface ComeetPosition {
   uid: string;
@@ -15,6 +16,7 @@ export interface ComeetPosition {
   url_comeet_hosted_page?: string;
   time_updated?: string;
   employment_type?: string;
+  department?: string | null;
   workplace_type?: string;
   location?: { name?: string; city?: string; country?: string; is_remote?: boolean };
   details?: { name: string; value: string }[];
@@ -24,7 +26,7 @@ export const comeetAdapter: AtsAdapter<ComeetPosition> = {
   provider: "COMEET",
   async fetchRaw({ boardId, fetchImpl = fetch }) {
     const [uid, token] = boardId.split(":");
-    if (!uid || !token) throw new Error(`Comeet boardId must be "uid:token", got "${boardId}"`);
+    if (!uid || !token) throw new Error(`Comeet boardId must be "uid:token"`);
     return getJson<ComeetPosition[]>(
       `https://www.comeet.co/careers-api/2.0/company/${encodeURIComponent(uid)}/positions?token=${encodeURIComponent(token)}&details=true`,
       `Comeet ${uid}`,
@@ -48,6 +50,7 @@ export const comeetAdapter: AtsAdapter<ComeetPosition> = {
       updatedAt: raw.time_updated,
       commitmentHint: raw.employment_type,
       workModeHint: `${raw.workplace_type ?? ""} ${raw.location?.is_remote ? "remote" : ""}`,
+      department: raw.department,
     });
   },
 };

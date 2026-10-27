@@ -6,8 +6,17 @@ import { DEMO_COMPANIES, demoRawJobs } from "@/lib/ingestion/fixtures";
 import { getAdapter, SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
 
 describe("ingestion adapters", () => {
-  it("registers Greenhouse, Lever and Comeet", () => {
-    expect(SUPPORTED_PROVIDERS.sort()).toEqual(["COMEET", "GREENHOUSE", "LEVER"]);
+  it("registers every public ATS adapter", () => {
+    expect([...SUPPORTED_PROVIDERS].sort()).toEqual([
+      "ASHBY",
+      "COMEET",
+      "GREENHOUSE",
+      "LEVER",
+      "RECRUITEE",
+      "SMARTRECRUITERS",
+      "WORKABLE",
+      "WORKDAY",
+    ]);
     expect(getAdapter("MANUAL")).toBeUndefined();
   });
 
@@ -65,7 +74,7 @@ describe("ingestion adapters", () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ jobs: [] }))) as unknown as typeof fetch;
     await greenhouseAdapter.fetchRaw({ boardId: "acme", fetchImpl });
     expect(fetchImpl).toHaveBeenCalledWith(
-      "https://boards-api.greenhouse.io/v1/boards/acme/jobs?content=true",
+      "https://boards-api.greenhouse.io/v1/boards/acme/jobs?content=true&pay_transparency=true",
       expect.objectContaining({
         headers: expect.objectContaining({ "user-agent": expect.stringContaining("job-hunt") }),
       }),

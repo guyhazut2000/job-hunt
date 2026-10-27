@@ -1,6 +1,6 @@
 import { companyTier, TIER_FACTOR, type CompanyTier } from "./company-tier";
 import { salaryFamily, salaryLevel } from "./family";
-import { parsePostedSalary, type PostedSalary } from "./parse";
+import { parsePostedSalary, statedSalary, type PostedSalary } from "./parse";
 import {
   EXECUTIVE_FACTOR,
   INTERN_FACTOR,
@@ -53,7 +53,17 @@ export interface ReportAggregate {
 }
 
 export interface EstimateInput {
-  job: { title: string; roleCategory: string; seniority: string; description?: string | null };
+  job: {
+    title: string;
+    roleCategory: string;
+    seniority: string;
+    description?: string | null;
+    /** Structured range from the ATS (see Job.payMin…); preferred over text parsing. */
+    payMin?: number | null;
+    payMax?: number | null;
+    payCurrency?: string | null;
+    payPeriod?: string | null;
+  };
   company: { slug: string; size?: string | null };
   /** Reports for this company × family × level. */
   companyReports?: ReportAggregate | null;
@@ -95,9 +105,17 @@ export function estimateSalary(input: EstimateInput): SalaryEstimate {
   const ref = REFERENCE[family];
   const adjustments: Adjustment[] = [];
 
-  const parsed = parsePostedSalary(job.description);
-  const posted = parsed?.currency === "ILS" ? parsed : null;
-  const postedForeign = parsed && parsed.currency !== "ILS" ? parsed : null;
+  const stated = statedSalary({
+    min: job.payMin ?? null,
+    max: job.payMax ?? null,
+    currency: job.payCurrency ?? null,
+    period: job.payPeriod ?? null,
+  });
+  // The text is only parsed when the ATS gave no ILS range (it may still state one in the description).
+  const parsed = stated?.currency === "ILS" ? null : parsePostedSalary(job.description);
+  const found = [stated, parsed].filter((p): p is PostedSalary => p !== null);
+  const posted = found.find((p) => p.currency === "ILS") ?? null;
+  const postedForeign = found.find((p) => p.currency !== "ILS") ?? null;
 
   const base = {
     family,

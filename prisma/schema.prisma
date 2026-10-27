@@ -70,6 +70,11 @@ enum AtsProvider {
   LEVER
   COMEET
   MANUAL
+  ASHBY
+  WORKABLE
+  SMARTRECRUITERS
+  WORKDAY
+  RECRUITEE
 }
 
 enum ApplicationStatus {
@@ -228,6 +233,15 @@ model Job {
   employmentType  EmploymentType @default(FULL_TIME)
   /// Last update time reported by the ATS (Greenhouse `updated_at`); null when the source has none.
   sourceUpdatedAt DateTime?
+  /// Department / team as published by the ATS (null when the source has none).
+  department      String?
+  /// Pay range stated by the employer in a structured ATS field (Greenhouse pay_input_ranges,
+  /// Lever salaryRange, Ashby compensation…). Null when not published. Amounts are in `payCurrency`
+  /// per `payPeriod` ("month" | "year" | "hour").
+  payMin          Int?
+  payMax          Int?
+  payCurrency     String?
+  payPeriod       String?
   isActive        Boolean        @default(true)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt

@@ -13,7 +13,18 @@ import { companyTier } from "@/lib/salary/company-tier";
 import { REFERENCE, SALARY_FAMILIES, SALARY_LEVELS, SALARY_SOURCES } from "@/lib/salary/reference";
 import { percentile } from "@/lib/salary/stats";
 
-const job = (o: Partial<{ title: string; roleCategory: string; seniority: string; description: string }> = {}) => ({
+const job = (
+  o: Partial<{
+    title: string;
+    roleCategory: string;
+    seniority: string;
+    description: string;
+    payMin: number;
+    payMax: number;
+    payCurrency: string;
+    payPeriod: string;
+  }> = {},
+) => ({
   title: "Senior Backend Engineer",
   roleCategory: "backend",
   seniority: "SENIOR",
@@ -118,6 +129,30 @@ describe("estimateSalary", () => {
       company: startup,
     });
     expect(e.basis).toBe("reference");
+    expect(e.postedForeign?.currency).toBe("USD");
+  });
+
+  it("uses a structured ATS range (Greenhouse/Lever/Ashby) as the stated salary", () => {
+    const e = estimateSalary({
+      job: job({ payMin: 420_000, payMax: 540_000, payCurrency: "ILS", payPeriod: "year" }),
+      company: startup,
+    });
+    expect(e).toMatchObject({ basis: "posted", isEstimate: false, p25: 35_000, p75: 45_000 });
+  });
+
+  it("keeps a structured USD range as info while a posted ILS text range still wins", () => {
+    const e = estimateSalary({
+      job: job({
+        description: "Salary range: ₪35,000-₪45,000 per month",
+        payMin: 150_000,
+        payMax: 190_000,
+        payCurrency: "USD",
+        payPeriod: "year",
+      }),
+      company: startup,
+    });
+    expect(e.basis).toBe("posted");
+    expect(e.p25).toBe(35_000);
     expect(e.postedForeign?.currency).toBe("USD");
   });
 

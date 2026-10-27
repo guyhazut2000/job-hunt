@@ -1,29 +1,85 @@
-/** Polite HTTP for public job-board APIs: identifies itself, times out, and retries a transient failure once. */
+/**
+ * Polite HTTP for public job-board APIs: identifies itself, paces requests per host, times out, and
+ * retries transient failures (429 / 5xx / network) with backoff, honouring `Retry-After`.
+ */
 export const USER_AGENT =
   "job-hunt-bot/1.0 (+https://job-hunt-nine-orcin.vercel.app; aggregates public job-board APIs)";
 
-const RETRY_DELAY_MS = 3_000;
-
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export async function getJson<T>(url: string, label: string, fetchImpl: typeof fetch = fetch): Promise<T> {
-  const attempt = () =>
-    fetchImpl(url, {
-      headers: { "user-agent": USER_AGENT, accept: "application/json" },
-      signal: AbortSignal.timeout(20_000),
-    });
-  let res: Response;
-  try {
-    res = await attempt();
-    if (res.status === 429 || res.status >= 500) {
-      await sleep(RETRY_DELAY_MS);
-      res = await attempt();
+export interface RequestOptions {
+  method?: "GET" | "POST";
+  body?: unknown;
+  fetchImpl?: typeof fetch;
+  /** Per-request timeout. */
+  timeoutMs?: number;
+  /** Retries after the first attempt for 429 / 5xx / network errors. */
+  retries?: number;
+  /** Minimum gap between two requests to the same host (per-source rate limit). */
+  minIntervalMs?: number;
+}
+
+const DEFAULTS = { timeoutMs: 20_000, retries: 2, minIntervalMs: 250 };
+const BACKOFF_MS = [1_500, 4_000, 8_000];
+const MAX_RETRY_AFTER_MS = 15_000;
+
+/** host → earliest time the next request may start. Shared across concurrent callers. */
+const nextSlot = new Map<string, number>();
+
+/** Reserve the next request slot for `host`, waiting if the previous request was too recent. */
+export async function paceHost(host: string, minIntervalMs: number, now = Date.now): Promise<void> {
+  const at = Math.max(now(), nextSlot.get(host) ?? 0);
+  nextSlot.set(host, at + minIntervalMs);
+  const wait = at - now();
+  if (wait > 0) await sleep(wait);
+}
+
+function retryAfterMs(res: Response): number | null {
+  const h = res.headers.get("retry-after");
+  if (!h) return null;
+  const s = Number(h);
+  const ms = Number.isFinite(s) ? s * 1000 : new Date(h).getTime() - Date.now();
+  return Number.isFinite(ms) && ms > 0 ? Math.min(ms, MAX_RETRY_AFTER_MS) : null;
+}
+
+export async function requestJson<T>(url: string, label: string, options: RequestOptions = {}): Promise<T> {
+  const { method = "GET", body, fetchImpl = fetch } = options;
+  const { timeoutMs, retries, minIntervalMs } = { ...DEFAULTS, ...stripUndefined(options) };
+  const host = new URL(url).host;
+  let lastError = "";
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) await sleep(BACKOFF_MS[Math.min(attempt - 1, BACKOFF_MS.length - 1)]);
+    await paceHost(host, minIntervalMs);
+    let res: Response;
+    try {
+      res = await fetchImpl(url, {
+        method,
+        headers: {
+          "user-agent": USER_AGENT,
+          accept: "application/json",
+          ...(body !== undefined ? { "content-type": "application/json" } : {}),
+        },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch (e) {
+      lastError = e instanceof Error ? e.name : "network error";
+      continue;
     }
-  } catch {
-    // Timeout or network error: one retry after a pause.
-    await sleep(RETRY_DELAY_MS);
-    res = await attempt();
+    if (res.ok) return (await res.json()) as T;
+    lastError = `HTTP ${res.status}`;
+    if (res.status !== 429 && res.status < 500) break;
+    const ra = retryAfterMs(res);
+    if (ra && attempt < retries) await sleep(ra);
   }
-  if (!res.ok) throw new Error(`${label}: HTTP ${res.status}`);
-  return (await res.json()) as T;
+  throw new Error(`${label}: ${lastError}`);
+}
+
+function stripUndefined<T extends object>(o: T): Partial<T> {
+  return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
+}
+
+/** Back-compat helper used by the original adapters. */
+export function getJson<T>(url: string, label: string, fetchImpl: typeof fetch = fetch): Promise<T> {
+  return requestJson<T>(url, label, { fetchImpl });
 }

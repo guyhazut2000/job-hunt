@@ -14,6 +14,7 @@ import { track } from "@/lib/analytics";
 import { canUseAiReview, createCheckoutUrl } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { getDictionary, LOCALE_COOKIE } from "@/lib/i18n";
+import { SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
 import { ingestAll } from "@/lib/ingestion/run";
 import { requireAdmin, requireUser } from "@/lib/session";
 import { slugify } from "@/lib/taxonomy";
@@ -143,14 +144,15 @@ export async function startCheckout() {
 
 export async function adminSyncAll() {
   await requireAdmin();
-  await ingestAll();
+  // Same time budget as the cron route so the action returns before the function limit.
+  await ingestAll({ timeBudgetMs: 230_000 });
   revalidatePath("/admin");
   revalidatePath("/jobs");
 }
 
 const companySchema = z.object({
   name: z.string().trim().min(1).max(100),
-  provider: z.enum(["GREENHOUSE", "LEVER", "COMEET"]),
+  provider: z.enum(SUPPORTED_PROVIDERS as [AtsProvider, ...AtsProvider[]]),
   boardId: z.string().trim().min(1).max(200),
   website: z.union([z.literal(""), z.string().url()]).optional(),
 });

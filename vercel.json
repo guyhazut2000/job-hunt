@@ -1,11 +1,25 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run vercel-build",
-  "regions": ["fra1"],
+  "regions": [
+    "fra1"
+  ],
   "crons": [
     {
-      "path": "/api/cron/ingest",
+      "path": "/api/cron/ingest?provider=GREENHOUSE,LEVER,ASHBY",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?provider=COMEET,WORKABLE,SMARTRECRUITERS,RECRUITEE",
+      "schedule": "20 4 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?provider=WORKDAY",
+      "schedule": "40 4 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?provider=WORKDAY",
+      "schedule": "20 5 * * *"
     },
     {
       "path": "/api/cron/email-sync",

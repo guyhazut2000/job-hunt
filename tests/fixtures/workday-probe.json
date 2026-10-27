@@ -1,0 +1,26 @@
+{
+  "total": 1200,
+  "jobPostings": [{ "title": "Some job", "externalPath": "/job/Santa-Clara/Some-job_JR1" }],
+  "facets": [
+    {
+      "facetParameter": "locationMainGroup",
+      "values": [
+        {
+          "facetParameter": "locationHierarchy1",
+          "descriptor": "Locations",
+          "values": [
+            { "descriptor": "United States of America", "id": "us-id", "count": 900 },
+            { "descriptor": "Israel", "id": "il-country-id", "count": 40 }
+          ]
+        }
+      ]
+    },
+    {
+      "facetParameter": "locations",
+      "values": [
+        { "descriptor": "Haifa", "id": "haifa-id", "count": 20 },
+        { "descriptor": "Santa Clara", "id": "sc-id", "count": 300 }
+      ]
+    }
+  ]
+}

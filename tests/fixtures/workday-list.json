@@ -1,0 +1,19 @@
+{
+  "total": 2,
+  "jobPostings": [
+    {
+      "title": "Physical Design Engineer",
+      "externalPath": "/job/Israel-Haifa/Physical-Design-Engineer_JR0001",
+      "locationsText": "Israel, Haifa",
+      "postedOn": "Posted 3 Days Ago",
+      "bulletFields": ["JR0001"]
+    },
+    {
+      "title": "Software Architect",
+      "externalPath": "/job/Israel-Petah-Tikva/Software-Architect_JR0002",
+      "locationsText": "2 Locations",
+      "postedOn": "Posted Today",
+      "bulletFields": ["JR0002"]
+    }
+  ]
+}

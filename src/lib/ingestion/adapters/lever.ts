@@ -1,6 +1,6 @@
 import { getJson } from "../http";
 import { isIsraelLocation } from "../location";
-import { buildJob } from "../normalize";
+import { buildJob, payPeriodOf, pickStatedPay } from "../normalize";
 import type { AtsAdapter } from "../types";
 
 /** Public Lever Postings API: https://github.com/lever/postings-api */
@@ -13,11 +13,19 @@ export interface LeverPosting {
   updatedAt?: number;
   country?: string | null;
   workplaceType?: "onsite" | "remote" | "hybrid" | "unspecified";
-  categories?: { location?: string; allLocations?: string[]; team?: string; commitment?: string };
+  categories?: {
+    location?: string;
+    allLocations?: string[];
+    team?: string;
+    department?: string;
+    commitment?: string;
+  };
   descriptionPlain?: string;
   description?: string;
   lists?: { text: string; content: string }[];
   additionalPlain?: string;
+  /** e.g. { min: 30000, max: 40000, currency: "ILS", interval: "per-month-salary" } */
+  salaryRange?: { min?: number; max?: number; currency?: string; interval?: string } | null;
 }
 
 /** boardId "acme" → global instance; "eu:acme" → Lever's EU instance. */
@@ -38,7 +46,10 @@ export const leverAdapter: AtsAdapter<LeverPosting> = {
   },
   normalize(raw) {
     const lists = (raw.lists ?? []).map((l) => `${l.text}\n${l.content}`).join("\n");
-    const israeli = locations(raw).filter((l) => isIsraelLocation(l));
+    const all = locations(raw).filter((l): l is string => !!l?.trim());
+    const israeli = all.filter((l) => isIsraelLocation(l));
+    const period = payPeriodOf(raw.salaryRange?.interval);
+    const sr = raw.salaryRange;
     return buildJob({
       externalId: raw.id,
       source: "LEVER",
@@ -50,6 +61,14 @@ export const leverAdapter: AtsAdapter<LeverPosting> = {
       workModeHint: raw.workplaceType === "unspecified" ? null : raw.workplaceType,
       commitmentHint: raw.categories?.commitment,
       updatedAt: raw.updatedAt ?? raw.createdAt,
+      department: raw.categories?.department ?? raw.categories?.team,
+      pay:
+        sr && period
+          ? pickStatedPay(
+              [{ min: sr.min ?? 0, max: sr.max ?? 0, currency: sr.currency ?? "", period }],
+              (raw.country === "IL" || raw.country == null) && all.every((l) => isIsraelLocation(l)),
+            )
+          : null,
     });
   },
 };
