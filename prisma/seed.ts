@@ -4,6 +4,7 @@ import { comeetAdapter } from "../src/lib/ingestion/adapters/comeet";
 import { greenhouseAdapter } from "../src/lib/ingestion/adapters/greenhouse";
 import { leverAdapter } from "../src/lib/ingestion/adapters/lever";
 import { DEMO_COMPANIES, demoRawJobs } from "../src/lib/ingestion/fixtures";
+import { JOB_SOURCES } from "../src/lib/ingestion/sources";
 
 const db = new PrismaClient();
 
@@ -44,6 +45,27 @@ async function main() {
     update: {},
   });
 
+  // Real companies (public Greenhouse/Lever boards). No network here — run ingestion to fetch their jobs.
+  for (const s of JOB_SOURCES) {
+    const managed = {
+      name: s.name,
+      website: s.website,
+      industry: s.industry,
+      hqLocation: s.hqLocation,
+      atsProvider: s.provider,
+      atsBoardId: s.boardId,
+    };
+    await db.company.upsert({ where: { slug: s.slug }, create: { slug: s.slug, ...managed }, update: managed });
+  }
+
+  // Fictional demo companies/jobs are for local development only — never production.
+  const seedDemo = process.env.SEED_DEMO_DATA !== "false" && process.env.VERCEL_ENV !== "production";
+  if (!seedDemo) {
+    console.log(
+      `Synced ${JOB_SOURCES.length} real sources (demo data skipped). Users: ${adminEmail}, demo@job-hunt.local`,
+    );
+    return;
+  }
   let jobs = 0;
   for (const [i, c] of DEMO_COMPANIES.entries()) {
     const company = await db.company.upsert({
@@ -75,7 +97,7 @@ async function main() {
     }
   }
   console.log(
-    `Seeded ${DEMO_COMPANIES.length} companies, ${jobs} jobs. Users: ${adminEmail}, demo@job-hunt.local (password: ${password})`,
+    `Synced ${JOB_SOURCES.length} real sources; seeded ${DEMO_COMPANIES.length} demo companies, ${jobs} demo jobs. Users: ${adminEmail}, demo@job-hunt.local (password: ${password})`,
   );
 }
 

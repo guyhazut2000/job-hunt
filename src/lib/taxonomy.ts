@@ -13,6 +13,7 @@ export const ROLE_CATEGORIES = [
   "security",
   "product",
   "design",
+  "hardware",
   "management",
   "other",
 ] as const;
@@ -33,6 +34,11 @@ export const LOCATIONS = [
   "Netanya",
   "Yokneam",
   "Rehovot",
+  "Hod Hasharon",
+  "Kfar Saba",
+  "Rishon LeZion",
+  "Caesarea",
+  "Israel",
 ] as const;
 
 /** Tech keywords we detect in job descriptions and CVs. Lowercase match key -> display label. */
@@ -90,6 +96,36 @@ export const TECH_KEYWORDS: Record<string, string> = {
   cypress: "Cypress",
   "react native": "React Native",
   flutter: "Flutter",
+  "vue.js": "Vue",
+  "react.js": "React",
+  nestjs: "NestJS",
+  snowflake: "Snowflake",
+  bigquery: "BigQuery",
+  databricks: "Databricks",
+  dbt: "dbt",
+  clickhouse: "ClickHouse",
+  cassandra: "Cassandra",
+  dynamodb: "DynamoDB",
+  rabbitmq: "RabbitMQ",
+  grpc: "gRPC",
+  helm: "Helm",
+  ansible: "Ansible",
+  jenkins: "Jenkins",
+  "github actions": "GitHub Actions",
+  prometheus: "Prometheus",
+  grafana: "Grafana",
+  langchain: "LangChain",
+  pandas: "Pandas",
+  "scikit-learn": "scikit-learn",
+  opencv: "OpenCV",
+  cuda: "CUDA",
+  verilog: "Verilog",
+  systemverilog: "SystemVerilog",
+  vhdl: "VHDL",
+  rtos: "RTOS",
+  matlab: "MATLAB",
+  redux: "Redux",
+  tailwind: "Tailwind",
 };
 
 function escapeRegex(s: string) {
@@ -112,38 +148,58 @@ export function extractTech(text: string): string[] {
   return [...found].sort();
 }
 
+/** Titles where "manager" is a function, not people management (e.g. Product Manager). */
+const IC_MANAGER =
+  /\b(product|program|project|account|partner|channel|customer success|marketing|community|content|campaign|category|release|delivery) manager\b/;
+
 export function inferSeniority(title: string): Seniority {
-  const t = title.toLowerCase();
-  if (/\b(intern|student)\b|סטודנט/.test(t)) return "INTERN";
-  if (/\b(head of|director|vp|manager)\b|מנהל/.test(t)) return "MANAGER";
-  if (/\b(lead|principal|staff|architect)\b|ראש צוות/.test(t)) return "LEAD";
+  const t = title.toLowerCase().replace(/office of the (cto|ceo)|(cto|ceo) office/g, "");
+  if (/\b(intern|internship|student)\b|סטודנט/.test(t)) return "INTERN";
+  const peopleManager =
+    /\b(head of|director|vp|vice president|cto|chief)\b|מנהל/.test(t) ||
+    (/\bmanager\b/.test(t) && !IC_MANAGER.test(t.replace(/\b(senior|sr\.?|group|principal|lead)\s+/g, "")));
+  if (peopleManager) return "MANAGER";
+  if (/\b(lead|leader|principal|staff|architect|group product manager)\b|ראש צוות|ר"צ/.test(t)) return "LEAD";
   if (/\b(senior|sr\.?)\b|בכיר/.test(t)) return "SENIOR";
-  if (/\b(junior|jr\.?|entry|graduate)\b|ג'וניור|מתחיל/.test(t)) return "JUNIOR";
+  if (/\b(junior|jr\.?|entry[\s-]level|graduate|new grad)\b|ג'וניור|מתחיל/.test(t)) return "JUNIOR";
   return "MID";
 }
 
+/** Non-engineering functions that would otherwise be caught by the "engineer" fallback. */
+const NON_TECH =
+  /\b(sales|account executive|account manager|business development|bdr|sdr|marketing|recruit\w*|talent|hr|human resources|people (partner|operations)|finance|financial|accountant|accounting|controller|payroll|legal|counsel|paralegal|office manager|customer success|customer support|support (engineer|specialist)|solutions? (engineer|architect|consultant)|pre-?sales|partnerships?|procurement|operations specialist)\b/;
+
 export function inferRoleCategory(title: string): RoleCategory {
   const t = title.toLowerCase();
+  if (/designer|\bux\b|ui\/ux|product design/.test(t)) return "design";
+  if (/product manag|product owner|\bpm\b|(head|director|vp) of product|vp,? product|product lead/.test(t))
+    return "product";
+  if (NON_TECH.test(t)) return "other";
   if (/full[\s-]?stack/.test(t)) return "fullstack";
   if (/front[\s-]?end|ui engineer|web developer/.test(t)) return "frontend";
-  if (/back[\s-]?end|server|platform engineer|api/.test(t)) return "backend";
-  if (/android|ios|mobile/.test(t)) return "mobile";
-  if (/devops|sre|site reliability|infrastructure|cloud engineer/.test(t)) return "devops";
-  if (/machine learning|\bml\b|\bai\b|deep learning|computer vision|nlp|llm/.test(t)) return "ml";
-  if (/data (engineer|scientist|analyst)|analytics|\bbi\b/.test(t)) return "data";
-  if (/\bqa\b|quality|automation engineer|test/.test(t)) return "qa";
-  if (/security|cyber|appsec|penetration/.test(t)) return "security";
-  if (/product manager|product owner|\bpm\b/.test(t)) return "product";
-  if (/designer|ux|ui\/ux/.test(t)) return "design";
-  if (/manager|director|head of|vp/.test(t)) return "management";
-  if (/engineer|developer|software/.test(t)) return "backend";
+  if (/back[\s-]?end|server|platform engineer|\bapi\b/.test(t)) return "backend";
+  if (/android|\bios\b|mobile/.test(t)) return "mobile";
+  if (
+    /embedded|firmware|hardware|\basic\b|fpga|vlsi|\bchip\b|silicon|physical design|design verification|\brtl\b|analog|electrical engineer|board design/.test(
+      t,
+    )
+  )
+    return "hardware";
+  if (/devops|\bsre\b|site reliability|infrastructure|cloud engineer|\bit\b/.test(t)) return "devops";
+  if (/machine learning|\bml\b|\bai\b|deep learning|computer vision|\bnlp\b|\bllm\b|algorithm/.test(t)) return "ml";
+  if (/\bdata\b|analytics|\bbi\b|analyst/.test(t)) return "data";
+  if (/\bqa\b|quality|automation engineer|\btest|validation/.test(t)) return "qa";
+  if (/security|cyber|appsec|penetration|pentest|red team|threat|malware|incident respon|\bsoc\b|\bgrc\b/.test(t))
+    return "security";
+  if (/manager|director|head of|\bvp\b/.test(t)) return "management";
+  if (/engineer|developer|software|programmer|r&d/.test(t)) return "backend";
   return "other";
 }
 
 export function inferWorkMode(text: string): WorkMode {
   const t = text.toLowerCase();
   if (/hybrid|היברידי/.test(t)) return "HYBRID";
-  if (/remote|מרחוק|work from home|wfh/.test(t)) return "REMOTE";
+  if (/remote|מרחוק|מהבית|work from home|wfh|home[\s-]based/.test(t)) return "REMOTE";
   return "ONSITE";
 }
 
@@ -157,6 +213,8 @@ export function htmlToText(html: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, " ")
+    .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h: string) => String.fromCodePoint(Number.parseInt(h, 16)))
     .replace(/<\s*br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
     .replace(/<[^>]+>/g, "")

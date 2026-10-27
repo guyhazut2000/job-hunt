@@ -9,7 +9,7 @@ AI CV suggestions and an application tracker. Hebrew-first (RTL) with English su
 ## Features (MVP)
 
 - **Job feed** with filters (text, role, seniority, location, work mode, tech) and pagination
-- **Pluggable ATS ingestion** — Greenhouse, Lever, Comeet adapters + demo seed data
+- **Real Israeli hi-tech jobs** — 45 curated companies on public Greenhouse/Lever boards, filtered to Israel, synced daily (Comeet adapter included)
 - **Auth** — email/password via Auth.js (credentials, JWT), USER / ADMIN roles
 - **Profile & CV** — upload PDF/DOCX/TXT, text extraction, skill detection
 - **Match score** 0–100 with matched/missing skills breakdown
@@ -32,7 +32,8 @@ npm install
 cp .env.example .env          # set AUTH_SECRET (npx auth secret)
 npm run db:up                 # Postgres in Docker
 npx prisma migrate dev        # create schema
-npm run db:seed               # demo companies, jobs and users
+npm run db:seed               # users, the 45 real sources, and fictional demo jobs (local only)
+npm run ingest                # optional: fetch real jobs from the public boards
 npm run dev                   # http://localhost:3000
 ```
 
@@ -45,36 +46,58 @@ Demo accounts (password `password123`):
 
 ## Scripts
 
-| Script                                                   | Purpose                       |
-| -------------------------------------------------------- | ----------------------------- |
-| `npm run dev` / `build` / `start`                        | Next.js                       |
-| `npm run lint` · `typecheck` · `test` · `format:check`   | Quality gates (all run in CI) |
-| `npm run db:up` · `db:migrate` · `db:deploy` · `db:seed` | Database                      |
+| Script                                                   | Purpose                                |
+| -------------------------------------------------------- | -------------------------------------- |
+| `npm run dev` / `build` / `start`                        | Next.js                                |
+| `npm run lint` · `typecheck` · `test` · `format:check`   | Quality gates (all run in CI)          |
+| `npm run db:up` · `db:migrate` · `db:deploy` · `db:seed` | Database                               |
+| `npm run ingest`                                         | Sync all sources into `DATABASE_URL`   |
+| `npm run sources:verify`                                 | Check every curated board live (no DB) |
 
 ## Environment variables
 
 See [`.env.example`](.env.example). Only `DATABASE_URL` and `AUTH_SECRET` are required.
 
-| Variable                                                         | Notes                                                                 |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, `LLM_BASE_URL`       | Empty → mock provider. `openai` works with any OpenAI-compatible API. |
-| `STRIPE_SECRET_KEY`, `STRIPE_PRICE_PRO`, `STRIPE_WEBHOOK_SECRET` | Billing stays disabled until set.                                     |
-| `CRON_SECRET`                                                    | Protects `POST /api/cron/ingest`.                                     |
-| `NEXT_PUBLIC_ANALYTICS_PROVIDER`                                 | `console` or `none`.                                                  |
+| Variable                                                         | Notes                                                                                 |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, `LLM_BASE_URL`       | Empty → mock provider. `openai` works with any OpenAI-compatible API.                 |
+| `STRIPE_SECRET_KEY`, `STRIPE_PRICE_PRO`, `STRIPE_WEBHOOK_SECRET` | Billing stays disabled until set.                                                     |
+| `CRON_SECRET`                                                    | Protects `/api/cron/ingest` (GET from Vercel Cron, or POST).                          |
+| `SEED_DEMO_DATA`                                                 | `false` skips fictional demo companies (always skipped when `VERCEL_ENV=production`). |
+| `NEXT_PUBLIC_ANALYTICS_PROVIDER`                                 | `console` or `none`.                                                                  |
 
 ## Ingesting real jobs
 
-1. Sign in as admin → `/admin` → **Add company**: choose provider and board id
-   - Greenhouse: board token (`boards.greenhouse.io/<token>`)
-   - Lever: site name (`jobs.lever.co/<site>`)
-   - Comeet: `<companyUid>:<token>`
-2. Click **Sync all**, or schedule:
+Sources live in [`src/lib/ingestion/sources.ts`](src/lib/ingestion/sources.ts): 45 Israeli (or Israel-office) hi-tech
+companies whose careers pages use a **public, documented job-board API** — 38 on Greenhouse
+([Job Board API](https://developers.greenhouse.io/job-board.html)) and 7 on Lever
+([Postings API](https://github.com/lever/postings-api), `eu:` prefix = Lever EU instance). Every board was checked to
+return Israeli openings (`npm run sources:verify`).
+
+- **Israel only** — postings are kept when their location/offices (Greenhouse), `country`/locations (Lever) or
+  location (Comeet) is in Israel; city names are canonicalized (English + Hebrew, e.g. `תל אביב`, `Petach Tikva`).
+- **Polite** — one request per board per run, identifying `User-Agent`, 20s timeout, 750 ms pause between companies,
+  read-only public endpoints. A failing board keeps its existing jobs.
+- **Attribution** — each job page credits the source board and links to the original posting; “Apply” always goes to
+  the company’s own page.
+- **Schedule** — Vercel Cron (`vercel.json`) calls `GET /api/cron/ingest` daily at 04:00 UTC with
+  `Authorization: Bearer $CRON_SECRET`. Admins can also click **Sync all** in `/admin`, or:
 
 ```bash
 curl -X POST https://your-app/api/cron/ingest -H "Authorization: Bearer $CRON_SECRET"
 ```
 
-Adding an ATS = implement `AtsAdapter` in `src/lib/ingestion/adapters/` and register it in `registry.ts`.
+To add a company: append it to `sources.ts` (or use `/admin` → **Add company**), then run `npm run sources:verify`.
+
+- Greenhouse: board token (`boards.greenhouse.io/<token>`)
+- Lever: site name (`jobs.lever.co/<site>`; `eu:<site>` for `jobs.eu.lever.co`)
+- Comeet: `<companyUid>:<token>` — the Careers API token is issued by the company, so Comeet sources need the
+  company's cooperation; none are configured yet.
+
+Adding an ATS = implement `AtsAdapter` (`fetchRaw`, `isInIsrael`, `normalize`) in `src/lib/ingestion/adapters/` and
+register it in `registry.ts`. Tests use JSON fixtures in `tests/fixtures/`.
+
+Functions run in `fra1` (Frankfurt, closest to Israel) via `vercel.json`.
 
 ## Architecture
 
@@ -93,7 +116,7 @@ prisma/                schema, migrations, seed
 tests/                 vitest unit tests
 ```
 
-Demo companies in the seed are fictional.
+Demo companies in the seed are fictional and are only seeded for local development, never in production.
 
 ---
 

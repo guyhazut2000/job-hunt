@@ -1,0 +1,41 @@
+{
+  "jobs": [
+    {
+      "id": 7001,
+      "title": "Senior Backend Engineer",
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/7001",
+      "first_published": "2026-10-20T08:00:00-04:00",
+      "updated_at": "2026-10-25T08:00:00-04:00",
+      "location": { "name": "Tel Aviv-Yafo, Tel Aviv District, Israel" },
+      "offices": [{ "id": 1, "name": "Tel Aviv", "location": "Tel Aviv, Israel" }],
+      "content": "&lt;p&gt;We use Go, Kafka &amp;amp; ClickHouse on Kubernetes&amp;#39;s latest.&lt;/p&gt;"
+    },
+    {
+      "id": 7002,
+      "title": "Product Manager",
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/7002",
+      "first_published": "2026-10-21T08:00:00Z",
+      "location": { "name": "Remote" },
+      "offices": [{ "id": 2, "name": "Israel", "location": null }],
+      "content": "&lt;p&gt;Own the roadmap.&lt;/p&gt;"
+    },
+    {
+      "id": 7003,
+      "title": "Account Executive",
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/7003",
+      "first_published": "2026-10-22T08:00:00Z",
+      "location": { "name": "Chicago, IL" },
+      "offices": [{ "id": 3, "name": "Chicago", "location": "Chicago, IL, United States" }],
+      "content": ""
+    },
+    {
+      "id": 7004,
+      "title": "ASIC Physical Design Engineer",
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/7004",
+      "first_published": "2026-10-23T08:00:00Z",
+      "location": { "name": "Tel Aviv-Yafo Municipality, ISR" },
+      "offices": [],
+      "content": "&lt;p&gt;Verilog, SystemVerilog, Python&lt;/p&gt;"
+    }
+  ]
+}

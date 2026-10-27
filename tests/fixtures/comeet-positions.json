@@ -1,0 +1,18 @@
+[
+  {
+    "uid": "C1.001",
+    "name": "מפתח/ת Backend בכיר/ה",
+    "url_active_page": "https://www.comeet.com/jobs/acme/C1.001",
+    "time_updated": "2026-10-24T12:00:00Z",
+    "workplace_type": "Hybrid",
+    "location": { "name": "Tel Aviv Office", "city": "Tel Aviv", "country": "IL", "is_remote": false },
+    "details": [{ "name": "Requirements", "value": "<ul><li>Java</li><li>Spring</li></ul>" }]
+  },
+  {
+    "uid": "C1.002",
+    "name": "QA Engineer",
+    "url_active_page": "https://www.comeet.com/jobs/acme/C1.002",
+    "location": { "name": "London", "city": "London", "country": "GB" },
+    "details": []
+  }
+]

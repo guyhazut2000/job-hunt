@@ -64,7 +64,12 @@ describe("ingestion adapters", () => {
   it("builds the right URLs when fetching", async () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ jobs: [] }))) as unknown as typeof fetch;
     await greenhouseAdapter.fetchRaw({ boardId: "acme", fetchImpl });
-    expect(fetchImpl).toHaveBeenCalledWith("https://boards-api.greenhouse.io/v1/boards/acme/jobs?content=true");
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "https://boards-api.greenhouse.io/v1/boards/acme/jobs?content=true",
+      expect.objectContaining({
+        headers: expect.objectContaining({ "user-agent": expect.stringContaining("job-hunt") }),
+      }),
+    );
     await expect(comeetAdapter.fetchRaw({ boardId: "missing-token", fetchImpl })).rejects.toThrow(/uid:token/);
   });
 
