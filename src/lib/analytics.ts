@@ -9,6 +9,7 @@ export type AnalyticsEvent =
   | "job_view"
   | "job_apply_click"
   | "job_linkedin_click"
+  | "company_linkedin_click"
   | "job_saved"
   | "application_status_changed"
   | "cv_uploaded"

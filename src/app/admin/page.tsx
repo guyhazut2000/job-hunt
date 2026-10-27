@@ -1,7 +1,9 @@
 import { formatDateTime } from "@/lib/format";
 import { adminAddCompany, adminSyncAll } from "@/app/actions";
+import { CompanyLinkedinForm } from "@/components/admin/CompanyLinkedinForm";
 import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
+import { linkedinStrings } from "@/lib/i18n/linkedin";
 import { SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
 import { requireAdmin } from "@/lib/session";
 
@@ -10,14 +12,15 @@ export const metadata = { title: "Admin" };
 
 export default async function AdminPage() {
   await requireAdmin();
-  const { t } = await getDictionary();
-  const [users, jobs, companies, applications, runs, perSource] = await Promise.all([
+  const { t, locale } = await getDictionary();
+  const [users, jobs, companies, applications, runs, perSource, companyList] = await Promise.all([
     db.user.count(),
     db.job.count({ where: { isActive: true } }),
     db.company.count(),
     db.application.count(),
     db.ingestionRun.findMany({ orderBy: { startedAt: "desc" }, take: 15 }),
     sourceStats(),
+    db.company.findMany({ select: { id: true, name: true, linkedinUrl: true }, orderBy: { name: "asc" } }),
   ]);
   const stats = [
     [t.admin.users, users],
@@ -82,6 +85,7 @@ export default async function AdminPage() {
             {t.admin.add}
           </button>
         </form>
+        <CompanyLinkedinForm companies={companyList} s={linkedinStrings(locale)} />
         <div className="card flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">{t.admin.runs}</h2>
