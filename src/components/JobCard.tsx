@@ -3,9 +3,12 @@ import { MapPin } from "lucide-react";
 import type { Company, Job } from "@prisma/client";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { formatAge } from "@/lib/format";
+import { linkedinStrings } from "@/lib/i18n/linkedin";
+import { linkedinLinkFor } from "@/lib/linkedin/jobs";
 import { localeOf, salaryStrings } from "@/lib/i18n/salary";
 import { estimateSalary } from "@/lib/salary/estimate";
 import { SalaryChip } from "./salary/SalaryChip";
+import { LinkedinJobInlineLink } from "./LinkedinJobLink";
 import { MatchMeter } from "./MatchMeter";
 import { TruncatedText } from "./TruncatedText";
 
@@ -65,6 +68,7 @@ export function JobCard({ job, t, score }: { job: Job & { company: Company }; t:
             {job.techStack.length > 6 && <li className="chip bg-transparent">+{job.techStack.length - 6}</li>}
           </ul>
         )}
+        <LinkedinJobInlineLink link={linkedinLinkFor(job)} jobId={job.id} s={linkedinStrings(localeOf(t))} />
       </div>
       {score !== undefined && (
         <div className="self-start pt-1">
