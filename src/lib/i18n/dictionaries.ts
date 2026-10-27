@@ -104,6 +104,9 @@ const en = {
     website: "Website",
     about: "About",
     lastSync: "Last synced",
+    jumpTo: "Jump to letter",
+    other: "Other",
+    noneFor: "No companies under",
   },
   dashboard: {
     title: "My applications",
@@ -557,6 +560,9 @@ const he: Dictionary = {
     website: "אתר",
     about: "אודות",
     lastSync: "סונכרן לאחרונה",
+    jumpTo: "מעבר לאות",
+    other: "אחר",
+    noneFor: "אין חברות תחת",
   },
   dashboard: {
     title: "המועמדויות שלי",

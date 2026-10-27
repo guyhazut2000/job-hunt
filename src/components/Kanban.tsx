@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptimistic, useRef, useTransition } from "react";
+import { TruncatedText } from "./TruncatedText";
 import type { ApplicationStatus } from "@prisma/client";
 import { ExternalLink, GripVertical, Trash2, Users } from "lucide-react";
 import { removeApplication, updateApplicationStatus } from "@/app/actions";
@@ -130,16 +131,16 @@ export function Kanban({
                               <a
                                 href={href}
                                 {...(i.jobId ? {} : { target: "_blank", rel: "noopener noreferrer" })}
-                                className="hover:text-primary -my-2 inline-block py-2 underline-offset-4 hover:underline"
+                                className="hover:text-primary -my-2 flex items-start gap-1 py-2 underline-offset-4 hover:underline"
                               >
-                                {i.title}
-                                {!i.jobId && <ExternalLink className="ms-1 inline size-3" aria-hidden />}
+                                <TruncatedText text={i.title} lines={3} className="min-w-0" />
+                                {!i.jobId && <ExternalLink className="mt-1.5 size-3 shrink-0" aria-hidden />}
                               </a>
                             ) : (
-                              i.title
+                              <TruncatedText text={i.title} lines={3} />
                             )}
                           </p>
-                          <p className="text-muted-foreground truncate text-sm">{i.company}</p>
+                          <TruncatedText text={i.company} side="bottom" className="text-muted-foreground text-sm" />
                           {contactsLabel && i.contacts && i.contacts.total > 0 && (
                             <p className="text-foreground/80 mt-1 flex items-center gap-1 text-xs font-semibold">
                               <Users className="size-3.5 shrink-0" aria-hidden />
