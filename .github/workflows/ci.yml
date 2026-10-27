@@ -23,6 +23,8 @@ jobs:
       AUTH_SECRET: ci-secret-not-for-production
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -33,5 +35,19 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npx prisma migrate deploy
+      - name: Schema has a matching migration (no drift)
+        run: |
+          echo 'CREATE DATABASE jobhunt_shadow;' | npx prisma db execute --stdin --url "$DATABASE_URL"
+          npx prisma migrate diff \
+            --from-migrations prisma/migrations \
+            --to-schema-datamodel prisma/schema.prisma \
+            --shadow-database-url "postgresql://jobhunt:jobhunt@localhost:5432/jobhunt_shadow?schema=public" \
+            --exit-code \
+            || { echo "::error file=prisma/schema.prisma::schema.prisma changed without a migration. Run: npx prisma migrate dev --name <change>"; exit 1; }
+      - name: New migrations are additive
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+        run: npm run db:check-additive
       - run: npm run db:seed
       - run: npm run build
