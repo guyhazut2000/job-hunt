@@ -12,6 +12,6 @@ export async function POST(req: Request) {
     // ignore
   }
   const e = parseClickEvent(body);
-  if (e) track(e.event, { jobId: e.jobId, kind: e.kind, placement: e.placement });
+  if (e) track(e.event, { jobId: e.jobId, companyId: e.companyId, kind: e.kind, placement: e.placement });
   return new Response(null, { status: 204 });
 }

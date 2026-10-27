@@ -181,6 +181,8 @@ model Company {
   size         String?
   hqLocation   String?
   logoUrl      String?
+  /// Normalized https://www.linkedin.com/company/<slug>/ set by an admin; never fetched (see docs/linkedin-links.md).
+  linkedinUrl  String?
   atsProvider  AtsProvider    @default(MANUAL)
   atsBoardId   String?
   lastSyncedAt DateTime?

@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { LinkedinCompanyIcon } from "@/components/LinkedinCompanyLink";
 import { TruncatedText } from "@/components/TruncatedText";
 import { db } from "@/lib/db";
 import { groupByLetter, HEBREW, LATIN, letterAnchor, OTHER } from "@/lib/alpha";
 import { getDictionary } from "@/lib/i18n";
+import { linkedinStrings } from "@/lib/i18n/linkedin";
 import { BackToTop } from "@/components/BackToTop";
 import { cn } from "@/lib/utils";
 
@@ -10,7 +12,8 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Companies" };
 
 export default async function CompaniesPage() {
-  const { t } = await getDictionary();
+  const { t, locale } = await getDictionary();
+  const li = linkedinStrings(locale);
   const companies = await db.company.findMany({
     include: { _count: { select: { jobs: { where: { isActive: true } } } } },
     orderBy: { name: "asc" },
@@ -100,10 +103,10 @@ export default async function CompaniesPage() {
                 {g.items.map((c) => {
                   const meta = [c.industry, c.hqLocation].filter(Boolean).join(" · ");
                   return (
-                    <li key={c.id} className="bg-card min-w-0 overflow-hidden rounded-lg border">
+                    <li key={c.id} className="bg-card flex min-w-0 overflow-hidden rounded-lg border">
                       <Link
                         href={`/companies/${c.slug}`}
-                        className="group hover:bg-muted/60 flex h-full min-h-20 items-center gap-4 px-4 py-4 transition-colors"
+                        className="group hover:bg-muted/60 flex h-full min-h-20 min-w-0 flex-1 items-center gap-4 px-4 py-4 transition-colors"
                       >
                         <span
                           aria-hidden
@@ -134,6 +137,7 @@ export default async function CompaniesPage() {
                           <span className="text-muted-foreground text-[0.7rem]">{t.companies.openRoles}</span>
                         </span>
                       </Link>
+                      <LinkedinCompanyIcon company={c} s={li} />
                     </li>
                   );
                 })}

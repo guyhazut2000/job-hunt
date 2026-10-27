@@ -6,6 +6,7 @@ import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
 import { auth } from "@/auth";
 import { BackToTop } from "@/components/BackToTop";
 import { CvTips } from "@/components/CvTips";
+import { LinkedinCompanyButton } from "@/components/LinkedinCompanyLink";
 import { LinkedinJobButton, type LinkedinLink } from "@/components/LinkedinJobLink";
 import { OutboundLink } from "@/components/OutboundLink";
 import { MatchMeter } from "@/components/MatchMeter";
@@ -152,7 +153,10 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
               </ul>
             )}
             {/* mobile: the action bar keeps only the primary apply button */}
-            {linkedinSlot("page", "pt-1 sm:max-w-sm lg:hidden")}
+            <div className="flex flex-col gap-2 pt-1 sm:max-w-sm lg:hidden">
+              {linkedinSlot("page")}
+              <LinkedinCompanyButton company={job.company} jobId={job.id} s={li} />
+            </div>
           </header>
 
           <SalarySection job={job} company={job.company} profile={profile} loggedIn={!!userId} locale={locale} />
@@ -193,6 +197,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           <div className="bg-card hidden flex-col gap-2 rounded-lg border p-4 lg:flex">
             {applyButton("page")}
             {linkedinSlot("page")}
+            <LinkedinCompanyButton company={job.company} jobId={job.id} s={li} />
             {userId && (
               <SaveJobButton jobId={job.id} saved={!!application} label={t.jobs.save} savedLabel={t.jobs.saved} />
             )}
