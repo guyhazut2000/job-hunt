@@ -46,6 +46,7 @@ export const greenhouseAdapter: AtsAdapter<GreenhouseJob> = {
       applyUrl: raw.absolute_url,
       postedAt: raw.first_published ?? raw.updated_at,
       workModeHint: raw.location?.name,
+      updatedAt: raw.updated_at,
     });
   },
 };

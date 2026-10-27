@@ -26,6 +26,27 @@ enum Seniority {
   MANAGER
 }
 
+/// Job-board style experience level, derived from the title. Finer than `Seniority`
+/// (which the profile matcher uses): it separates directors and executives from line managers.
+enum JobLevel {
+  INTERN
+  ENTRY
+  MID
+  SENIOR
+  LEAD
+  MANAGER
+  DIRECTOR
+  EXECUTIVE
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  TEMPORARY
+  INTERNSHIP
+}
+
 enum WorkMode {
   ONSITE
   HYBRID
@@ -117,16 +138,16 @@ model Profile {
 }
 
 model Resume {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   fileName  String
   mimeType  String
   sizeBytes Int
   text      String
   skills    String[]
-  isPrimary Boolean  @default(true)
-  createdAt DateTime @default(now())
+  isPrimary Boolean     @default(true)
+  createdAt DateTime    @default(now())
   label     String?
   extracted Json?
   appliedAt DateTime?
@@ -187,29 +208,39 @@ model SalaryReport {
 }
 
 model Job {
-  id           String        @id @default(cuid())
-  companyId    String
-  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  externalId   String
-  source       AtsProvider
-  title        String
-  roleCategory String
-  seniority    Seniority
-  location     String
-  workMode     WorkMode
-  techStack    String[]
-  description  String
-  applyUrl     String
-  postedAt     DateTime
-  isActive     Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  applications Application[]
-  contacts     Contact[]
+  id              String         @id @default(cuid())
+  companyId       String
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  externalId      String
+  source          AtsProvider
+  title           String
+  roleCategory    String
+  seniority       Seniority
+  location        String
+  workMode        WorkMode
+  techStack       String[]
+  description     String
+  applyUrl        String
+  postedAt        DateTime
+  /// Broad job function (engineering, data, sales, marketing…) — see src/lib/jobs/classify.ts.
+  jobFunction     String         @default("other")
+  level           JobLevel       @default(MID)
+  employmentType  EmploymentType @default(FULL_TIME)
+  /// Last update time reported by the ATS (Greenhouse `updated_at`); null when the source has none.
+  sourceUpdatedAt DateTime?
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  applications    Application[]
+  contacts        Contact[]
 
   @@unique([source, externalId])
   @@index([roleCategory, seniority])
   @@index([isActive, postedAt])
+  @@index([isActive, jobFunction])
+  @@index([isActive, level])
+  @@index([isActive, sourceUpdatedAt])
+  @@index([companyId, isActive])
 }
 
 model Application {

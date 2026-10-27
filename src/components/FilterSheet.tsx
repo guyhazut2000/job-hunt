@@ -22,7 +22,7 @@ export function FilterSheet({ label, count, children }: { label: string; count: 
         <SheetHeader>
           <SheetTitle className="font-heading text-xl">{label}</SheetTitle>
         </SheetHeader>
-        <div className="px-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">{children}</div>
+        <div className="px-4">{children}</div>
       </SheetContent>
     </Sheet>
   );

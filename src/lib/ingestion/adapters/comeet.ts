@@ -14,6 +14,7 @@ export interface ComeetPosition {
   url_active_page?: string;
   url_comeet_hosted_page?: string;
   time_updated?: string;
+  employment_type?: string;
   workplace_type?: string;
   location?: { name?: string; city?: string; country?: string; is_remote?: boolean };
   details?: { name: string; value: string }[];
@@ -44,6 +45,8 @@ export const comeetAdapter: AtsAdapter<ComeetPosition> = {
       descriptionHtmlOrText: description,
       applyUrl: raw.url_active_page ?? raw.url_comeet_hosted_page ?? "",
       postedAt: raw.time_updated,
+      updatedAt: raw.time_updated,
+      commitmentHint: raw.employment_type,
       workModeHint: `${raw.workplace_type ?? ""} ${raw.location?.is_remote ? "remote" : ""}`,
     });
   },

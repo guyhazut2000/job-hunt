@@ -10,6 +10,7 @@ export interface LeverPosting {
   hostedUrl: string;
   applyUrl?: string;
   createdAt?: number;
+  updatedAt?: number;
   country?: string | null;
   workplaceType?: "onsite" | "remote" | "hybrid" | "unspecified";
   categories?: { location?: string; allLocations?: string[]; team?: string; commitment?: string };
@@ -47,6 +48,8 @@ export const leverAdapter: AtsAdapter<LeverPosting> = {
       applyUrl: raw.hostedUrl ?? raw.applyUrl,
       postedAt: raw.createdAt,
       workModeHint: raw.workplaceType === "unspecified" ? null : raw.workplaceType,
+      commitmentHint: raw.categories?.commitment,
+      updatedAt: raw.updatedAt ?? raw.createdAt,
     });
   },
 };
