@@ -6,11 +6,12 @@ import { CvTips } from "@/components/CvTips";
 import { MatchMeter } from "@/components/MatchMeter";
 import { SaveJobButton } from "@/components/SaveJobButton";
 import { Button } from "@/components/ui/button";
-import { computeMatch } from "@/lib/ai/match";
 import { track } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
+import { MatchReasons } from "@/components/profile/MatchReasons";
+import { hasScorableProfile, scoreMatch, toCandidate } from "@/lib/profile/score";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         db.application.findUnique({ where: { userId_jobId: { userId, jobId: id } } }),
       ])
     : [null, null];
-  const match = profile && profile.skills.length ? computeMatch(profile, job) : null;
+  const match = hasScorableProfile(profile) ? scoreMatch(toCandidate(profile), job) : null;
   track("job_view", { jobId: id, source: job.source });
 
   const applyButton = (
@@ -140,6 +141,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
               <div className="flex items-center gap-4">
                 <MatchMeter score={match.score} label={t.jobs.match} size="lg" />
               </div>
+              <MatchReasons t={t.match} reasons={match.reasons} />
               {match.matchedSkills.length > 0 && (
                 <div>
                   <h3 className="mb-1.5 text-sm font-bold">{t.jobs.matchedSkills}</h3>
@@ -166,14 +168,22 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
               )}
             </section>
           ) : (
-            <p className="bg-card text-muted-foreground rounded-lg border p-4 text-sm">{t.jobs.matchLoginHint}</p>
+            <p className="bg-card text-muted-foreground rounded-lg border p-4 text-sm">
+              {userId ? (
+                <Link href="/profile" className="text-foreground underline underline-offset-4">
+                  {t.pv2.matchProfileHint}
+                </Link>
+              ) : (
+                t.jobs.matchLoginHint
+              )}
+            </p>
           )}
           {userId && <CvTips jobId={job.id} label={t.jobs.generate} title={t.jobs.cvTips} />}
         </aside>
       </div>
 
       {/* mobile action bar — sits above the bottom nav */}
-      <div className="bg-background/95 fixed inset-x-0 bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] z-30 flex gap-2 border-t px-4 py-3 backdrop-blur-md lg:hidden">
+      <div className="bg-background/95 fixed inset-x-0 bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] z-30 flex gap-2 border-t px-4 py-3 backdrop-blur-md md:bottom-0 lg:hidden">
         <div className="flex-1">{applyButton}</div>
         {userId && (
           <SaveJobButton jobId={job.id} saved={!!application} label={t.jobs.save} savedLabel={t.jobs.saved} compact />

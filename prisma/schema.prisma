@@ -32,6 +32,18 @@ enum WorkMode {
   REMOTE
 }
 
+enum SkillLevel {
+  BASIC
+  GOOD
+  EXPERT
+}
+
+enum Availability {
+  ACTIVE
+  OPEN
+  NOT_LOOKING
+}
+
 enum AtsProvider {
   GREENHOUSE
   LEVER
@@ -77,6 +89,27 @@ model Profile {
   skills          String[]
   linkedinUrl     String?
   updatedAt       DateTime   @updatedAt
+
+  // ── v2 professional profile (validated by zod in src/lib/profile/schema.ts) ──
+  summary           String?
+  githubUrl         String?
+  portfolioUrl      String?
+  experience        Json          @default("[]")
+  skillItems        Json          @default("[]")
+  education         Json          @default("[]")
+  languages         Json          @default("[]")
+  // ── v2 preferences ──
+  targetRoles       String[]      @default([])
+  targetSeniorities Seniority[]   @default([])
+  regions           String[]      @default([])
+  workModes         WorkMode[]    @default([])
+  salaryMin         Int?
+  salaryMax         Int?
+  companyTypes      String[]      @default([])
+  wantedTech        String[]      @default([])
+  avoidTech         String[]      @default([])
+  availability      Availability?
+  onboardedAt       DateTime?
 }
 
 model Resume {
@@ -90,8 +123,22 @@ model Resume {
   skills    String[]
   isPrimary Boolean  @default(true)
   createdAt DateTime @default(now())
+  label     String?
+  extracted Json?
+  appliedAt DateTime?
+  file      ResumeFile?
 
   @@index([userId])
+}
+
+/// Original uploaded CV bytes. Kept in a separate table so listing resumes never loads blobs.
+/// No Vercel Blob store is configured for this project, so files live in Postgres (bytea, max 5MB).
+model ResumeFile {
+  id        String   @id @default(cuid())
+  resumeId  String   @unique
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  data      Bytes
+  createdAt DateTime @default(now())
 }
 
 model Company {
