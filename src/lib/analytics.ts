@@ -12,6 +12,8 @@ export type AnalyticsEvent =
   | "application_status_changed"
   | "cv_uploaded"
   | "cv_suggestions_generated"
+  | "cv_extraction_confirmed"
+  | "onboarding_completed"
   | "upgrade_clicked";
 
 type Props = Record<string, string | number | boolean | null | undefined>;

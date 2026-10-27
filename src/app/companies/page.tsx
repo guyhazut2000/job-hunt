@@ -23,9 +23,9 @@ export default async function CompaniesPage() {
           <span className="text-foreground font-mono font-medium">{hiring}</span> {t.ui.hiringNow}
         </p>
       </header>
-      <ul className="bg-border grid gap-px overflow-hidden rounded-lg border sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="bg-border grid grid-cols-1 gap-px overflow-hidden rounded-lg border sm:grid-cols-2 lg:grid-cols-3">
         {companies.map((c) => (
-          <li key={c.id} className="bg-card">
+          <li key={c.id} className="bg-card min-w-0">
             <Link
               href={`/companies/${c.slug}`}
               className="group hover:bg-muted/60 flex h-full min-h-20 items-center gap-4 px-4 py-4 transition-colors"
@@ -37,7 +37,10 @@ export default async function CompaniesPage() {
                 {c.name[0]}
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="font-heading group-hover:text-primary truncate text-lg leading-tight font-bold">
+                <span
+                  className="font-heading group-hover:text-primary line-clamp-2 text-lg leading-tight font-bold break-words"
+                  title={c.name}
+                >
                   {c.name}
                 </span>
                 <span className="text-muted-foreground truncate text-sm">

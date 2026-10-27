@@ -1,0 +1,30 @@
+Noa Levi
+Senior Full Stack Developer
+noa.levi@example.com | 052-555-1234 | github.com/noalevi | https://www.linkedin.com/in/noa-levi
+https://noalevi.dev
+
+Summary
+Full stack engineer with a focus on React and Node.js, building B2B SaaS products for fintech teams in Tel Aviv.
+
+Experience
+Senior Full Stack Developer at Payflow
+Jan 2021 - Present
+• Led the migration of the checkout to Next.js and TypeScript, cutting load time by 40%
+• Designed Node.js services on AWS with PostgreSQL and Redis
+Full Stack Developer | Shopit
+03/2018 - 12/2020
+• Built React dashboards and a Python data pipeline
+• Maintained Docker based CI
+
+Education
+B.Sc. Computer Science, Tel Aviv University 2014 - 2017
+AWS Certified Solutions Architect 2022
+
+Military Service
+Mamram - Software developer 2010 - 2013
+
+Skills
+React, TypeScript, Node.js, Python, AWS, Docker, PostgreSQL, Kafka
+
+Languages
+Hebrew - native, English - fluent

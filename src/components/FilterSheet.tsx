@@ -18,7 +18,7 @@ export function FilterSheet({ label, count, children }: { label: string; count: 
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto rounded-t-xl">
+      <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto overscroll-contain rounded-t-xl">
         <SheetHeader>
           <SheetTitle className="font-heading text-xl">{label}</SheetTitle>
         </SheetHeader>

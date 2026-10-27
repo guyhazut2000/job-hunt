@@ -142,8 +142,19 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    /* Long URLs, emails or unbroken tokens (job descriptions, titles, CV text) must wrap, never clip. */
+    overflow-wrap: anywhere;
     /* faint newsprint grain */
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.16 0 0 0 0 0.1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  textarea {
+    /* grow with content but never past the viewport — then scroll inside */
+    max-height: 60dvh;
+    overflow-y: auto;
+  }
+  pre,
+  code {
+    white-space: pre-wrap;
   }
   h1,
   h2,
@@ -214,6 +225,20 @@
   &:dir(rtl) {
     background-position: left 0.75rem center;
   }
+}
+/* checkbox/radio rendered as a pressable chip: <label class="toggle-chip"><input class="sr-only" …/>…</label> */
+@utility toggle-chip {
+  @apply border-input bg-card text-foreground/85 hover:bg-muted inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3.5 text-sm font-semibold transition-colors select-none;
+  &:has(:checked) {
+    @apply border-foreground bg-foreground text-background hover:bg-foreground/90;
+  }
+  &:has(:focus-visible) {
+    @apply ring-primary/40 ring-3;
+  }
+}
+/* section heading with a heavy ink rule, used in long forms */
+@utility form-section {
+  @apply border-rule flex flex-col gap-4 border-t-2 pt-4;
 }
 /* Hebrew has no case and suffers from tracking — kickers switch to the body face there */
 :lang(he) .kicker {
