@@ -288,6 +288,71 @@ const llmShape = professionalSchema.extend({
   targetSeniorities: z.array(z.enum(["INTERN", "JUNIOR", "MID", "SENIOR", "LEAD", "MANAGER"])).default([]),
 });
 
+const s = z.string();
+const dates = {
+  start: s.describe("YYYY-MM or YYYY, empty if unknown"),
+  end: s.describe("YYYY-MM or YYYY, empty if current"),
+};
+/**
+ * Generation-only schema for providers with structured output (Gemini rejects empty-string enums
+ * and transforms, so this mirrors `llmShape` with plain types). The result is still validated by `llmShape`.
+ */
+export const llmWireShape = z.object({
+  headline: s,
+  summary: s,
+  experience: z.array(z.object({ company: s, title: s, ...dates, description: s, tech: z.array(s) })),
+  skillItems: z.array(
+    z.object({
+      name: s,
+      level: z.enum(["BASIC", "GOOD", "EXPERT"]),
+      years: z.number().nullable(),
+      category: z.enum(["languages", "frontend", "backend", "data", "cloud", "mobile", "ml", "tools", "other"]),
+    }),
+  ),
+  education: z.array(
+    z.object({
+      kind: z.enum(["DEGREE", "BOOTCAMP", "CERTIFICATION", "COURSE", "MILITARY"]),
+      institution: s,
+      title: s,
+      ...dates,
+    }),
+  ),
+  languages: z.array(z.object({ name: s, level: z.enum(["BASIC", "CONVERSATIONAL", "FLUENT", "NATIVE"]) })),
+  linkedinUrl: s,
+  githubUrl: s,
+  portfolioUrl: s,
+  targetRoles: z.array(s),
+  targetSeniorities: z.array(z.enum(["INTERN", "JUNIOR", "MID", "SENIOR", "LEAD", "MANAGER"])),
+});
+
+const MONTH_RE = /^\d{4}(-\d{2})?$/;
+const URL_RE = /^https?:\/\/\S+$/i;
+
+/** Drop values the strict schema would reject (e.g. "Present" as an end date) instead of discarding the whole extraction. */
+export function normalizeLlmProfile(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object") return raw;
+  const o = { ...(raw as Record<string, unknown>) };
+  const fixDates = (items: unknown) =>
+    Array.isArray(items)
+      ? items.map((it) => {
+          if (!it || typeof it !== "object") return it;
+          const x = { ...(it as Record<string, unknown>) };
+          for (const k of ["start", "end"]) {
+            const v = typeof x[k] === "string" ? (x[k] as string).trim() : "";
+            x[k] = MONTH_RE.test(v) ? v : "";
+          }
+          return x;
+        })
+      : items;
+  o.experience = fixDates(o.experience);
+  o.education = fixDates(o.education);
+  for (const k of ["linkedinUrl", "githubUrl", "portfolioUrl"]) {
+    const v = typeof o[k] === "string" ? (o[k] as string).trim() : "";
+    o[k] = URL_RE.test(v) ? v : "";
+  }
+  return o;
+}
+
 const PROMPT = `Extract a structured profile from the CV below. Reply with JSON only, matching:
 {"headline":string,"summary":string,
  "experience":[{"company":string,"title":string,"start":"YYYY-MM","end":"YYYY-MM"|"" (empty if current),"description":string,"tech":string[]}],
@@ -309,9 +374,9 @@ export async function extractProfile(text: string, provider: LLMProvider): Promi
         { role: "system", content: PROMPT },
         { role: "user", content: text.slice(0, 20_000) },
       ],
-      { json: true, maxTokens: 3000 },
+      { json: true, schema: llmWireShape, maxTokens: 3000 },
     );
-    const parsed = llmShape.safeParse(JSON.parse(raw));
+    const parsed = llmShape.safeParse(normalizeLlmProfile(JSON.parse(raw)));
     if (!parsed.success) return fallback();
     const d = parsed.data;
     return {

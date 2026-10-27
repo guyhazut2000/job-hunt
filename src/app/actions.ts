@@ -8,12 +8,14 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { ApplicationStatus, AtsProvider } from "@prisma/client";
 import { signIn, signOut } from "@/auth";
+import { guardedLLM } from "@/lib/ai";
 import { generateCvSuggestions } from "@/lib/ai/cv-suggestions";
 import type { CvSuggestion } from "@/lib/ai/types";
 import { track } from "@/lib/analytics";
 import { canUseAiReview, createCheckoutUrl } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { getDictionary, LOCALE_COOKIE } from "@/lib/i18n";
+import { aiLimitMessage } from "@/lib/i18n/ai";
 import { SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
 import { ingestAll } from "@/lib/ingestion/run";
 import { requireAdmin, requireUser } from "@/lib/session";
@@ -118,7 +120,7 @@ export async function addManualApplication(formData: FormData) {
 
 export async function getCvSuggestions(
   jobId: string,
-): Promise<{ error?: string; provider?: string; suggestions?: CvSuggestion[] }> {
+): Promise<{ error?: string; notice?: string; cached?: boolean; provider?: string; suggestions?: CvSuggestion[] }> {
   const user = await requireUser();
   const { locale, t } = await getDictionary();
   const [job, resume, dbUser] = await Promise.all([
@@ -130,9 +132,14 @@ export async function getCvSuggestions(
   if (!resume) return { error: t.jobs.cvTipsNeedCv };
   // TODO(billing): count usage per month in a table; currently only enforced by plan flag.
   if (!canUseAiReview(dbUser.plan, 0)) return { error: t.pricing.billingDisabled };
-  const res = await generateCvSuggestions({ resumeText: resume.text, job, locale });
-  track("cv_suggestions_generated", { provider: res.provider });
-  return res;
+  const provider = await guardedLLM("cv_tips", user.id);
+  const res = await generateCvSuggestions({ resumeText: resume.text, job, locale }, provider);
+  track("cv_suggestions_generated", { provider: res.provider, cached: !!provider.cached });
+  return {
+    ...res,
+    cached: !!provider.cached,
+    ...(provider.limited ? { notice: aiLimitMessage(provider.limited, locale) } : {}),
+  };
 }
 
 export async function startCheckout() {

@@ -3,7 +3,7 @@
 import type { Prisma, Seniority, WorkMode } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getLLMProvider } from "@/lib/ai";
+import { guardedLLM } from "@/lib/ai";
 import { track } from "@/lib/analytics";
 import { ALLOWED_CV_TYPES, extractText, MAX_CV_BYTES, parseCvText } from "@/lib/cv/parse";
 import { db } from "@/lib/db";
@@ -162,7 +162,7 @@ export async function uploadCvVersion(_: ActionState, formData: FormData): Promi
     return { error: t.pv2.unreadable };
   }
   const parsed = parseCvText(text);
-  const extracted = await extractProfile(parsed.text, getLLMProvider());
+  const extracted = await extractProfile(parsed.text, await guardedLLM("cv_extract", user.id));
   const makeDefault = count === 0 || formData.get("makeDefault") === "on";
   const label =
     String(formData.get("label") ?? "")

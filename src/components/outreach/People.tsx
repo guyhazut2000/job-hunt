@@ -1,5 +1,5 @@
 import type { Company, Job } from "@prisma/client";
-import { getLLMProvider } from "@/lib/ai";
+import { aiEnabled } from "@/lib/ai";
 import { db } from "@/lib/db";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n";
@@ -54,7 +54,7 @@ export async function People({
       items={items}
       contacts={contacts}
       loggedIn={!!userId}
-      canAi={!!userId && getLLMProvider().name !== "mock"}
+      canAi={!!userId && aiEnabled()}
       defaultLang="he"
       t={t.people}
       search={{ enabled: peopleSearchConfig().enabled, locale, savedKeys, s: peopleSearchStrings[locale] }}

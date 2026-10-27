@@ -207,7 +207,7 @@ function CategoryCard({
   t: Dictionary["people"];
 }) {
   const [pending, start] = useTransition();
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | false>(false);
   const msg = ai ?? item.messages[lang];
   const short = personalize(msg.short, name);
   const long = personalize(msg.long, name);
@@ -290,7 +290,7 @@ function CategoryCard({
                 start(async () => {
                   setFailed(false);
                   const r = await draftOutreach({ companyId, jobId, category: item.category, lang });
-                  if ("error" in r || r.source !== "ai") setFailed(true);
+                  if ("error" in r || r.source !== "ai") setFailed(("notice" in r && r.notice) || t.aiFailed);
                   else onAi(r);
                 })
               }
@@ -308,7 +308,7 @@ function CategoryCard({
         </div>
         {failed && (
           <p className="text-muted-foreground text-sm" aria-live="polite">
-            {t.aiFailed}
+            {failed}
           </p>
         )}
       </div>

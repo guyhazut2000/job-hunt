@@ -512,3 +512,30 @@ model EmailCandidate {
   @@unique([userId, provider, messageId])
   @@index([userId, status])
 }
+
+/// Cached AI responses keyed by a hash of model + prompt, so identical requests never hit the provider twice.
+model AiCache {
+  id        String   @id @default(cuid())
+  feature   String
+  key       String
+  model     String
+  value     String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@unique([feature, key])
+  @@index([expiresAt])
+}
+
+/// One row per AI request (including cache hits and refusals) for per-user / global free-tier limits.
+model AiUsage {
+  id        String   @id @default(cuid())
+  userId    String?
+  feature   String
+  model     String
+  outcome   String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt, outcome])
+}
