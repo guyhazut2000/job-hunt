@@ -51,7 +51,7 @@ The panel only renders for logged-in users with a scorable profile (same conditi
 ## Progress (DB)
 
 `SkillProgress (userId, skill, status LEARNING|DONE, proofUrl?, addedToProfile)`, unique per user+skill
-(migration `20261028000000_learning_progress`, additive). "Not started" = no row.
+(migration `20261028010000_learning_progress`, additive). "Not started" = no row.
 
 Marking **done** adds the skill to the profile at `BASIC` (both `skillItems` and the legacy `skills` column) unless
 the profile already covers it under any alias, and sets `addedToProfile`. Moving back to learning / not started
