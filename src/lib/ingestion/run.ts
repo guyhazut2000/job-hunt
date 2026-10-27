@@ -2,6 +2,7 @@ import type { AtsProvider } from "@prisma/client";
 import { db } from "../db";
 import { sleep } from "./http";
 import { getAdapter } from "./registry";
+import { MANUAL_COMPANIES, type ManualCompany } from "../companies/manual";
 import { JOB_SOURCES, type JobSource } from "./sources";
 import type { NormalizedJob } from "./types";
 
@@ -37,9 +38,38 @@ export async function syncSources(sources: JobSource[] = JOB_SOURCES): Promise<n
       atsProvider: s.provider,
       atsBoardId: s.boardId,
     };
-    await db.company.upsert({ where: { slug: s.slug }, create: { slug: s.slug, ...managed }, update: managed });
+    await db.company.upsert({
+      where: { slug: s.slug },
+      create: { slug: s.slug, ...managed, careersUrl: s.careersUrl, addedVia: "curated" },
+      update: managed,
+    });
   }
   return sources.length;
+}
+
+/**
+ * Insert the curated manual companies (src/lib/companies/manual.ts): companies we can't pull jobs
+ * from automatically but must keep visible. Only missing rows are created, so admin edits (notes,
+ * careers URL, switching to AUTO once a feed exists) are never overwritten.
+ */
+export async function syncManualCompanies(companies: ManualCompany[] = MANUAL_COMPANIES): Promise<number> {
+  const res = await db.company.createMany({
+    data: companies.map((c) => ({
+      slug: c.slug,
+      name: c.name,
+      website: c.website,
+      careersUrl: c.careersUrl,
+      industry: c.industry,
+      hqLocation: c.hqLocation,
+      notesHe: c.notesHe,
+      notesEn: c.notesEn,
+      atsProvider: "MANUAL" as const,
+      syncMode: "MANUAL" as const,
+      addedVia: "manual-seed",
+    })),
+    skipDuplicates: true,
+  });
+  return res.count;
 }
 
 export interface IngestOptions {
@@ -131,10 +161,18 @@ export async function ingestCompany(companyId: string, options: IngestOptions = 
       data: { isActive: false },
     });
     result.deactivated = stale.count;
-    await db.company.update({ where: { id: companyId }, data: { lastSyncedAt: new Date() } });
+    await db.company.update({
+      where: { id: companyId },
+      data: { lastSyncedAt: new Date(), syncFailures: 0, lastSyncError: null, lastSyncErrorAt: null },
+    });
   } catch (e) {
-    // On fetch errors we keep the existing jobs active rather than wiping a board on a transient failure.
+    // On fetch errors we keep the existing jobs active rather than wiping a board on a transient failure,
+    // and record the error on the company: it stays listed (with its careers link) however long it fails.
     result.error = e instanceof Error ? e.message : String(e);
+    await db.company.update({
+      where: { id: companyId },
+      data: { syncFailures: { increment: 1 }, lastSyncError: result.error.slice(0, 500), lastSyncErrorAt: new Date() },
+    });
   }
   await db.ingestionRun.update({
     where: { id: run.id },
@@ -192,9 +230,13 @@ const PROVIDER_LANES: Partial<Record<AtsProvider, number>> = { WORKDAY: 4 };
  */
 export async function ingestAllDetailed(options: IngestAllOptions = {}): Promise<IngestAllResult> {
   const started = Date.now();
-  if (options.syncSources !== false) await syncSources();
+  if (options.syncSources !== false) {
+    await syncSources();
+    await syncManualCompanies();
+  }
   const companies = await db.company.findMany({
     where: {
+      syncMode: "AUTO",
       atsProvider: options.providers?.length ? { in: options.providers } : { not: "MANUAL" },
       atsBoardId: { not: null },
     },

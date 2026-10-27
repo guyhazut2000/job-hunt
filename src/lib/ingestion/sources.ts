@@ -27,6 +27,8 @@ export interface JobSource {
   website: string;
   industry: string;
   hqLocation: string;
+  /** The company's own careers page, shown next to the jobs (set once on create). */
+  careersUrl?: string;
 }
 
 const gh = (slug: string, name: string, boardId: string, website: string, industry: string, hq = "Tel Aviv") =>
@@ -418,6 +420,8 @@ export const JOB_SOURCES: JobSource[] = [
   ashby("lemonade", "Lemonade", "lemonade", "https://www.lemonade.com", "Insurtech", "New York"),
   ashby("moon-active", "Moon Active", "moonactive", "https://www.moonactive.com", "Mobile gaming"),
   ashby("honeybook", "HoneyBook", "honeybook", "https://www.honeybook.com", "SMB business management", "San Francisco"),
+  // Careers site embeds Comeet without a usable public token, but the company also publishes its board on Ashby.
+  ashby("wonderful", "Wonderful", "wonderful", "https://www.wonderful.ai", "Enterprise AI agents"),
   ashby("sisense", "Sisense", "sisense", "https://www.sisense.com", "Analytics / BI", "New York"),
   ashby("nexxen", "Nexxen", "nexxen", "https://www.nexxen.com", "AdTech"),
   ashby("zafran", "Zafran", "zafran-security", "https://www.zafran.io", "Exposure management"),

@@ -94,6 +94,18 @@ To add a company: append it to `sources.ts` (or use `/admin` → **Add company**
 - Comeet: `<companyUid>:<token>` — the Careers API token is issued by the company, so Comeet sources need the
   company's cooperation; none are configured yet.
 
+### Manual companies & startup discovery
+
+Companies whose jobs can't be pulled automatically are **never dropped**: they are listed as _manual check_
+(`syncMode = MANUAL`) with a link to their official careers page and a note (he/en). The curated list lives in
+[`src/lib/companies/manual.ts`](src/lib/companies/manual.ts) and is synced by every ingest run; `/admin` can add a
+manual company or switch one to manual. An AUTO company whose feed fails 3 runs in a row stays listed, flagged with
+its last error. `/companies` filters all / auto / manual.
+
+New Israeli startups are found from open data (TechMap, YC, Wikidata) — no LinkedIn, robots.txt respected — and
+added as AUTO when a public ATS board is detected, as MANUAL with a careers link otherwise, or queued for review in
+`/admin`. Details, alternatives and costs: [`docs/startup-discovery.md`](docs/startup-discovery.md).
+
 Adding an ATS = implement `AtsAdapter` (`fetchRaw`, `isInIsrael`, `normalize`) in `src/lib/ingestion/adapters/` and
 register it in `registry.ts`. Tests use JSON fixtures in `tests/fixtures/`.
 
