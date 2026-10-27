@@ -113,3 +113,24 @@ describe("curated sources", () => {
     }
   });
 });
+
+describe("polite fetching", () => {
+  it("retries a transient 503 once, then succeeds", async () => {
+    vi.useFakeTimers();
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("busy", { status: 503 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobs: [] }), { status: 200 })) as unknown as typeof fetch;
+    const p = greenhouseAdapter.fetchRaw({ boardId: "acme", fetchImpl });
+    await vi.runAllTimersAsync();
+    await expect(p).resolves.toEqual([]);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it("does not retry a 404", async () => {
+    const fetchImpl = vi.fn(async () => new Response("nope", { status: 404 })) as unknown as typeof fetch;
+    await expect(leverAdapter.fetchRaw({ boardId: "gone", fetchImpl })).rejects.toThrow(/HTTP 404/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
