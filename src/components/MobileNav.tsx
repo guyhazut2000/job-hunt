@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Briefcase, Building2, Ellipsis, KanbanSquare, LogIn, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { logout, setLocale } from "@/app/actions";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 type Labels = Record<
@@ -27,6 +28,10 @@ type Labels = Record<
 
 export function MobileNav({ user, labels, locale }: { user: { role: string } | null; labels: Labels; locale: string }) {
   const pathname = usePathname();
+  // The sheet lives in the persistent layout: close it on any navigation, otherwise its overlay and
+  // scroll lock survive into the next page and the page can't scroll.
+  const [open, setOpen] = useState(false);
+  useEffect(() => setOpen(false), [pathname]);
   const items: { href: string; label: string; icon: LucideIcon }[] = [
     { href: "/jobs", label: labels.jobs, icon: Briefcase },
     { href: "/companies", label: labels.companies, icon: Building2 },
@@ -68,42 +73,51 @@ export function MobileNav({ user, labels, locale }: { user: { role: string } | n
           );
         })}
         <li className="flex flex-1">
-          <Sheet>
+          <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger className={cn(tab, "text-foreground/65")}>
               <span className="grid h-7 w-12 place-items-center">
                 <Ellipsis className="size-5" aria-hidden />
               </span>
               {labels.more}
             </SheetTrigger>
-            <SheetContent side="bottom" className="rounded-t-xl pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+            <SheetContent
+              side="bottom"
+              className="max-h-[88dvh] overflow-y-auto overscroll-contain rounded-t-xl pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+            >
               <SheetHeader>
                 <SheetTitle className="font-heading text-lg">{labels.account}</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-2 px-4">
-                <Button asChild variant="outline" className="justify-start">
-                  <Link href="/pricing">{labels.pricing}</Link>
-                </Button>
-                {user?.role === "ADMIN" && (
+                <SheetClose asChild>
                   <Button asChild variant="outline" className="justify-start">
-                    <Link href="/admin">{labels.admin}</Link>
+                    <Link href="/pricing">{labels.pricing}</Link>
                   </Button>
+                </SheetClose>
+                {user?.role === "ADMIN" && (
+                  <SheetClose asChild>
+                    <Button asChild variant="outline" className="justify-start">
+                      <Link href="/admin">{labels.admin}</Link>
+                    </Button>
+                  </SheetClose>
                 )}
-                <form action={setLocale}>
+                <form action={setLocale} onSubmit={() => setOpen(false)}>
                   <input type="hidden" name="locale" value={locale === "he" ? "en" : "he"} />
                   <Button variant="outline" type="submit" className="w-full justify-start">
                     {labels.language}
                   </Button>
                 </form>
                 {user ? (
-                  <form action={logout}>
+                  <form action={logout} onSubmit={() => setOpen(false)}>
                     <Button variant="destructive" type="submit" className="w-full justify-start">
                       {labels.logout}
                     </Button>
                   </form>
                 ) : (
-                  <Button asChild>
-                    <Link href="/register">{labels.register}</Link>
-                  </Button>
+                  <SheetClose asChild>
+                    <Button asChild>
+                      <Link href="/register">{labels.register}</Link>
+                    </Button>
+                  </SheetClose>
                 )}
               </div>
             </SheetContent>
