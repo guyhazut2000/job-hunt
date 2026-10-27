@@ -183,6 +183,28 @@ model Company {
   updatedAt    DateTime    @updatedAt
   jobs         Job[]
   contacts     Contact[]
+  salaries     SalaryReport[]
+}
+
+/// Anonymous salary report. No user id, no free text: `reporterKey` is an HMAC of the user id
+/// (keyed with AUTH_SECRET) used only for de-duplication and rate limiting. Only aggregates over
+/// >= 5 reports are ever shown (see src/lib/salary).
+model SalaryReport {
+  id              String    @id @default(cuid())
+  reporterKey     String
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  family          String
+  seniority       Seniority
+  yearsExperience Int?
+  monthlyGrossIls Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([reporterKey, companyId, family])
+  @@index([companyId, family, seniority])
+  @@index([family, seniority])
+  @@index([reporterKey, updatedAt])
 }
 
 model Job {
@@ -266,6 +288,64 @@ model IngestionRun {
   updated     Int         @default(0)
   deactivated Int         @default(0)
   error       String?
+}
+
+/// People search (docs/people-search.md): Brave web-search results for `site:linkedin.com/in` queries.
+/// Only fields derived from the result's title/description/url are kept — we never fetch LinkedIn.
+enum PeopleGroup {
+  RECRUITER
+  TEAM_LEAD
+  ENGINEER
+  MANAGER
+  SENIOR_MGMT
+  FOUNDER
+}
+
+enum PeopleSuppressionReason {
+  HIDDEN
+  REPORTED
+}
+
+/// Shared, short-lived cache of parsed search results (one row per company × group × query/page).
+model PeopleSearchCache {
+  id        String      @id @default(cuid())
+  companyId String
+  group     PeopleGroup
+  queryHash String
+  query     String
+  page      Int         @default(0)
+  results   Json
+  hasMore   Boolean     @default(false)
+  fetchedAt DateTime    @default(now())
+  expiresAt DateTime
+
+  @@unique([companyId, group, queryHash])
+  @@index([expiresAt])
+}
+
+/// One row per people-search request: drives the per-user rate limit, daily cap and monthly budget.
+model PeopleSearchUsage {
+  id        String      @id @default(cuid())
+  userId    String
+  companyId String
+  group     PeopleGroup
+  cached    Boolean
+  createdAt DateTime    @default(now())
+
+  @@index([userId, createdAt])
+  @@index([cached, createdAt])
+}
+
+/// "Hide" (per user) and "report / removal request" (hidden for everyone) for a profile URL.
+model PeopleSearchSuppression {
+  id         String                  @id @default(cuid())
+  userId     String
+  profileKey String
+  reason     PeopleSuppressionReason
+  createdAt  DateTime                @default(now())
+
+  @@unique([userId, profileKey])
+  @@index([profileKey, reason])
 }
 
 enum ContactCategory {
