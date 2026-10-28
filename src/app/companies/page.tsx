@@ -24,6 +24,9 @@ import { SearchBox } from "@/components/SearchBox";
 import { SuggestCompanyForm } from "@/components/SuggestCompanyForm";
 import { suggestCompanyStrings } from "@/lib/i18n/suggest-company";
 import { auth } from "@/auth";
+import { formatDateTime } from "@/lib/format";
+import { lastScanStrings } from "@/lib/i18n/last-scan";
+import { formatRelative } from "@/lib/ingestion/last-scan";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Companies" };
@@ -34,6 +37,10 @@ export default async function CompaniesPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [{ t, locale }, sp, session] = await Promise.all([getDictionary(), searchParams, auth()]);
+  // Server-rendered only (no client re-render of this text), so the relative time can't mismatch.
+  const ls = lastScanStrings(locale);
+  const now = new Date();
+  const scanned = (d: Date) => ls.companyScanned.replace("{time}", formatRelative(d, t.dateLocale, now));
   const li = linkedinStrings(locale);
   const filter = parseCompanyFilter(sp.sync);
   const ss = searchStrings(locale);
@@ -263,6 +270,15 @@ export default async function CompaniesPage({
                                 {c._count.jobs}
                               </span>
                               <span className="text-muted-foreground text-[0.7rem]">{t.companies.openRoles}</span>
+                              {c.lastSyncedAt && (
+                                <span
+                                  className="text-muted-foreground text-[0.65rem] whitespace-nowrap"
+                                  title={formatDateTime(c.lastSyncedAt, t.dateLocale)}
+                                  data-last-synced={c.lastSyncedAt.toISOString()}
+                                >
+                                  {scanned(c.lastSyncedAt)}
+                                </span>
+                              )}
                               {failing && (
                                 <Badge variant="destructive" className="text-[0.65rem]">
                                   {t.companies.failingBadge}
