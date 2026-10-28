@@ -70,9 +70,28 @@ export function verdictFor(score: number): Verdict {
 
 /** Normalise and validate a stored or generated result; null when invalid. Score and verdict are kept consistent. */
 export function normalizeFeedback(raw: unknown): AnswerFeedback | null {
-  const p = answerFeedbackSchema.safeParse(raw);
-  if (!p.success) return null;
-  return p.data;
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const strs = (v: unknown, n: number) =>
+    Array.isArray(v)
+      ? v
+          .filter((x): x is string => typeof x === "string")
+          .map((x) => x.trim().slice(0, 300))
+          .filter((x) => x.length >= 2)
+          .slice(0, n)
+      : [];
+  const n = typeof r.score === "number" ? r.score : Number(r.score);
+  if (!Number.isFinite(n) || typeof r.summary !== "string" || !r.summary.trim()) return null;
+  const score = Math.round(Math.min(100, Math.max(0, n)));
+  const p = answerFeedbackSchema.safeParse({
+    verdict: verdictFor(score),
+    score,
+    summary: r.summary.trim().slice(0, 700),
+    strengths: strs(r.strengths, 3),
+    improvements: strs(r.improvements, 4),
+    followUp: typeof r.followUp === "string" ? r.followUp.trim().slice(0, 300) : "",
+  });
+  return p.success ? p.data : null;
 }
 
 // --- Prompt ---------------------------------------------------------------------------------

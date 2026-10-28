@@ -75,6 +75,11 @@ Demand per node is one grouped `unnest("techStack")` query on active jobs, cache
   continuity (60 + 40 × completion) + job impact (0–40, jobs that rise × avg gain, normalised) +
   foundation (a ready prerequisite gets half the impact of the locked skill it unlocks) + role track (15) +
   unlocks (3 each, max 12) + market demand (0–10). Ties break by id. Each item lists its reasons.
+- **My roadmap** (`src/lib/learning/roadmap.ts`, pure): one role track (Frontend, Backend, Full-stack, DevOps,
+  Data, ML, Embedded) in prerequisite order with the user's state per topic — done / in progress (with %) /
+  not started, plus unfinished prerequisites — and the next step highlighted. Chips switch `?track=`; the
+  default is the first track of the user's target roles (full-stack roles → the Full-stack track), else
+  Full-stack. Each track links out to the matching roadmap.sh guide (outbound link only; nothing is copied).
 - **Active skills** with per-stage bars, **review queue** (weak Q&A cards that are due), **log a session**
   (5–600 min + note, max 30 / 24h).
 
@@ -88,6 +93,7 @@ Demand per node is one grouped `unnest("techStack")` query on active jobs, cache
 | `QuestionReview`      | per user × question: last rating, reps, `dueAt` (spaced repetition lite)       |
 | `StageContent`        | generated practice + Q&A per skill × stage × locale, shared by all users       |
 | `TutorThread/Message` | AI tutor history per user × stage                                              |
+| `AnswerFeedback`      | latest answer + feedback per user × skill × stage × exercise/question id       |
 
 Stage fraction = 1 when done, else 0.9 × ticked topics / topics. When all three stages are done the skill becomes
 DONE: it is added to the profile (BASIC) and match scores are revalidated, same as the manual "done" button.
@@ -98,7 +104,17 @@ tomorrow; didn't know → due now.
 
 - **Practice**: 1–4 exercises (goal, steps, expected result, progressive hints, checklist, notes / solution /
   GitHub link, mark done; "ask the tutor" pre-fills the chat).
-- **Q&A**: 3–8 questions; reveal the answer, then rate knew / partly / didn't. Weak ones come back on the dashboard.
+- **Q&A**: 3–8 questions; optionally type your own answer, reveal the model answer, then rate knew / partly /
+  didn't. Weak ones come back on the dashboard.
+- **Answer feedback** (exercises: the "my work" notes; questions: the optional answer box): `reviewAnswer`
+  (`src/app/learn/hub-actions.ts` → `src/lib/learning/feedback-server.ts`) grades the answer against the item's
+  reference (exercise expected result + checklist, or the Q&A answer). Gemini via `guardedLLM("learn_feedback")`
+  — same DB cache and per-user / global free-tier limits as the rest of the AI — returns a zod-validated verdict
+  (strong / partial / weak), score 0–100, summary, up to 3 strengths, up to 4 improvements and a follow-up
+  question. The answer is fenced and the model is told to ignore instructions inside it. On `LLM_PROVIDER=mock`,
+  limits or invalid output it falls back to an offline key-term check (labelled as such). For Q&A the verdict
+  suggests a self-rating; the user still chooses. Latest result per user × item is stored in `AnswerFeedback`
+  (additive migration `20261028220000_learning_answer_feedback`) and shown again on return.
 - **AI tutor**: streamed chat (AI SDK `useChat` → `POST /api/learn/tutor`), Socratic, stage- and level-aware,
   Hebrew by default. History per user × stage; "new conversation" starts a fresh thread. Shows remaining daily AI
   quota; offline mode (no key / `LLM_PROVIDER=mock`) replies with a stage question instead.
