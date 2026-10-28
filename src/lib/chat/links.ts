@@ -15,7 +15,7 @@ export type InlineToken =
   | { type: "link"; text: string; href: string };
 
 const TOKEN =
-  /(`[^`\n]+`|\*\*[^*\n]+\*\*|\[[^\]\n]{1,120}\]\([^)\s]{1,300}\)|(?<![\w/.:])\/(?:jobs|companies|learn|profile|tracker)(?:\/[\w\-%.]+)*(?:\?[\w\-%=&.,]+)?)/g;
+  /(`[^`\n]+`|\*\*[^*\n]+?\*\*|\[[^\]\n]{1,120}\]\([^)\s]{1,300}\)|(?<![\w/.:])\/(?:jobs|companies|learn|profile|tracker)(?:\/[\w\-%.]+)*(?:\?[\w\-%=&.,]+)?)/g;
 
 /** Splits one line into text / code / bold / link tokens. Non-internal markdown links keep only their label. */
 export function inlineTokens(line: string): InlineToken[] {
@@ -26,8 +26,10 @@ export function inlineTokens(line: string): InlineToken[] {
     if (at > last) out.push({ type: "text", text: line.slice(last, at) });
     const tok = m[0];
     if (tok.startsWith("`")) out.push({ type: "code", text: tok.slice(1, -1) });
-    else if (tok.startsWith("**")) out.push({ type: "bold", text: tok.slice(2, -2) });
-    else if (tok.startsWith("[")) {
+    else if (tok.startsWith("**")) {
+      // Bold may wrap a link (**[title](/jobs/id)**): parse the inside, keep its links, bold the rest.
+      for (const t of inlineTokens(tok.slice(2, -2))) out.push(t.type === "text" ? { type: "bold", text: t.text } : t);
+    } else if (tok.startsWith("[")) {
       const [, label, href] = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(tok)!;
       out.push(isInternalPath(href) ? { type: "link", text: label, href } : { type: "text", text: label });
     } else {
