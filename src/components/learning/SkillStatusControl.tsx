@@ -59,7 +59,7 @@ export function SkillStatusControl({
       <div
         role="radiogroup"
         aria-label={labels.statusLabel}
-        className={cn("bg-secondary/60 inline-flex w-full rounded-lg p-1 sm:w-auto", compact && "sm:w-auto")}
+        className={cn("bg-secondary/70 inline-flex w-full gap-1 rounded-xl p-1 sm:w-auto", compact && "sm:w-auto")}
       >
         {(["NONE", "LEARNING", "DONE"] as const).map((s) => {
           const Icon = ICONS[s];
@@ -73,11 +73,13 @@ export function SkillStatusControl({
               disabled={pending}
               onClick={() => !on && save(s)}
               className={cn(
-                "inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-semibold transition-colors sm:flex-none",
+                "inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg px-2 text-sm font-semibold whitespace-nowrap transition-colors sm:flex-none sm:gap-1.5 sm:px-4",
                 on
                   ? s === "DONE"
-                    ? "bg-fit-soft text-accent-foreground shadow-sm"
-                    : "bg-card text-foreground shadow-sm"
+                    ? "bg-fit-soft text-accent-foreground ring-fit/30 shadow-sm ring-1"
+                    : s === "LEARNING"
+                      ? "bg-caution-soft text-caution ring-caution/30 shadow-sm ring-1"
+                      : "bg-card text-foreground shadow-sm"
                   : "text-foreground/65 hover:text-foreground",
               )}
             >
