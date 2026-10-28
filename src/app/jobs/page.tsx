@@ -52,6 +52,9 @@ import { lastScanStrings } from "@/lib/i18n/last-scan";
 import { formatRelative, nextScheduledScan, scanStatus } from "@/lib/ingestion/last-scan";
 import { lastScanSafe } from "@/lib/ingestion/last-scan-server";
 import { formatDateTime } from "@/lib/format";
+import { SaveSearchButton } from "@/components/notifications/SaveSearchButton";
+import { notificationStrings } from "@/lib/i18n/notifications";
+import { alertFilters, defaultSearchName } from "@/lib/notifications/saved-search";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Jobs" };
@@ -262,6 +265,12 @@ export default async function JobsPage({
   }
   const welcome = params.welcome === "1";
   const nFilters = activeFilterCount(filters);
+  const alertQuery = filtersToQuery(alertFilters(filters)).replace(/^\?/, "");
+  const alreadySaved =
+    !!userId &&
+    !!alertQuery &&
+    !!(await db.savedSearch.findFirst({ where: { userId, query: alertQuery }, select: { id: true } }));
+  const ns = notificationStrings(locale);
 
   // Strip of the best matches, only when the list itself isn't already match-ordered.
   const top =
@@ -376,6 +385,14 @@ export default async function JobsPage({
             options={sortOptions}
             hint={hasProfile ? undefined : s.matchSortHint}
           />
+          {userId && alertQuery && (
+            <SaveSearchButton
+              query={alertQuery}
+              defaultName={defaultSearchName(filters, ns.allJobs)}
+              alreadySaved={alreadySaved}
+              labels={ns}
+            />
+          )}
           <nav
             className="bg-muted ms-auto inline-flex rounded-md p-0.5"
             aria-label={ms.viewLabel}
