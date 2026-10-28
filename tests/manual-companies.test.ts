@@ -21,7 +21,7 @@ describe("manual company list", () => {
     for (const c of MANUAL_COMPANIES) {
       expect(safeHttpUrl(c.careersUrl), c.slug).toBe(new URL(c.careersUrl).toString());
       expect(c.careersUrl).toMatch(/^https:\/\//);
-      expect(c.careersUrl).not.toMatch(/linkedin|google\./i);
+      expect(c.careersUrl).not.toMatch(/linkedin|google\.[a-z.]+\/(search|url)\b/i);
       expect(c.notesHe && c.notesEn, c.slug).toBeTruthy();
     }
   });

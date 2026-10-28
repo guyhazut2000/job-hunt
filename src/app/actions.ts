@@ -20,6 +20,8 @@ import { safeHttpUrl } from "@/lib/companies/status";
 import { addCandidateAsManual, ingestDiscovered, runDiscovery } from "@/lib/discovery/run";
 import { requireAdmin, requireUser } from "@/lib/session";
 import { slugify } from "@/lib/taxonomy";
+import { baseDomain } from "@/lib/discovery/domain";
+import { parseSuggestion, SUGGEST_DAILY_LIMIT, suggestedBy, USER_PRIORITY, USER_SOURCE } from "@/lib/discovery/suggest";
 
 export type FormState = { error?: string; ok?: string } | undefined;
 
@@ -269,4 +271,49 @@ export async function adminRejectCandidate(formData: FormData) {
   const id = String(formData.get("candidateId") ?? "");
   await db.startupCandidate.updateMany({ where: { id, status: "PENDING" }, data: { status: "REJECTED" } });
   revalidatePath("/admin");
+}
+
+export type SuggestState = { ok?: true; error?: "invalid" | "exists" | "queued" | "limit" } | undefined;
+
+/**
+ * A signed-in user suggests a missing company (name + its own site). It lands in the discovery queue as
+ * a USER candidate; the next discovery run detects its ATS (AUTO / review) like any other candidate.
+ */
+export async function suggestCompany(_: SuggestState, formData: FormData): Promise<SuggestState> {
+  const user = await requireUser();
+  const s = parseSuggestion(formData.get("name"), formData.get("url"));
+  if (!s) return { error: "invalid" };
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recent = await db.startupCandidate.count({
+    where: { source: USER_SOURCE, sourceUrl: suggestedBy(user.id), createdAt: { gte: since } },
+  });
+  if (recent >= SUGGEST_DAILY_LIMIT) return { error: "limit" };
+  const base = baseDomain(s.domain);
+  const listed = await db.company.findFirst({
+    where: {
+      OR: [
+        { slug: slugify(s.name) },
+        { website: { contains: base, mode: "insensitive" } },
+        { careersUrl: { contains: base, mode: "insensitive" } },
+      ],
+    },
+    select: { id: true },
+  });
+  if (listed) return { error: "exists" };
+  if (await db.startupCandidate.findUnique({ where: { domain: s.domain }, select: { id: true } })) {
+    return { error: "queued" };
+  }
+  await db.startupCandidate.create({
+    data: {
+      domain: s.domain,
+      name: s.name,
+      website: s.website,
+      source: USER_SOURCE,
+      sourceUrl: suggestedBy(user.id),
+      priority: USER_PRIORITY,
+    },
+  });
+  track("company_suggested");
+  revalidatePath("/admin");
+  return { ok: true };
 }

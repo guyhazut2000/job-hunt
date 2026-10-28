@@ -57,6 +57,16 @@ to the repo; candidates keep `source`/`sourceUrl`. We don't redistribute the Tec
      **review queue** in `/admin` (Approve → MANUAL, or Reject).
    - a board that already belongs to a company → `DUPLICATE`.
 
+## User suggestions
+
+Signed-in users can suggest a missing company on `/companies` (name + the company's own site). The
+suggestion becomes a `StartupCandidate` with `source = "USER"` and priority 60, so the next discovery run
+checks it first. LinkedIn, Google and social links are rejected. Each user can send at most 5 a day
+(`sourceUrl = "user:<id>"`). Companies and candidates that already exist are reported back, not
+duplicated. USER candidates show up in the admin review queue right away. A USER candidate is only
+added automatically when its own site embeds an ATS board with Israeli openings; anything else waits
+for an admin.
+
 ## Running it
 
 - **Cron:** `/api/cron/discover` daily at 03:30 UTC (`vercel.json`); imports only when the last

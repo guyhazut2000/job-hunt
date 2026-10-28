@@ -6,6 +6,7 @@ import { leverAdapter } from "./adapters/lever";
 import { recruiteeAdapter } from "./adapters/recruitee";
 import { smartRecruitersAdapter } from "./adapters/smartrecruiters";
 import { workableAdapter } from "./adapters/workable";
+import { wordpressAdapter } from "./adapters/wordpress";
 import { workdayAdapter } from "./adapters/workday";
 import type { AtsAdapter } from "./types";
 
@@ -18,6 +19,7 @@ const adapters: Partial<Record<AtsProvider, AtsAdapter<unknown>>> = {
   SMARTRECRUITERS: smartRecruitersAdapter as AtsAdapter<unknown>,
   RECRUITEE: recruiteeAdapter as AtsAdapter<unknown>,
   WORKDAY: workdayAdapter as AtsAdapter<unknown>,
+  WORDPRESS: wordpressAdapter as AtsAdapter<unknown>,
 };
 
 export function getAdapter(provider: AtsProvider): AtsAdapter<unknown> | undefined {

@@ -60,6 +60,7 @@ const SOURCE_LABELS: Record<AtsProvider, string> = {
   SMARTRECRUITERS: "SmartRecruiters",
   WORKDAY: "Workday",
   RECRUITEE: "Recruitee",
+  WORDPRESS: "WordPress",
   MANUAL: "",
 };
 

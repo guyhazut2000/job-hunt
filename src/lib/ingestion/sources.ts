@@ -1,4 +1,5 @@
 import type { AtsProvider } from "@prisma/client";
+import { ESTABLISHED_SOURCES, withoutHub } from "../companies/established";
 
 /**
  * Curated list of hi-tech companies with an Israeli office whose job boards are published through a
@@ -14,6 +15,7 @@ import type { AtsProvider } from "@prisma/client";
  *  - WORKABLE: account subdomain → apply.workable.com/api/v1/widget/accounts/<name>
  *  - SMARTRECRUITERS: company identifier → api.smartrecruiters.com/v1/companies/<id>/postings
  *  - RECRUITEE: company subdomain → <name>.recruitee.com/api/offers/
+ *  - WORDPRESS: "<host>" or "<host>/<postType>" → <host>/wp-json/wp/v2/<postType> (default post type "job")
  *  - WORKDAY: "<tenant>/<wdN>/<site>" → <tenant>.<wdN>.myworkdayjobs.com/wday/cxs/<tenant>/<site>/jobs
  *    (only the "Israel" location facet is requested, paginated and paced)
  *
@@ -585,4 +587,6 @@ export const JOB_SOURCES: JobSource[] = [
     "Enterprise HR / finance software",
     "Pleasanton",
   ),
+  // Established employers (integrators, defense, finance) — see src/lib/companies/established.ts
+  ...ESTABLISHED_SOURCES.map(withoutHub),
 ];

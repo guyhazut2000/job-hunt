@@ -8,7 +8,7 @@
       "schedule": "0 4 * * *"
     },
     {
-      "path": "/api/cron/ingest?provider=COMEET,WORKABLE,SMARTRECRUITERS,RECRUITEE",
+      "path": "/api/cron/ingest?provider=COMEET,WORKABLE,SMARTRECRUITERS,RECRUITEE,WORDPRESS",
       "schedule": "20 4 * * *"
     },
     {
