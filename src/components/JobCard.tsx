@@ -16,6 +16,7 @@ import type { CommuteMode } from "@/lib/commute/keys";
 import type { CommuteResult } from "@/lib/commute/types";
 import { jobsMapStrings } from "@/lib/i18n/jobs-map";
 import { CommuteChips } from "./map/CommuteChips";
+import { DomainBadge } from "./DomainBadge";
 
 export function JobCard({
   job,
@@ -59,6 +60,9 @@ export function JobCard({
             <TruncatedText text={job.title} lines={2} className="relative z-[1]" highlight={highlight} />
           </Link>
         </h3>
+        <div className="flex min-w-0">
+          <DomainBadge domain={job.domain} locale={localeOf(t)} />
+        </div>
         <p className="text-foreground/75 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
           {[
             <span key="l" className="inline-flex items-center gap-1">

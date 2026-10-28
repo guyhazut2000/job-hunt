@@ -8,6 +8,8 @@ export interface MapJob {
   title: string;
   score?: number;
   workMode: WorkMode;
+  /** Job domain (תחום) for the badge in the marker panel. */
+  domain?: string;
 }
 
 /** One map marker = one company at one place (office override, tech hub, or city). */
@@ -28,6 +30,7 @@ export interface MarkerRow extends JobPointInput {
   id: string;
   title: string;
   workMode: WorkMode;
+  domain?: string;
   company: JobPointInput["company"] & { name: string; slug: string };
 }
 
@@ -58,7 +61,7 @@ export function buildMarkers(rows: MarkerRow[], locale: "en" | "he", scores?: Ma
       unmapped++;
       continue;
     }
-    const job: MapJob = { id: r.id, title: r.title, workMode: r.workMode, score: scores?.get(r.id) };
+    const job: MapJob = { id: r.id, title: r.title, workMode: r.workMode, domain: r.domain, score: scores?.get(r.id) };
     for (const p of points) {
       const id = `${r.company.id}|${p.key}`;
       let m = markers.get(id);

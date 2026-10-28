@@ -86,6 +86,12 @@ describe("job filters: where clause", () => {
       },
     ]);
   });
+  it("parses and filters by job domain, dropping unknown values", () => {
+    const f = parseFilters({ domain: ["devops", "hardware,bogus"] });
+    expect(f.domain).toEqual(["devops", "hardware"]);
+    expect(filtersToWhere(f).domain).toEqual({ in: ["devops", "hardware"] });
+    expect(filtersToWhere(parseFilters({})).domain).toBeUndefined();
+  });
   it("filters by posted window relative to now", () => {
     expect(filtersToWhere(parseFilters({ posted: "7d" }), { now }).postedAt).toEqual({
       gte: new Date("2026-10-20T12:00:00Z"),

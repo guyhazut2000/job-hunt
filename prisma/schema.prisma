@@ -329,6 +329,8 @@ model Job {
   postedAt          DateTime
   /// Broad job function (engineering, data, sales, marketing…) — see src/lib/jobs/classify.ts.
   jobFunction       String         @default("other")
+  /// Professional domain (תחום) from the deterministic classifier in src/lib/jobs/domain-classifier.ts.
+  domain            String         @default("other")
   level             JobLevel       @default(MID)
   employmentType    EmploymentType @default(FULL_TIME)
   /// Last update time reported by the ATS (Greenhouse `updated_at`); null when the source has none.
@@ -366,6 +368,7 @@ model Job {
   @@index([roleCategory, seniority])
   @@index([isActive, postedAt])
   @@index([isActive, jobFunction])
+  @@index([isActive, domain])
   @@index([isActive, level])
   @@index([isActive, sourceUpdatedAt])
   @@index([companyId, isActive])

@@ -1,5 +1,7 @@
 import type { EmploymentType, JobLevel } from "@prisma/client";
 import { inferRoleCategory, inferSeniority, type RoleCategory } from "../taxonomy";
+import { inferJobDomain } from "./domain-classifier";
+import type { JobDomain } from "./domains";
 
 /**
  * Broad job functions, in the order they are shown in the filter panel.
@@ -173,13 +175,20 @@ export function inferEmploymentType(title: string, hint?: string | null): Employ
 
 export interface DerivedJobFields {
   jobFunction: JobFunction;
+  /** Professional domain (תחום) shown as a badge; see `./domain-classifier`. */
+  domain: JobDomain;
   level: JobLevel;
   employmentType: EmploymentType;
 }
 
-export function deriveJobFields(title: string, hints: { commitment?: string | null } = {}): DerivedJobFields {
+export function deriveJobFields(
+  title: string,
+  hints: { commitment?: string | null } = {},
+  context: { department?: string | null; techStack?: readonly string[]; description?: string | null } = {},
+): DerivedJobFields {
   return {
     jobFunction: inferJobFunction(title),
+    domain: inferJobDomain({ title, ...context }),
     level: inferLevel(title),
     employmentType: inferEmploymentType(title, hints.commitment),
   };
