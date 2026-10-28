@@ -1,11 +1,12 @@
 import { db } from "@/lib/db";
+import type { CheckedResult } from "./discover";
 
 export interface SourceRef {
   url: string;
   title: string;
 }
 export interface CheckedRef extends SourceRef {
-  result: "stages" | "no_info" | "blocked" | "error";
+  result: CheckedResult;
 }
 
 function asRefs<T extends SourceRef>(v: unknown): T[] {

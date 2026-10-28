@@ -5,8 +5,10 @@
  * Output: ordered stages, each with a verbatim `evidence` quote and the `sourceUrl` it came from.
  *
  * Grounding is mandatory: whatever produced a stage (Gemini or the offline heuristic), it is kept only when
- * its evidence quote is found in the fetched text of its source page. Nothing is ever invented — if fewer
- * than MIN_STAGES stages survive, the result is "none".
+ * its evidence quote is found in the fetched text of its source page — exactly, or after a tolerant match
+ * (punctuation, niqqud, ellipses, a few changed words) in which case the page's own words are stored as the
+ * quote. Nothing is ever invented — if fewer than MIN_STAGES stages survive (1 from a dedicated
+ * process page is accepted at low confidence), the result is "none".
  */
 import { z } from "zod";
 import type { LLMProvider } from "@/lib/ai/types";
@@ -40,7 +42,14 @@ export interface Extraction {
   /** URLs that support at least one kept stage. */
   sourceUrls: string[];
   method: string;
+  /** Why the result is "none" (diagnostics). */
+  reason?: ExtractionFailure | null;
+  /** Stages the model proposed before grounding (diagnostics). */
+  proposed?: number;
 }
+
+/** Why an extraction found nothing. */
+export type ExtractionFailure = "no_pages" | "llm_none" | "grounding_dropped" | "below_threshold" | "llm_failed";
 
 export const MIN_STAGES = 2;
 export const MAX_STAGES = 12;
@@ -92,6 +101,24 @@ export function hasProcessSignals(text: string): boolean {
   const passage = processPassages(text, 5_000);
   if (!passage) return false;
   return new Set(heuristicLines(passage).map((l) => l.kind)).size >= MIN_STAGES;
+}
+
+/** Number of distinct stage kinds in stage-like lines of `passage` (boilerplate excluded). */
+export function stageLineCount(passage: string): number {
+  return new Set(heuristicLines(passage).map((l) => l.kind)).size;
+}
+
+const DEDICATED_RE =
+  /how[-_ ]?we[-_ ]?hire|hiring|interview|recruit|candidate|process|journey|what[-_ ]to[-_ ]expect|get[-_ ]?hired|faq|גיוס|מיון|ראיון|ראיונות|%d7%92%d7%99%d7%95%d7%a1/i;
+/** URL/title of a page dedicated to the hiring process (not a generic careers page or job post). */
+export function isDedicatedProcessSource(url: string, title: string): boolean {
+  let path = url;
+  try {
+    path = new URL(url).pathname;
+  } catch {
+    /* keep */
+  }
+  return DEDICATED_RE.test(`${path} ${title}`);
 }
 
 function heuristicLines(passage: string): { kind: StageKind; line: string }[] {
@@ -167,7 +194,9 @@ export function buildPrompt(company: string, pages: SourcePage[]) {
         "You extract a company's hiring / interview process from its own public pages for job seekers.",
         "STRICT RULES:",
         "- Use ONLY the provided sources. Never use outside knowledge, never guess, never add typical stages.",
-        "- Each stage MUST include `evidence`: an exact, verbatim, contiguous quote (10–200 characters) copied from the source text that describes that stage, and `sourceUrl`: the URL of that source.",
+        "- Each stage MUST include `evidence`: an exact, verbatim, contiguous quote (10–200 characters) copied from the source text that describes that stage — in the source's original language, never translated or paraphrased — and `sourceUrl`: the URL of that source.",
+        '- Sources may be careers pages, FAQ pages ("What does the interview process look like?"), blog posts by the company, or job descriptions. Hebrew sources are common.',
+        "- A source that clearly describes even a single concrete step of the company's process (e.g. 'every candidate completes a home assignment') counts; return that one stage.",
         "- If the sources do not describe the company's own hiring process as a sequence of stages (e.g. they only mention accommodations, scams or generic text), return hasProcess=false and an empty stages list.",
         "- Order stages as the source describes them. `kind` must be one of the allowed values; use 'other' when nothing fits.",
         "- `title`: short stage name in the source's language. `detailHe`/`detailEn`: one short sentence summarising what the source says about the stage, in Hebrew / English.",
@@ -179,26 +208,133 @@ export function buildPrompt(company: string, pages: SourcePage[]) {
   ];
 }
 
-/** Keep only stages whose evidence is literally present in the fetched text of a source page. */
+/** Loose form for tolerant matching: no niqqud / bidi marks / punctuation. */
+function looseToken(t: string): string {
+  return t
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[\u0591-\u05c7\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, "");
+}
+
+interface Tok {
+  t: string;
+  start: number;
+  end: number;
+}
+const TOKEN_RE = /[\p{L}\p{N}\u0591-\u05c7]+/gu;
+function tokens(text: string): Tok[] {
+  const out: Tok[] = [];
+  for (const m of text.matchAll(TOKEN_RE)) {
+    const t = looseToken(m[0]);
+    if (t) out.push({ t, start: m.index!, end: m.index! + m[0].length });
+  }
+  return out;
+}
+
+/** Minimum share of the quote's words that must appear, in a window of the same size, for a fuzzy match. */
+export const FUZZY_MIN_RATIO = 0.85;
+
+/**
+ * Where `evidence` occurs in `text`: exact (after normalisation), each piece of an ellipsis-joined quote in
+ * order, or a same-length window sharing ≥ FUZZY_MIN_RATIO of its words (first and last word included).
+ * Returns the page's own wording for that span (so stored quotes are always verbatim), or null.
+ */
+export function locateEvidence(evidence: string, text: string): string | null {
+  const ev = normalizeForMatch(evidence).replace(/^["'…. ]+|["'…. ]+$/g, "");
+  if (ev.length < 10) return null;
+  if (normalizeForMatch(text).includes(ev)) return evidence.trim();
+  const pageToks = tokens(text);
+  if (!pageToks.length) return null;
+  const spanOf = (a: number, b: number) => text.slice(pageToks[a].start, pageToks[b].end).replace(/\s+/g, " ").trim();
+
+  const findSeq = (q: string[], from: number): number => {
+    outer: for (let i = from; i + q.length <= pageToks.length; i++) {
+      for (let k = 0; k < q.length; k++) if (pageToks[i + k].t !== q[k]) continue outer;
+      return i;
+    }
+    return -1;
+  };
+  // 1. Same words, different punctuation / marks.
+  const q = tokens(evidence).map((x) => x.t);
+  if (q.length >= 2) {
+    const i = findSeq(q, 0);
+    if (i >= 0) return spanOf(i, i + q.length - 1);
+  }
+  // 2. "first part … second part": every piece, in order.
+  const pieces = evidence
+    .split(/…|\.\.\./)
+    .map((p) => tokens(p).map((x) => x.t))
+    .filter((p) => p.length);
+  if (pieces.length >= 2 && pieces.every((p) => p.length >= 2)) {
+    let from = 0;
+    let first = -1;
+    let last = -1;
+    for (const p of pieces) {
+      const i = findSeq(p, from);
+      if (i < 0) {
+        first = -1;
+        break;
+      }
+      if (first < 0) first = i;
+      last = i + p.length - 1;
+      from = i + p.length;
+    }
+    if (first >= 0 && last - first < q.length * 3) return spanOf(first, last);
+  }
+  // 3. A few words changed (the model fixed a typo or dropped a word).
+  if (q.length < 4) return null;
+  const need = new Map<string, number>();
+  for (const t of q) need.set(t, (need.get(t) ?? 0) + 1);
+  const n = q.length;
+  for (const w of [n, n - 1, n + 1, n - 2, n + 2]) {
+    if (w < 3 || w > pageToks.length) continue;
+    const have = new Map<string, number>();
+    let hits = 0;
+    const add = (t: string, d: 1 | -1) => {
+      const before = Math.min(have.get(t) ?? 0, need.get(t) ?? 0);
+      have.set(t, (have.get(t) ?? 0) + d);
+      hits += Math.min(have.get(t) ?? 0, need.get(t) ?? 0) - before;
+    };
+    for (let i = 0; i < w; i++) add(pageToks[i].t, 1);
+    for (let i = 0; ; i++) {
+      if (hits / n >= FUZZY_MIN_RATIO && pageToks[i].t === q[0] && pageToks[i + w - 1].t === q[n - 1])
+        return spanOf(i, i + w - 1);
+      if (i + w >= pageToks.length) break;
+      add(pageToks[i].t, -1);
+      add(pageToks[i + w].t, 1);
+    }
+  }
+  return null;
+}
+
+/** Keep only stages whose evidence is present (exactly or tolerantly) in the fetched text of a source page. */
 export function groundStages(raw: LlmOutput["stages"] | ExtractedStage[], pages: SourcePage[]): ExtractedStage[] {
-  const norm = pages.map((p) => ({ url: p.url, text: normalizeForMatch(p.text) }));
   const kept: ExtractedStage[] = [];
+  const ordered = (url: string) => [...pages.filter((p) => p.url === url), ...pages.filter((p) => p.url !== url)];
   for (const s of raw) {
-    const ev = normalizeForMatch(s.evidence ?? "").replace(/^["'…. ]+|["'…. ]+$/g, "");
-    if (ev.length < 10) continue;
-    const page =
-      norm.find((p) => p.url === s.sourceUrl && p.text.includes(ev)) ?? norm.find((p) => p.text.includes(ev));
-    if (!page) continue;
-    const duration = s.duration && page.text.includes(normalizeForMatch(s.duration)) ? s.duration.trim() : null;
+    let page: SourcePage | null = null;
+    let quote: string | null = null;
+    for (const p of ordered(s.sourceUrl)) {
+      quote = locateEvidence(s.evidence ?? "", p.text);
+      if (quote) {
+        page = p;
+        break;
+      }
+    }
+    if (!page || !quote) continue;
+    // The same span backing two stages is a sign of a padded list; keep the first.
+    if (kept.some((k) => normalizeForMatch(k.evidence) === normalizeForMatch(quote))) continue;
+    const pageNorm = normalizeForMatch(page.text);
+    const duration = s.duration && pageNorm.includes(normalizeForMatch(s.duration)) ? s.duration.trim() : null;
     let kind: StageKind = isStageKind(s.kind) ? s.kind : "other";
     if (kind === "other") kind = detectKind(`${s.title} ${s.evidence}`);
     kept.push({
       kind,
-      title: (s.title || "").trim().slice(0, 120) || s.evidence.slice(0, 80),
+      title: (s.title || "").trim().slice(0, 120) || quote.slice(0, 80),
       detailHe: s.detailHe?.trim().slice(0, 400) || null,
       detailEn: s.detailEn?.trim().slice(0, 400) || null,
       duration,
-      evidence: s.evidence.trim().slice(0, 400),
+      evidence: quote.slice(0, 400),
       sourceUrl: page.url,
     });
     if (kept.length >= MAX_STAGES) break;
@@ -206,19 +342,31 @@ export function groundStages(raw: LlmOutput["stages"] | ExtractedStage[], pages:
   return kept;
 }
 
-function confidenceFor(stages: ExtractedStage[], pages: SourcePage[]): Extraction["confidence"] {
-  const dedicated = pages.some(
-    (p) =>
-      p.origin !== "job" &&
-      stages.some((s) => s.sourceUrl === p.url) &&
-      /hir|interview|process|recruit|candidate|גיוס|ראיון/i.test(`${p.url} ${p.title}`),
+function hasDedicatedSource(stages: ExtractedStage[], pages: SourcePage[]): boolean {
+  return pages.some(
+    (p) => p.origin !== "job" && stages.some((s) => s.sourceUrl === p.url) && isDedicatedProcessSource(p.url, p.title),
   );
+}
+
+/**
+ * Enough grounded stages to publish? ≥ MIN_STAGES, or a single stage from a page dedicated to the hiring
+ * process (published at low confidence — a well-sourced partial answer beats "no info").
+ */
+export function meetsThreshold(stages: ExtractedStage[], pages: SourcePage[]): boolean {
+  return stages.length >= MIN_STAGES || (stages.length === 1 && hasDedicatedSource(stages, pages));
+}
+
+function confidenceFor(stages: ExtractedStage[], pages: SourcePage[]): Extraction["confidence"] {
+  if (stages.length < MIN_STAGES) return "low";
+  const dedicated = hasDedicatedSource(stages, pages);
+  const onlyJobs = stages.every((s) => pages.find((p) => p.url === s.sourceUrl)?.origin === "job");
+  if (onlyJobs) return stages.length >= 3 ? "medium" : "low";
   if (stages.length >= 3 && dedicated) return "high";
   if (stages.length >= 3 || dedicated) return "medium";
   return "low";
 }
 
-const NONE = (method: string): Extraction => ({
+const NONE = (method: string, reason: ExtractionFailure | null = null, proposed = 0): Extraction => ({
   status: "none",
   confidence: "low",
   estimatedDuration: null,
@@ -227,6 +375,8 @@ const NONE = (method: string): Extraction => ({
   stages: [],
   sourceUrls: [],
   method,
+  reason,
+  proposed,
 });
 
 /**
@@ -240,9 +390,11 @@ export async function extractHiringProcess(
   llm: LLMProvider | null,
 ): Promise<Extraction> {
   const usable = pages.filter((p) => p.text.trim().length > 0);
-  if (usable.length === 0) return NONE(llm && llm.name !== "mock" ? llm.name : "heuristic");
+  if (usable.length === 0) return NONE(llm && llm.name !== "mock" ? llm.name : "heuristic", "no_pages");
   let method = "heuristic";
   let stages: ExtractedStage[] = [];
+  let proposed = 0;
+  let saidNone = false;
   let extra: Pick<Extraction, "estimatedDuration" | "notesHe" | "notesEn"> = {
     estimatedDuration: null,
     notesHe: null,
@@ -254,6 +406,8 @@ export async function extractHiringProcess(
         JSON.parse(await llm.complete(buildPrompt(company, usable), { schema: llmSchema, maxTokens: 2_000 })),
       );
       method = llm.name;
+      proposed = out.hasProcess ? out.stages.length : 0;
+      saidNone = !out.hasProcess || out.stages.length === 0;
       if (out.hasProcess) {
         stages = groundStages(out.stages, usable);
         const allText = normalizeForMatch(usable.map((p) => p.text).join("\n"));
@@ -271,12 +425,22 @@ export async function extractHiringProcess(
         console.warn("[hiring] llm extraction failed:", e instanceof Error ? e.message.slice(0, 200) : "error");
       }
       // Callers treat this as "not checked yet" (no row is stored) so a quota hit never downgrades a company.
-      return { ...NONE("llm_failed") };
+      return { ...NONE("llm_failed", "llm_failed") };
     }
   } else {
-    stages = groundStages(heuristicExtract(usable), usable);
+    const h = heuristicExtract(usable);
+    proposed = h.length;
+    saidNone = h.length === 0;
+    stages = groundStages(h, usable);
   }
-  if (stages.length < MIN_STAGES) return { ...NONE(method) };
+  if (!meetsThreshold(stages, usable)) {
+    const reason: ExtractionFailure = saidNone
+      ? "llm_none"
+      : stages.length === 0
+        ? "grounding_dropped"
+        : "below_threshold";
+    return NONE(method, reason, proposed);
+  }
   return {
     status: "found",
     // The offline heuristic copies lines verbatim but cannot judge context — never more than "low".
@@ -285,5 +449,16 @@ export async function extractHiringProcess(
     stages,
     sourceUrls: [...new Set(stages.map((s) => s.sourceUrl))],
     method,
+    reason: null,
+    proposed,
   };
+}
+
+/**
+ * The process-describing part of a job description as an extraction source, or null when the posting
+ * only has boilerplate (accommodations, "AI in recruitment", an empty "Interview process" heading…).
+ */
+export function jobProcessSource(job: { url: string; title: string; text: string }): SourcePage | null {
+  if (!hasProcessSignals(job.text)) return null;
+  return { url: job.url, title: job.title, text: job.text, origin: "job" };
 }

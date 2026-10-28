@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { ExternalLink, GraduationCap } from "lucide-react";
+import { BadgeCheck, ExternalLink, GraduationCap, MessagesSquare } from "lucide-react";
 import type { HiringStage } from "@prisma/client";
 import type { Locale } from "@/lib/i18n/dictionaries";
 import { hiringStrings, type HiringStrings } from "@/lib/i18n/hiring-process";
 import { isStageKind, prepLinkFor, STAGE_KINDS, STAGE_LABELS } from "@/lib/hiring/kinds";
 import { loadHiringProcess, type CheckedRef } from "@/lib/hiring/server";
+import { communityLinks, type CommunityLink } from "@/lib/hiring/community";
 import { cn } from "@/lib/utils";
 import { MyProcessEditor } from "./MyProcessEditor";
 import { ApplicationStageForm } from "./ApplicationStageForm";
@@ -155,6 +156,40 @@ function SourceList({ refs, s, showResult }: { refs: CheckedRef[]; s: HiringStri
   );
 }
 
+/** Outbound search links to community interview reports — never fetched (docs/hiring-process.md). */
+function CommunityLinks({ links, s }: { links: CommunityLink[]; s: HiringStrings }) {
+  if (!links.length) return null;
+  return (
+    <div data-testid="hiring-process-community" className="flex min-w-0 flex-col gap-1.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <MessagesSquare className="text-muted-foreground size-4 shrink-0" aria-hidden />
+        <h3 className="text-sm font-bold">{s.community.title}</h3>
+        <span className="rounded-sm bg-amber-500/15 px-1.5 text-[0.68rem] font-semibold text-amber-800 dark:text-amber-300">
+          {s.community.badge}
+        </span>
+      </div>
+      <p className="text-muted-foreground text-xs">{s.community.lead}</p>
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        {links.map((l) => (
+          <li key={l.id} className="min-w-0">
+            <a
+              href={l.url}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="text-foreground/85 inline-flex min-h-8 items-center gap-1 underline underline-offset-4"
+            >
+              <span className="sr-only">{s.community.search}: </span>
+              <bdi dir="ltr">{l.site}</bdi>
+              {l.hebrew && <span className="text-muted-foreground text-xs">({s.community.hebrew})</span>}
+              <ExternalLink className="size-3 shrink-0" aria-hidden />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /**
  * "Hiring process" section for the company and job pages (docs/hiring-process.md). Self-contained:
  * loads its own data. Shows the official, source-grounded stages, or an explicit "no information"
@@ -185,6 +220,7 @@ export async function HiringProcessSection({
   const dateFmt = new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { dateStyle: "medium" });
   const kindOptions = STAGE_KINDS.map((k) => [k, STAGE_LABELS[locale][k]] as [string, string]);
   const currentStage = application?.currentStage ?? null;
+  const community = communityLinks(companyName);
 
   return (
     <section
@@ -198,6 +234,13 @@ export async function HiringProcessSection({
         </h2>
         {found && (
           <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
+            <span
+              data-testid="hiring-process-official"
+              className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-sm px-1.5 text-[0.68rem] font-semibold"
+            >
+              <BadgeCheck className="size-3 shrink-0" aria-hidden />
+              {s.officialBadge}
+            </span>
             <span>{official.scope === "job" ? s.leadJob : s.leadOfficial}</span>
             <span
               className={cn("rounded-sm px-1.5 text-[0.68rem] font-semibold", confidenceClass(official.confidence))}
@@ -240,6 +283,9 @@ export async function HiringProcessSection({
               {s.checkedAt}: {dateFmt.format(official.checkedAt)} · {s.disclaimer}
             </p>
           </div>
+          <div className="border-t pt-3">
+            <CommunityLinks links={community} s={s} />
+          </div>
         </div>
       ) : (
         <div
@@ -262,6 +308,9 @@ export async function HiringProcessSection({
           ) : (
             <p className="text-muted-foreground text-sm">{s.emptyNotChecked}</p>
           )}
+          <div className="border-t pt-3">
+            <CommunityLinks links={community} s={s} />
+          </div>
         </div>
       )}
 

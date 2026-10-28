@@ -1,16 +1,29 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LLMProvider } from "@/lib/ai/types";
-import { discoverProcessPages, siteKey } from "@/lib/hiring/discover";
+import { discoverProcessPages, failureOf, siteKey, sitemapLocs } from "@/lib/hiring/discover";
+import { communityLinks } from "@/lib/hiring/community";
+import { Pacer } from "@/lib/hiring/run";
 import {
   extractHiringProcess,
   groundStages,
   hasProcessSignals,
   heuristicExtract,
+  jobProcessSource,
+  locateEvidence,
   normalizeForMatch,
   processPassages,
   type SourcePage,
 } from "@/lib/hiring/extract";
-import { fetchPublicPage, htmlToText, isBlockedUrl, pageLinks, pageTitle } from "@/lib/hiring/fetch";
+import {
+  embeddedText,
+  fetchPublicPage,
+  htmlToText,
+  isBlockedUrl,
+  pageLinks,
+  pageTitle,
+  rawLinks,
+  robotsSitemaps,
+} from "@/lib/hiring/fetch";
 import { detectKind, prepLinkFor, STAGE_KINDS, STAGE_LABELS } from "@/lib/hiring/kinds";
 import { hiringStrings } from "@/lib/i18n/hiring-process";
 
@@ -185,14 +198,14 @@ describe("grounding", () => {
 });
 
 describe("extractHiringProcess", () => {
-  const stage = (kind: string, evidence: string) => ({
+  const stage = (kind: string, evidence: string, sourceUrl = PAGE.url) => ({
     kind,
     title: evidence.slice(0, 30),
     detailHe: "תיאור",
     detailEn: "Detail",
     duration: null,
     evidence,
-    sourceUrl: PAGE.url,
+    sourceUrl,
   });
 
   it("returns grounded LLM stages with sources and confidence", async () => {
@@ -223,7 +236,7 @@ describe("extractHiringProcess", () => {
     expect(res).toMatchObject({ status: "none", stages: [] });
   });
 
-  it("returns none when fewer than two stages survive grounding", async () => {
+  it("publishes a single grounded stage from a dedicated process page at low confidence", async () => {
     const llm = fakeLlm({
       hasProcess: true,
       estimatedDuration: null,
@@ -234,7 +247,53 @@ describe("extractHiringProcess", () => {
         stage("onsite", "Fly to HQ for a day"),
       ],
     });
-    expect((await extractHiringProcess("Acme", [PAGE], llm)).status).toBe("none");
+    const res = await extractHiringProcess("Acme", [PAGE], llm);
+    expect(res).toMatchObject({ status: "found", confidence: "low" });
+    expect(res.stages).toHaveLength(1);
+  });
+
+  it("returns none (below_threshold) for a single stage from a generic page", async () => {
+    const generic: SourcePage = { ...PAGE, url: "https://acme.example/about", title: "About Acme" };
+    const llm = fakeLlm({
+      hasProcess: true,
+      estimatedDuration: null,
+      notesHe: null,
+      notesEn: null,
+      stages: [stage("phone_screen", "Recruiter call – a 30 minute conversation"), stage("onsite", "Fly to HQ")],
+    });
+    const res = await extractHiringProcess("Acme", [generic], llm);
+    expect(res).toMatchObject({ status: "none", reason: "below_threshold" });
+  });
+
+  it("reports why nothing was found", async () => {
+    const dropped = fakeLlm({
+      hasProcess: true,
+      estimatedDuration: null,
+      notesHe: null,
+      notesEn: null,
+      stages: [stage("onsite", "Fly to HQ for a whole week of interviews")],
+    });
+    expect((await extractHiringProcess("Acme", [PAGE], dropped)).reason).toBe("grounding_dropped");
+    const none = fakeLlm({ hasProcess: false, estimatedDuration: null, notesHe: null, notesEn: null, stages: [] });
+    expect((await extractHiringProcess("Acme", [PAGE], none)).reason).toBe("llm_none");
+    expect((await extractHiringProcess("Acme", [], null)).reason).toBe("no_pages");
+  });
+
+  it("caps job-description-only processes at medium confidence", async () => {
+    const job: SourcePage = { ...PAGE, url: "https://jobs.acme.example/123", title: "Acme — Engineer", origin: "job" };
+    const llm = fakeLlm({
+      hasProcess: true,
+      estimatedDuration: null,
+      notesHe: null,
+      notesEn: null,
+      stages: [
+        stage("phone_screen", "Recruiter call – a 30 minute conversation", job.url),
+        stage("technical", "Technical interview with two engineers", job.url),
+        stage("home_assignment", "Home assignment that takes about 3 hours", job.url),
+      ],
+    });
+    const res = await extractHiringProcess("Acme", [job], llm);
+    expect(res).toMatchObject({ status: "found", confidence: "medium" });
   });
 
   it("marks LLM failures as llm_failed and never falls back to guesses", async () => {
@@ -291,6 +350,172 @@ describe("discovery", () => {
     expect(pages.map((p) => p.url)).toContain("https://acme.example/careers/how-we-hire");
     expect(checked.map((c) => c.url)).toContain("https://acme.example/careers");
     expect(calls.some((u) => /linkedin|glassdoor|google/.test(u))).toBe(false);
+  });
+});
+
+describe("fuzzy grounding", () => {
+  it("matches quotes despite punctuation, bullets and small wording drift, returning the page's own span", () => {
+    const text = "Step 2 — Technical interview: with two of our engineers, focused on problem-solving and code.";
+    expect(locateEvidence("technical interview with two of our engineers", text)).toBe(
+      "Technical interview: with two of our engineers",
+    );
+    // one word changed out of ~10 (≥ 85% overlap, same first/last token)
+    expect(
+      locateEvidence("Technical interview with two of the engineers, focused on problem-solving", text),
+    ).not.toBeNull();
+    expect(locateEvidence("A completely different sentence about lunch", text)).toBeNull();
+  });
+  it("matches Hebrew quotes ignoring niqqud and bidi marks", () => {
+    const text = "שלב ראשון: שיחת טלפון קצרה עם המגייסת. שלב שני: ראיון מקצועי עם ראש הצוות.";
+    expect(locateEvidence("\u200fראיון מקצועי עם ראש הצוות", text)).toContain("ראיון מקצועי");
+  });
+  it("matches quotes the model shortened with an ellipsis, in order", () => {
+    const text = "First a recruiter call to get to know you. Then, after that, a home assignment of about 3 hours.";
+    expect(locateEvidence("a recruiter call … a home assignment of about 3 hours", text)).not.toBeNull();
+    expect(locateEvidence("a home assignment of about 3 hours … a recruiter call", text)).toBeNull();
+  });
+});
+
+describe("discovery v2", () => {
+  const html = (body: string) => new Response(body, { status: 200, headers: { "content-type": "text/html" } });
+
+  it("parses sitemaps and robots Sitemap lines", () => {
+    expect(robotsSitemaps("User-agent: *\nSitemap: https://a.example/sm.xml\nsitemap: /rel.xml")).toContain(
+      "https://a.example/sm.xml",
+    );
+    const urlset = sitemapLocs(
+      `<urlset><url><loc>https://a.example/careers/how-we-hire</loc></url><url><loc>https://a.example/x</loc></url></urlset>`,
+    );
+    expect(urlset).toEqual({ index: false, locs: ["https://a.example/careers/how-we-hire", "https://a.example/x"] });
+    expect(
+      sitemapLocs(`<sitemapindex><sitemap><loc>https://a.example/p.xml</loc></sitemap></sitemapindex>`).index,
+    ).toBe(true);
+  });
+
+  it("finds same-origin links inside JSON / data attributes", () => {
+    const links = rawLinks(
+      `<div data-props="{&quot;href&quot;:&quot;https:\/\/acme.example\/careers\/hiring-process&quot;}"></div>
+       <script>{"u":"https:\/\/other.example\/x","v":"/careers/faq"}</script><img src="/logo.png">`,
+      "https://acme.example/careers",
+    );
+    expect(links).toContain("https://acme.example/careers/hiring-process");
+    expect(links.some((u) => u.includes("other.example"))).toBe(false);
+    expect(links.some((u) => u.endsWith(".png"))).toBe(false);
+  });
+
+  it("reads text embedded in __NEXT_DATA__ for JS-rendered pages", () => {
+    const t = embeddedText(
+      `<script id="__NEXT_DATA__" type="application/json">{"props":{"body":"Our hiring process has three steps"}}</script>`,
+    );
+    expect(t).toContain("Our hiring process has three steps");
+  });
+
+  it("classifies bot walls (403 / challenge pages) without retrying or bypassing", async () => {
+    const fetchImpl = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/robots.txt")) return new Response("", { status: 404 });
+      return new Response("<title>Just a moment...</title>Checking your browser", { status: 403 });
+    }) as typeof fetch;
+    const res = await fetchPublicPage("https://walled.example/careers", {
+      fetchImpl,
+      minIntervalMs: 0,
+      robotsCache: new Map(),
+    });
+    expect(res).toMatchObject({ ok: false, reason: "bot_wall" });
+    const pageCalls = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls.filter(
+      (c) => !String(c[0]).endsWith("robots.txt"),
+    );
+    expect(pageCalls).toHaveLength(1);
+  });
+
+  it("uses sitemap.xml to find the process page and stops guessing on soft-404 sites", async () => {
+    const calls: string[] = [];
+    const fetchImpl = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      calls.push(url);
+      if (url.endsWith("/robots.txt"))
+        return new Response("Sitemap: https://acme.example/sitemap.xml", { status: 200 });
+      if (url === "https://acme.example/sitemap.xml")
+        return new Response(
+          `<urlset><url><loc>https://acme.example/join-us/our-interview-process</loc></url></urlset>`,
+          { status: 200, headers: { "content-type": "application/xml" } },
+        );
+      if (url === "https://acme.example/join-us/our-interview-process")
+        return html(`<title>Our interview process</title><p>${PAGE_TEXT}</p>`);
+      // catch-all: every other path returns the same homepage (soft 404)
+      return html(`<title>Acme</title><p>Welcome to Acme. We build things.</p>`);
+    }) as typeof fetch;
+    const res = await discoverProcessPages(
+      { slug: "acme", name: "Acme", website: "https://acme.example", careersUrl: null },
+      { fetchImpl, minIntervalMs: 0, robotsCache: new Map() },
+    );
+    expect(res.pages.map((p) => p.url)).toContain("https://acme.example/join-us/our-interview-process");
+    expect(res.stats.sitemapUrls).toBeGreaterThan(0);
+    expect(res.failure).toBeNull();
+  });
+
+  it("explains company-level failures", () => {
+    const base = {
+      fetches: 3,
+      ok: 0,
+      robots: 0,
+      botWall: 0,
+      notFound: 0,
+      softNotFound: 0,
+      network: 0,
+      jsShell: 0,
+      sitemapUrls: 0,
+    };
+    expect(failureOf({ ...base, botWall: 3 })).toBe("bot_wall");
+    expect(failureOf({ ...base, robots: 2, network: 1 })).toBe("robots");
+    expect(failureOf({ ...base, network: 3 })).toBe("unreachable");
+    expect(failureOf({ ...base, ok: 2, jsShell: 2 })).toBe("js_rendered");
+    expect(failureOf({ ...base, ok: 2 })).toBe("no_process_text");
+    expect(failureOf({ ...base, fetches: 0 })).toBe("no_website");
+  });
+
+  it("ignores job descriptions whose only 'process' text is boilerplate", () => {
+    expect(
+      jobProcessSource({
+        url: "https://jobs.acme.example/1",
+        title: "Engineer",
+        text: "We use AI in our recruitment process. If you need an accommodation during the interview process, contact us.",
+      }),
+    ).toBeNull();
+    expect(jobProcessSource({ url: "https://jobs.acme.example/2", title: "Engineer", text: PAGE_TEXT })).not.toBeNull();
+  });
+});
+
+describe("community reports", () => {
+  it("only builds outbound search links (no network) and never links Google", () => {
+    const links = communityLinks("Acme Ltd");
+    expect(links.map((l) => l.id)).toEqual(["glassdoor", "blind", "reddit", "indeed", "geektime"]);
+    for (const l of links) {
+      expect(l.url).toMatch(/^https:\/\//);
+      expect(l.url).toContain("Acme");
+      expect(l.url).not.toMatch(/google|linkedin/);
+    }
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(communityLinks("  ")).toEqual([]);
+  });
+  it("has Hebrew/English labels for community + new checked results", () => {
+    for (const loc of ["he", "en"] as const) {
+      const s = hiringStrings(loc);
+      expect(s.community.title).toBeTruthy();
+      expect(s.officialBadge).toBeTruthy();
+      expect(s.checkedResult.bot_wall).toBeTruthy();
+      expect(s.checkedResult.js_rendered).toBeTruthy();
+    }
+    expect(hiringStrings("he").community.title).toBe("מדיווחי קהילה");
+  });
+});
+
+describe("LLM pacer", () => {
+  it("serializes concurrent callers and stops at the budget", async () => {
+    const p = new Pacer(2, 0);
+    const got = await Promise.all([p.take(), p.take(), p.take()]);
+    expect(got).toEqual([true, true, false]);
+    expect(p.calls).toBe(2);
   });
 });
 

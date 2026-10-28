@@ -11,10 +11,10 @@ const clampInt = (v: string | null, def: number, max: number) => {
 
 /**
  * Hiring-process population (docs/hiring-process.md). Vercel Cron calls this daily with
- * `Authorization: Bearer $CRON_SECRET`; each run checks a small, time-boxed batch of companies that were
- * never checked (or not in 30 days) plus job descriptions that describe their own process.
- * Query: `limit` (companies, ≤40), `jobs` (job-level processes, ≤30), `llm` (max Gemini calls, ≤25),
- * `slugs` (comma-separated company slugs to (re)check).
+ * `Authorization: Bearer $CRON_SECRET` (twice a day); each run checks a small, time-boxed batch of
+ * companies that were never checked, not in 30 days, or by an older pipeline version, plus job descriptions
+ * that describe their own process. Query: `limit` (companies, ≤60), `jobs` (job-level processes, ≤30),
+ * `llm` (max Gemini calls, ≤28 — 28 × 8.5 s fits the 300 s box), `slugs` (comma-separated slugs, ≤40).
  */
 async function handle(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -28,9 +28,9 @@ async function handle(req: Request) {
     .filter(Boolean)
     .slice(0, 40);
   const summary = await runHiringProcessBatch({
-    limit: clampInt(q.get("limit"), 12, 40),
-    jobLimit: clampInt(q.get("jobs"), 8, 30),
-    maxLlmCalls: clampInt(q.get("llm"), 15, 25),
+    limit: clampInt(q.get("limit"), 20, 60),
+    jobLimit: clampInt(q.get("jobs"), 6, 30),
+    maxLlmCalls: clampInt(q.get("llm"), 20, 28),
     timeBudgetMs: 270_000,
     slugs,
   });
