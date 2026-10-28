@@ -11,7 +11,8 @@ export type AiFeature =
   | "learn_content"
   | "learn_regen"
   | "tutor_chat"
-  | "hiring_process";
+  | "hiring_process"
+  | "chat";
 export type AiOutcome = "ok" | "cached" | "error" | "rate_limited" | "limited";
 
 /** Persistence used by the guard; the Prisma implementation lives in ./store.ts, tests use an in-memory one. */
