@@ -7,6 +7,8 @@
  * Every `careersUrl` is the company's official careers site (never LinkedIn) and was checked to load
  * on 2026-10-27. Seeded with `syncManualCompanies()` (create-only, admin edits are kept).
  */
+import { ESTABLISHED_MANUAL, withoutHub } from "./established";
+
 export interface ManualCompany {
   slug: string;
   name: string;
@@ -156,4 +158,6 @@ export const MANUAL_COMPANIES: ManualCompany[] = [
     NO_IL_HE,
     NO_IL_EN,
   ),
+  // Established employers & northern hi-tech hubs (MATAM, Yokneam) — see ./established.ts
+  ...ESTABLISHED_MANUAL.map(withoutHub),
 ];

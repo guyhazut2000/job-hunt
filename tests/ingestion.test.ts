@@ -14,6 +14,7 @@ describe("ingestion adapters", () => {
       "LEVER",
       "RECRUITEE",
       "SMARTRECRUITERS",
+      "WORDPRESS",
       "WORKABLE",
       "WORKDAY",
     ]);

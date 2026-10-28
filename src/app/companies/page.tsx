@@ -21,6 +21,9 @@ import { companyMatchesTerms } from "@/lib/companies/search";
 import { highlightTerms, MAX_QUERY_LENGTH, parseSearchQuery } from "@/lib/search/query";
 import { fillQ, searchStrings } from "@/lib/i18n/search";
 import { SearchBox } from "@/components/SearchBox";
+import { SuggestCompanyForm } from "@/components/SuggestCompanyForm";
+import { suggestCompanyStrings } from "@/lib/i18n/suggest-company";
+import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Companies" };
@@ -30,7 +33,7 @@ export default async function CompaniesPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [{ t, locale }, sp] = await Promise.all([getDictionary(), searchParams]);
+  const [{ t, locale }, sp, session] = await Promise.all([getDictionary(), searchParams, auth()]);
   const li = linkedinStrings(locale);
   const filter = parseCompanyFilter(sp.sync);
   const ss = searchStrings(locale);
@@ -291,6 +294,7 @@ export default async function CompaniesPage({
           );
         })}
       </div>
+      {session?.user?.id && <SuggestCompanyForm s={suggestCompanyStrings(locale)} />}
       <BackToTop label={t.ui.backToTop} />
     </div>
   );

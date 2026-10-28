@@ -13,6 +13,7 @@ import { ManualCompanyForm } from "@/components/admin/ManualCompanyForm";
 import { PendingButton } from "@/components/admin/PendingButton";
 import { careersLink, isManualCompany, isSyncFailing, SYNC_FAILING_THRESHOLD } from "@/lib/companies/status";
 import { db } from "@/lib/db";
+import { USER_SOURCE } from "@/lib/discovery/suggest";
 import { getDictionary } from "@/lib/i18n";
 import { jobsMapStrings } from "@/lib/i18n/jobs-map";
 import { linkedinStrings } from "@/lib/i18n/linkedin";
@@ -397,12 +398,18 @@ async function manualCompanies() {
   return { total, rows: rows.sort((a, b) => Number(isSyncFailing(b)) - Number(isSyncFailing(a))) };
 }
 
+/** Checked candidates waiting for a decision, plus user suggestions (shown right away, even before their check). */
+const REVIEW_QUEUE = {
+  status: "PENDING" as const,
+  OR: [{ checkedAt: { not: null } }, { source: USER_SOURCE }],
+};
+
 async function discoveryStats() {
   const [byStatus, pendingChecked, queue, lastRun] = await Promise.all([
     db.startupCandidate.groupBy({ by: ["status"], _count: { _all: true } }),
-    db.startupCandidate.count({ where: { status: "PENDING", checkedAt: { not: null } } }),
+    db.startupCandidate.count({ where: REVIEW_QUEUE }),
     db.startupCandidate.findMany({
-      where: { status: "PENDING", checkedAt: { not: null } },
+      where: REVIEW_QUEUE,
       orderBy: [{ priority: "desc" }, { name: "asc" }],
       take: 30,
     }),

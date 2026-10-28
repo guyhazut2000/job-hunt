@@ -52,6 +52,27 @@ in English and Hebrew (with common spellings: Petach Tikva, Herzliya Pituach, Yo
 "Remote – Israel". A bare `IL` is not trusted (Chicago, IL), and Hebrew names are matched
 carefully (יהוד ≠ יהודה). Postings for other countries are never ingested.
 
+## WordPress careers sites
+
+Some Israeli employers (e.g. ONE Technologies, `www.one1.co.il`) publish their openings as a custom post
+type on their own WordPress site, readable through the public WordPress REST API that the site itself
+exposes (`/wp-json/wp/v2/<postType>`). `boardId` is `"<host>"` or `"<host>/<postType>"` (default `job`).
+The adapter reads at most 10 pages of 100, paced one request per second, and resolves the location /
+category / scope taxonomies. These sites are Israeli-only, so every post counts as an Israeli job; the
+city comes from the title or from a single region term, otherwise "Israel".
+
+## Established employers and northern hubs
+
+`src/lib/companies/established.ts` lists non-startup employers with in-house hi-tech roles —
+integrators and IT services (ONE, Matrix, Integrity Software, Comm-IT…), banks, insurers, telecom,
+defense, HMOs, large corporates — and tenants of MATAM (Haifa), Yokneam and the North. Each entry is
+tagged with its `hub`. Entries whose careers page embeds a public ATS board are merged into
+`JOB_SOURCES`; the rest into `MANUAL_COMPANIES`. Careers URLs come from the companies' own sites
+and were checked to load. The few sites that answer automated requests with a bot wall or geo-block are
+listed in `BOT_PROTECTED`; they were confirmed through search results. TASE and Wikipedia lists were only
+used to pick names; there was no bulk import (TASE's site blocks automated access, and Wikidata is
+already covered by the discovery `WIKIDATA` fetcher).
+
 ## Adding or verifying a source
 
 1. Find the ATS from the company's **own** careers page (the iframe/script/links it uses).
