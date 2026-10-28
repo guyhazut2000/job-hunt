@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { Highlight } from "./Highlight";
 
 const CLAMP = { 1: "truncate", 2: "line-clamp-2", 3: "line-clamp-3" } as const;
 const LONG_PRESS_MS = 450;
@@ -19,8 +20,11 @@ export function TruncatedText({
   lines = 1,
   className,
   side = "top",
+  highlight,
 }: {
   text: string;
+  /** Search terms to mark inside the text. */
+  highlight?: string[];
   lines?: 1 | 2 | 3;
   className?: string;
   side?: "top" | "bottom";
@@ -109,7 +113,7 @@ export function TruncatedText({
             e.stopPropagation();
           }}
         >
-          {text}
+          <Highlight text={text} terms={highlight} />
         </span>
       </TooltipTrigger>
       <TooltipContent side={side} sideOffset={6} className="max-w-[min(20rem,calc(100vw-2rem))] text-sm break-words">

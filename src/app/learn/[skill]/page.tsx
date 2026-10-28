@@ -3,18 +3,24 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
+  BarChart3,
   BookOpen,
+  Briefcase,
   Check,
+  ChevronDown,
+  CircleDashed,
   Clock,
   ExternalLink,
   GraduationCap,
   Hammer,
   Map as MapIcon,
   TrendingUp,
+  type LucideIcon,
 } from "lucide-react";
 import { auth } from "@/auth";
 import { Percent } from "@/components/Percent";
 import { SkillStatusControl } from "@/components/learning/SkillStatusControl";
+import { MetaPill, SkillCard, SkillMonogram, type LearnStatus } from "@/components/learning/SkillVisuals";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
@@ -22,6 +28,7 @@ import { fmt, learningStrings } from "@/lib/i18n/learning";
 import { crossJobImpact, GRAPH, knownSkillIds, prerequisitePath, scoreWithout, withSkills } from "@/lib/learning/graph";
 import { demandMap, getProgress } from "@/lib/learning/server";
 import { STAGES, type Resource } from "@/lib/learning/types";
+import { levelFromDepth } from "@/lib/learning/ui";
 import { hasScorableProfile, scoreMatch, toCandidate } from "@/lib/profile/score";
 import { cn } from "@/lib/utils";
 
@@ -57,11 +64,15 @@ export default async function SkillPage({ params }: Params) {
       take: 400,
     }),
   ]);
+  const statusOf = new Map(progress.map((p) => [p.skill, p.status]));
   const mine = progress.find((p) => p.skill === node.id);
   const doneIds = progress.filter((p) => p.status === "DONE").map((p) => p.skill);
   const candidate = hasScorableProfile(profile) ? toCandidate(profile) : null;
   const known = knownSkillIds(candidate?.skills ?? [], doneIds);
-  const path = prerequisitePath(node.id).filter((id) => id !== node.id);
+  const fullPath = prerequisitePath(node.id);
+  const path = fullPath.filter((id) => id !== node.id);
+  const level = levelFromDepth(path.length);
+  const haveCount = path.filter((id) => known.has(id)).length;
   const next = [...(GRAPH.dependents.get(node.id) ?? [])].map((id) => GRAPH.byId.get(id)!);
   const count = demand.get(node.id) ?? jobs.length;
   const impact = candidate && !known.has(node.id) ? crossJobImpact(candidate, jobs, node.label) : null;
@@ -77,24 +88,41 @@ export default async function SkillPage({ params }: Params) {
     return { j, now, other };
   });
   const lang = locale === "he" ? "he-IL" : "en-US";
+  const status: LearnStatus = mine?.status ?? "NONE";
+  const cardLabels = { status: s.status, hoursPill: s.hoursPill, demandPill: s.demandPill };
 
-  const res = (icon: React.ReactNode, heading: string, r: Resource) => (
+  const toc = [
+    { id: "path", label: s.path },
+    { id: "resources", label: s.resources },
+    ...(top.length ? [{ id: "jobs", label: s.jobsNeedTitle }] : []),
+    ...(next.length ? [{ id: "next", label: s.nextSkills }] : []),
+  ];
+
+  const resource = (Icon: LucideIcon, heading: string, blurb: string, r: Resource, tone: string) => (
     <a
       href={r.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="card hover:border-primary/50 flex min-h-11 flex-col gap-1 p-4 transition-colors"
+      className="group bg-card hover:border-foreground/25 flex min-w-0 flex-col gap-3 rounded-xl border p-4 transition-[border-color,box-shadow] hover:shadow-[0_6px_20px_-12px_oklch(0.21_0.014_60/0.35)]"
     >
-      <span className="kicker flex items-center gap-1.5">
-        {icon}
-        {heading}
+      <span className="flex items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-2">
+          <span className={cn("grid size-9 place-items-center rounded-lg", tone)}>
+            <Icon className="size-[1.1rem]" aria-hidden />
+          </span>
+          <span className="text-sm font-bold">{heading}</span>
+        </span>
+        <span className="bg-fit-soft text-fit rounded-full px-2 py-0.5 text-[0.7rem] font-semibold">{s.free}</span>
       </span>
-      <span className="font-semibold" dir="ltr">
-        {r.title}
+      <span className="flex flex-col gap-1">
+        <span className="leading-snug font-semibold group-hover:underline">
+          <bdi dir="ltr">{r.title}</bdi>
+        </span>
+        <span className="text-muted-foreground text-xs">{blurb}</span>
       </span>
-      <span className="text-muted-foreground flex items-center gap-1 text-sm">
-        {r.by}
-        <ExternalLink className="size-3.5" aria-label={s.external} />
+      <span className="text-muted-foreground mt-auto flex items-center justify-between gap-2 border-t pt-2.5 text-xs">
+        <span className="truncate">{r.by}</span>
+        <ExternalLink className="size-3.5 shrink-0" aria-label={s.external} />
       </span>
     </a>
   );
@@ -103,84 +131,131 @@ export default async function SkillPage({ params }: Params) {
     <div className="flex flex-col gap-8">
       <Link
         href="/learn"
-        className="text-muted-foreground hover:text-foreground inline-flex min-h-11 w-fit items-center gap-1.5 text-sm"
+        className="text-muted-foreground hover:text-foreground -mt-2 inline-flex min-h-11 w-fit items-center gap-1.5 text-sm"
       >
         <ArrowRight className="size-4 ltr:rotate-180" aria-hidden />
         {s.back}
       </Link>
 
-      <header className="rule-double -mt-6 flex flex-col gap-3 pb-6">
-        <p className="kicker">{s.category[node.category]}</p>
-        <h1 className="text-title font-black" dir="ltr">
-          <bdi>{node.label}</bdi>
-        </h1>
-        <p className="text-foreground/85 max-w-[68ch] text-[1.05rem]">{node.summary[locale]}</p>
-        <p className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
-          <Clock className="size-4" aria-hidden />
-          {fmt(s.hours, { n: node.hours })}
-        </p>
-        {userId ? (
-          <SkillStatusControl
-            skill={node.id}
-            initial={mine?.status ?? "NONE"}
-            initialProof={mine?.proofUrl}
-            labels={{
-              status: s.status,
-              statusLabel: s.statusLabel,
-              proofLabel: s.proofLabel,
-              proofPlaceholder: s.proofPlaceholder,
-              save: s.save,
-              saved: s.saved,
-              doneAdded: s.doneAdded,
-              doneAlready: s.doneAlready,
-              invalidUrl: s.invalidUrl,
-            }}
-          />
-        ) : (
-          <Button asChild variant="outline" className="w-fit">
-            <Link href={`/login?next=/learn/${node.id}`}>{s.loginToTrack}</Link>
-          </Button>
-        )}
+      {/* Hero */}
+      <header className="bg-card motion-safe:animate-rise -mt-4 flex flex-col gap-5 rounded-2xl border p-5 sm:p-7">
+        <div className="flex items-start gap-4">
+          <SkillMonogram label={node.label} category={node.category} size="lg" />
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <p className="kicker">{s.category[node.category]}</p>
+            <h1 className="text-title leading-tight font-black">
+              <bdi dir="ltr">{node.label}</bdi>
+            </h1>
+          </div>
+        </div>
+        <p className="text-foreground/85 max-w-[65ch] text-[1.05rem] leading-relaxed">{node.summary[locale]}</p>
+        <ul className="flex flex-wrap gap-2" aria-label={s.path}>
+          <li>
+            <MetaPill icon={Clock} title={s.hoursLabel}>
+              <span className="sr-only">{s.hoursLabel}: </span>
+              {fmt(s.hoursPill, { n: node.hours })}
+            </MetaPill>
+          </li>
+          <li>
+            <MetaPill icon={BarChart3} title={s.levelLabel}>
+              <span className="sr-only">{s.levelLabel}: </span>
+              {s.level[level]}
+            </MetaPill>
+          </li>
+          {count > 0 && (
+            <li>
+              <MetaPill icon={Briefcase} title={s.demandLabel}>
+                <span className="sr-only">{s.demandLabel}: </span>
+                {fmt(s.demandPill, { n: count.toLocaleString(lang) })}
+              </MetaPill>
+            </li>
+          )}
+          {impact && impact.jobs > 0 && (
+            <li>
+              <MetaPill icon={TrendingUp} className="border-fit/25 bg-fit-soft text-accent-foreground">
+                {fmt(s.recommendedGain, { n: impact.jobs })}
+              </MetaPill>
+            </li>
+          )}
+        </ul>
+        <div className="border-t pt-5">
+          {userId ? (
+            <SkillStatusControl
+              skill={node.id}
+              initial={status}
+              initialProof={mine?.proofUrl}
+              labels={{
+                status: s.status,
+                statusLabel: s.statusLabel,
+                proofLabel: s.proofLabel,
+                proofPlaceholder: s.proofPlaceholder,
+                save: s.save,
+                saved: s.saved,
+                doneAdded: s.doneAdded,
+                doneAlready: s.doneAlready,
+                invalidUrl: s.invalidUrl,
+              }}
+            />
+          ) : (
+            <Button asChild size="lg" className="w-full rounded-full sm:w-fit">
+              <Link href={`/login?next=/learn/${node.id}`}>{s.loginToTrack}</Link>
+            </Button>
+          )}
+        </div>
       </header>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="flex min-w-0 flex-col gap-8">
-          <section aria-labelledby="path" className="flex flex-col gap-4">
-            <div>
-              <h2 id="path" className="font-heading text-xl font-bold">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-10">
+        <div className="flex min-w-0 flex-col gap-10">
+          {/* Path: prerequisites + stage stepper */}
+          <section aria-labelledby="path" className="flex scroll-mt-24 flex-col gap-5">
+            <div className="flex flex-col gap-1">
+              <h2 id="path" className="scroll-mt-24 text-2xl font-bold">
                 {s.path}
               </h2>
               <p className="text-muted-foreground text-sm">{s.pathIntro}</p>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <h3 className="kicker">{s.prereqs}</h3>
+            <div className="bg-card flex flex-col gap-3 rounded-xl border p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="font-bold">{s.prereqs}</h3>
+                {path.length > 0 && userId && (
+                  <span className="text-muted-foreground text-xs">
+                    {fmt(s.prereqReady, { have: haveCount, total: path.length })}
+                  </span>
+                )}
+              </div>
               {path.length === 0 ? (
-                <p className="text-sm">{s.noPrereqs}</p>
+                <p className="text-foreground/80 text-sm">{s.noPrereqs}</p>
               ) : (
-                <ol className="flex flex-wrap items-center gap-1.5">
-                  {path.map((id, i) => {
+                <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
+                  {path.map((id) => {
                     const p = GRAPH.byId.get(id)!;
                     const have = known.has(id);
                     return (
                       <li key={id} className="flex items-center gap-1.5">
-                        {i > 0 && <ArrowLeft aria-hidden className="text-muted-foreground size-3 ltr:rotate-180" />}
                         <Link
                           href={`/learn/${id}`}
                           className={cn(
-                            "chip inline-flex min-h-9 items-center gap-1 hover:underline",
-                            have && "bg-fit-soft",
+                            "inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors",
+                            have
+                              ? "border-fit/25 bg-fit-soft text-accent-foreground"
+                              : "bg-card hover:border-foreground/30 border-dashed",
                           )}
                         >
+                          {have ? (
+                            <Check className="text-fit size-4" aria-hidden />
+                          ) : (
+                            <CircleDashed className="text-muted-foreground size-4" aria-hidden />
+                          )}
                           <bdi dir="ltr">{p.label}</bdi>
-                          {have && <Check className="text-fit size-3.5" aria-label={s.youHave} />}
+                          <span className="sr-only">({have ? s.youHave : s.missing})</span>
                         </Link>
+                        <ArrowLeft aria-hidden className="text-muted-foreground size-3.5 ltr:rotate-180" />
                       </li>
                     );
                   })}
-                  <li className="flex items-center gap-1.5">
-                    <ArrowLeft aria-hidden className="text-muted-foreground size-3 ltr:rotate-180" />
-                    <span className="chip bg-primary text-primary-foreground inline-flex min-h-9 items-center">
+                  <li>
+                    <span className="bg-primary text-primary-foreground inline-flex min-h-10 items-center rounded-full px-3 text-sm font-semibold">
                       <bdi dir="ltr">{node.label}</bdi>
                     </span>
                   </li>
@@ -188,50 +263,75 @@ export default async function SkillPage({ params }: Params) {
               )}
             </div>
 
-            {/* Stage timeline: line on the logical start edge (right in Hebrew, left in English). */}
+            {/* Vertical stepper. The connector sits on the logical start edge (right in Hebrew). */}
             <ol className="flex flex-col">
-              {STAGES.map((st, i) => (
-                <li key={st} className="relative flex gap-4 pb-6 last:pb-0">
-                  {i < STAGES.length - 1 && (
-                    <span aria-hidden className="bg-border absolute start-[0.95rem] top-9 bottom-1 w-px" />
-                  )}
-                  <span
-                    aria-hidden
-                    className="bg-card border-primary/40 text-primary z-10 grid size-8 shrink-0 place-items-center rounded-full border-2 font-mono text-sm font-medium"
-                  >
-                    {i + 1}
-                  </span>
-                  <div className="flex min-w-0 flex-col gap-2 pt-1">
-                    <h3 className="font-semibold">
-                      {fmt(s.stageNum, { n: i + 1 })} · {s.stage[st]}
-                    </h3>
-                    <ul className="flex flex-wrap gap-1.5" dir="ltr">
-                      {node.stages[st].map((topic) => (
-                        <li key={topic} className="bg-secondary/70 rounded-md px-2 py-1 text-sm">
-                          {topic}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </li>
-              ))}
+              {STAGES.map((st, i) => {
+                const topics = node.stages[st];
+                return (
+                  <li key={st} className="relative flex gap-4 pb-4 last:pb-0">
+                    {i < STAGES.length - 1 && (
+                      <span aria-hidden className="bg-border absolute start-[1.2rem] top-11 bottom-0 w-0.5 rounded" />
+                    )}
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "z-10 grid size-10 shrink-0 place-items-center rounded-full border-2 font-mono text-sm font-semibold",
+                        status === "DONE"
+                          ? "border-fit bg-fit-soft text-fit"
+                          : "border-primary/40 bg-card text-primary",
+                      )}
+                    >
+                      {status === "DONE" ? <Check className="size-4" /> : i + 1}
+                    </span>
+                    <details open={i === 0} className="group bg-card min-w-0 flex-1 rounded-xl border">
+                      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3 [&::-webkit-details-marker]:hidden">
+                        <span className="flex min-w-0 flex-col">
+                          <span className="text-muted-foreground text-xs">{fmt(s.stageNum, { n: i + 1 })}</span>
+                          <span className="font-bold">{s.stage[st]}</span>
+                        </span>
+                        <span className="text-muted-foreground inline-flex shrink-0 items-center gap-2 text-xs">
+                          {fmt(s.stageTopics, { n: topics.length })}
+                          <ChevronDown
+                            className="size-4 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+                            aria-hidden
+                          />
+                        </span>
+                      </summary>
+                      <ul className="flex flex-col gap-1.5 border-t px-4 py-3" dir="ltr">
+                        {topics.map((topic) => (
+                          <li key={topic} className="flex items-start gap-2 text-[0.95rem] leading-relaxed">
+                            <span aria-hidden className="bg-primary/60 mt-[0.6em] size-1.5 shrink-0 rounded-full" />
+                            {topic}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  </li>
+                );
+              })}
             </ol>
           </section>
 
-          <section aria-labelledby="resources" className="flex flex-col gap-3">
-            <h2 id="resources" className="font-heading text-xl font-bold">
+          {/* Resources */}
+          <section aria-labelledby="resources" className="flex flex-col gap-4">
+            <h2 id="resources" className="scroll-mt-24 text-2xl font-bold">
               {s.resources}
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              {res(<BookOpen className="size-4" aria-hidden />, s.docs, node.docs)}
-              {res(<GraduationCap className="size-4" aria-hidden />, s.course, node.course)}
+              {resource(BookOpen, s.docs, s.resourceDocs, node.docs, "bg-accent text-accent-foreground")}
+              {resource(GraduationCap, s.course, s.resourceCourse, node.course, "bg-secondary text-foreground")}
             </div>
-            <div className="card bg-caution-soft/50 flex flex-col gap-1 p-4">
-              <span className="kicker flex items-center gap-1.5">
-                <Hammer className="size-4" aria-hidden />
-                {s.project}
+            <div className="bg-caution-soft/45 border-caution/20 flex flex-col gap-2 rounded-xl border p-4">
+              <span className="inline-flex items-center gap-2">
+                <span className="bg-caution-soft text-caution grid size-9 place-items-center rounded-lg">
+                  <Hammer className="size-[1.1rem]" aria-hidden />
+                </span>
+                <span className="flex flex-col">
+                  <span className="text-sm font-bold">{s.project}</span>
+                  <span className="text-foreground/70 text-xs">{s.resourceProject}</span>
+                </span>
               </span>
-              <p>{node.project[locale]}</p>
+              <p className="max-w-[65ch] leading-relaxed">{node.project[locale]}</p>
             </div>
             {node.roadmapSh && (
               <a
@@ -247,74 +347,45 @@ export default async function SkillPage({ params }: Params) {
             )}
           </section>
 
-          {next.length > 0 && (
-            <section aria-labelledby="next" className="flex flex-col gap-2">
-              <h2 id="next" className="font-heading text-xl font-bold">
-                {s.nextSkills}
-              </h2>
-              <ul className="flex flex-wrap gap-1.5">
-                {next.map((n) => (
-                  <li key={n.id}>
-                    <Link href={`/learn/${n.id}`} className="chip inline-flex min-h-9 items-center hover:underline">
-                      <bdi dir="ltr">{n.label}</bdi>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </div>
-
-        <aside aria-labelledby="demand" className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
-          <div className="card flex flex-col gap-3 p-4">
-            <h2 id="demand" className="kicker">
-              {s.demandTitle}
-            </h2>
-            <p className="text-lg font-semibold">
-              {fmt(s.demandLine, { n: count.toLocaleString(lang), skill: "" })}
-              <bdi dir="ltr">{node.label}</bdi>
-            </p>
-            {impact && impact.jobs > 0 && (
-              <p className="text-fit flex items-start gap-1.5 text-sm font-semibold">
-                <TrendingUp className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {fmt(s.impactLine, { skill: node.label, n: impact.jobs, avg: impact.avgGain })}
-              </p>
-            )}
-            <Link
-              href={`/jobs?tech=${encodeURIComponent(node.label)}`}
-              className="text-primary inline-flex min-h-11 items-center gap-1 text-sm font-semibold hover:underline"
-            >
-              {fmt(s.demandLink, { skill: node.label })}
-            </Link>
-          </div>
-
+          {/* Jobs that need this */}
           {top.length > 0 && (
-            <div className="card flex flex-col gap-1 p-4">
-              <h2 className="kicker mb-1">{fmt(s.topJobs, { skill: node.label })}</h2>
-              <ul className="flex flex-col">
+            <section aria-labelledby="jobs" className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <h2 id="jobs" className="scroll-mt-24 text-2xl font-bold">
+                  {s.jobsNeedTitle}
+                </h2>
+                <Link
+                  href={`/jobs?tech=${encodeURIComponent(node.label)}`}
+                  className="text-primary inline-flex min-h-10 items-center gap-1 text-sm font-semibold hover:underline"
+                >
+                  {fmt(s.demandLink, { skill: node.label })}
+                  <ArrowLeft className="size-4 ltr:rotate-180" aria-hidden />
+                </Link>
+              </div>
+              <ul className="bg-card divide-y rounded-xl border">
                 {top.map(({ j, now, other }) => (
                   <li key={j.id}>
                     <Link
                       href={`/jobs/${j.id}`}
-                      className="hover:bg-secondary/60 -mx-2 flex min-h-11 items-center justify-between gap-2 rounded-md px-2 py-1.5"
+                      className="hover:bg-secondary/50 flex min-h-14 items-center justify-between gap-3 px-4 py-2.5 transition-colors first:rounded-t-xl last:rounded-b-xl"
                     >
                       <span className="flex min-w-0 flex-col">
-                        <span dir="auto" className="truncate text-sm font-semibold">
+                        <span dir="auto" className="truncate font-semibold">
                           {j.title}
                         </span>
-                        <span className="text-muted-foreground truncate text-xs">{j.company.name}</span>
+                        <span className="text-muted-foreground truncate text-sm">{j.company.name}</span>
                       </span>
                       {now != null && (
-                        <span className="flex shrink-0 items-center gap-1 font-mono text-xs" dir="ltr">
+                        <span className="flex shrink-0 items-center gap-1 font-mono text-sm" dir="ltr">
                           {mine?.addedToProfile && other != null ? (
                             <>
                               <Percent value={other} className="text-muted-foreground" />→
-                              <Percent value={now} className="text-fit font-medium" />
+                              <Percent value={now} className="text-fit font-semibold" />
                             </>
                           ) : other != null && other !== now ? (
                             <>
-                              <Percent value={now} />→
-                              <Percent value={other} className="text-fit font-medium" />
+                              <Percent value={now} className="text-muted-foreground" />→
+                              <Percent value={other} className="text-fit font-semibold" />
                             </>
                           ) : (
                             <Percent value={now} />
@@ -325,9 +396,71 @@ export default async function SkillPage({ params }: Params) {
                   </li>
                 ))}
               </ul>
-            </div>
+            </section>
           )}
-          <p className="text-muted-foreground text-xs">{s.aiSoon}</p>
+
+          {/* Next skills unlocked */}
+          {next.length > 0 && (
+            <section aria-labelledby="next" className="flex flex-col gap-4">
+              <h2 id="next" className="scroll-mt-24 text-2xl font-bold">
+                {s.nextSkills}
+              </h2>
+              <ul className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-3">
+                {next.map((n) => (
+                  <li key={n.id} className="min-w-0">
+                    <SkillCard
+                      skill={{
+                        id: n.id,
+                        label: n.label,
+                        category: n.category,
+                        categoryLabel: s.category[n.category],
+                        hours: n.hours,
+                        demand: demand.get(n.id) ?? 0,
+                        status: statusOf.get(n.id) ?? "NONE",
+                      }}
+                      labels={cardLabels}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+
+        {/* Aside: sticky TOC (desktop) + market demand */}
+        <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
+          <nav aria-labelledby="toc" className="hidden flex-col gap-1 lg:flex">
+            <h2 id="toc" className="kicker mb-1">
+              {s.tocTitle}
+            </h2>
+            {toc.map((t) => (
+              <a
+                key={t.id}
+                href={`#${t.id}`}
+                className="text-foreground/75 hover:text-foreground hover:border-primary border-s-2 border-transparent py-1.5 ps-3 text-sm transition-colors"
+              >
+                {t.label}
+              </a>
+            ))}
+          </nav>
+          <div className="bg-card flex flex-col gap-3 rounded-xl border p-4">
+            <h2 className="kicker">{s.demandTitle}</h2>
+            <p className="leading-snug">
+              <span className="font-heading block text-4xl leading-none font-black tabular-nums">
+                {count.toLocaleString(lang)}
+              </span>
+              <span className="text-foreground/75 text-sm">
+                {fmt(s.demandLine, { n: "", skill: "" }).trim()} <bdi dir="ltr">{node.label}</bdi>
+              </span>
+            </p>
+            {impact && impact.jobs > 0 && (
+              <p className="text-fit bg-fit-soft/60 flex items-start gap-1.5 rounded-lg p-2.5 text-sm font-semibold">
+                <TrendingUp className="mt-0.5 size-4 shrink-0" aria-hidden />
+                {fmt(s.impactLine, { skill: node.label, n: impact.jobs, avg: impact.avgGain })}
+              </p>
+            )}
+          </div>
+          <p className="text-muted-foreground text-xs leading-relaxed">{s.aiSoon}</p>
         </aside>
       </div>
     </div>
