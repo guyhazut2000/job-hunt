@@ -64,7 +64,24 @@ function SeeAll({ href, label, onNavigate }: { href: string; label: string; onNa
 }
 
 function JobsResult({ out, t, s, onNavigate }: CardProps & { out: SearchJobsOutput }) {
-  if (!out.jobs.length) return null;
+  if (!out.jobs.length) {
+    if (out.unknownCompany) return null;
+    const c = out.applied.commute;
+    return (
+      <Shell>
+        <div className="px-4 py-3 text-sm" data-chat-empty>
+          <p className="font-medium">{s.noJobs}</p>
+          {c && (
+            <p className="text-muted-foreground mt-1 text-xs">
+              {fill(s.commuteFrom, { from: c.from })}
+              {c.estimated ? ` · ${s.commuteEstimated}` : ""}
+            </p>
+          )}
+        </div>
+        <SeeAll href={out.href} label={s.openSearch} onNavigate={onNavigate} />
+      </Shell>
+    );
+  }
   const mode = out.applied.commute?.mode;
   return (
     <Shell>

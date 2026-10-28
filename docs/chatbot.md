@@ -34,6 +34,11 @@ ChatPanel (useChat, DefaultChatTransport) ──POST /api/chat {threadId?, text}
 - `src/lib/chat/links.ts` + `ChatMarkdown`: assistant text may only link to internal app paths (`/jobs/…`, `/companies/…`, `/learn/…`, …). External URLs are rendered as plain text. External links appear only inside cards (verified hiring-process sources and community links, `rel="noopener noreferrer nofollow"`).
 - `src/components/chat/*`: `ChatPanel` (page + sheet variants), `ChatCards`, `ChatFab` (lazy-loads the panel; placement via `chatFabPlacement`, which is hidden on `/chat`, auth and admin pages, and raised above the job-details mobile action bar like BackToTop).
 
+**Empty answers.** If the model ends a turn right after a tool call without writing any text (Gemini
+does this sometimes, e.g. on a search with 0 results), the handler appends the deterministic summary
+of the last tool output (the same text as offline mode, minus the "offline" note). A search with 0
+results also renders an empty-state card with a link that opens the same filters on `/jobs`.
+
 ## Configuration
 
 | Env                                   | Default           | Meaning                                                 |

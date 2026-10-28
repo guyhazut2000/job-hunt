@@ -102,9 +102,11 @@ export function contentFromParts(parts: UIMessage["parts"]): string {
 }
 
 /** Deterministic reply text for offline mode (the cards carry the details). */
-export function offlineText(out: ChatToolOutput, locale: Locale): string {
+export function offlineText(out: ChatToolOutput, locale: Locale, opts: { offline?: boolean } = {}): string {
   const he = locale === "he";
-  const note = he
+  const note = opts.offline === false
+    ? ""
+    : he
     ? "\n\n_העוזר החכם לא מחובר כאן, אז זו תשובה אוטומטית לפי מילות מפתח._"
     : "\n\n_The AI assistant isn't connected here, so this is a keyword-based answer._";
   if (out.kind === "jobs") {
@@ -114,12 +116,17 @@ export function offlineText(out: ChatToolOutput, locale: Locale): string {
           ? `לא מצאתי חברה בשם "${out.unknownCompany}".`
           : `I couldn't find a company called "${out.unknownCompany}".`) + note
       );
-    if (!out.total)
-      return (
-        (he
-          ? "לא מצאתי משרות שמתאימות לחיפוש. נסה לנסח אחרת או להסיר סינון."
-          : "No jobs match that search. Try rephrasing or dropping a filter.") + note
-      );
+    if (!out.total) {
+      const c = out.applied.commute;
+      const hint = c?.maxMinutes
+        ? he
+          ? ` ייתכן שמגבלת הנסיעה (עד ${c.maxMinutes} דק׳ מ${c.from}) מצמצמת מדי, אפשר להגדיל אותה או לנסות אמצעי נסיעה אחר.`
+          : ` The commute limit (up to ${c.maxMinutes} min from ${c.from}) may be too tight. Try raising it or another way of getting there.`
+        : he
+          ? " אפשר לנסח אחרת או להסיר סינון."
+          : " Try rephrasing or dropping a filter.";
+      return (he ? "לא מצאתי משרות שמתאימות לחיפוש." : "No jobs match that search.") + hint + note;
+    }
     const c = out.applied.commute;
     const commute = c
       ? he
@@ -268,11 +275,42 @@ export async function handleChatTurn(req: ChatRequest, deps: ChatDeps): Promise<
       console.warn("[chat] stream failed:", error instanceof Error ? error.message.slice(0, 200) : "unknown");
     },
   });
-  return result.toUIMessageStreamResponse({
-    messageMetadata: ({ part }) => (part.type === "start" ? metadata : undefined),
-    onError: (error) => (isRateLimitError(error) ? "provider_quota" : "error"),
+  // The model sometimes ends a turn right after a tool call with no text (seen with Gemini on 0-result
+  // searches). Relay the stream as-is, and if no text came out, append the deterministic summary of the
+  // last tool output so the user never gets a blank bubble.
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      let sawText = false;
+      let sawError = false;
+      let lastOutput: ChatToolOutput | undefined;
+      for await (const chunk of result.toUIMessageStream({
+        messageMetadata: ({ part }) => (part.type === "start" ? metadata : undefined),
+        onError: (error) => (isRateLimitError(error) ? "provider_quota" : "error"),
+        sendFinish: false,
+      })) {
+        if (chunk.type === "text-delta" && chunk.delta.trim()) sawText = true;
+        if (chunk.type === "error") sawError = true;
+        if (chunk.type === "tool-output-available") lastOutput = chunk.output as ChatToolOutput;
+        writer.write(chunk);
+      }
+      if (!sawText && !failed && !sawError) {
+        const text = lastOutput
+          ? offlineText(lastOutput, deps.locale, { offline: false })
+          : deps.locale === "he"
+            ? "לא הצלחתי לנסח תשובה הפעם. אפשר לנסות לשאול שוב במילים אחרות."
+            : "I couldn't put an answer together this time. Try asking again in different words.";
+        writer.write({ type: "start-step" });
+        writer.write({ type: "text-start", id: "fallback" });
+        writer.write({ type: "text-delta", id: "fallback", delta: text });
+        writer.write({ type: "text-end", id: "fallback" });
+        writer.write({ type: "finish-step" });
+      }
+      writer.write({ type: "finish" });
+    },
     onFinish: async ({ responseMessage }) => {
       if (responseMessage.parts.length) await save(responseMessage);
     },
+    onError: (error) => (isRateLimitError(error) ? "provider_quota" : "error"),
   });
+  return createUIMessageStreamResponse({ stream });
 }
