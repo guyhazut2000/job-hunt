@@ -104,11 +104,12 @@ export function contentFromParts(parts: UIMessage["parts"]): string {
 /** Deterministic reply text for offline mode (the cards carry the details). */
 export function offlineText(out: ChatToolOutput, locale: Locale, opts: { offline?: boolean } = {}): string {
   const he = locale === "he";
-  const note = opts.offline === false
-    ? ""
-    : he
-    ? "\n\n_העוזר החכם לא מחובר כאן, אז זו תשובה אוטומטית לפי מילות מפתח._"
-    : "\n\n_The AI assistant isn't connected here, so this is a keyword-based answer._";
+  const note =
+    opts.offline === false
+      ? ""
+      : he
+        ? "\n\n_העוזר החכם לא מחובר כאן, אז זו תשובה אוטומטית לפי מילות מפתח._"
+        : "\n\n_The AI assistant isn't connected here, so this is a keyword-based answer._";
   if (out.kind === "jobs") {
     if (out.unknownCompany)
       return (
