@@ -43,3 +43,6 @@ next-env.d.ts
 # local
 .env
 !.env.example
+
+# local document storage (dev)
+/.data/
