@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AiLimitError } from "@/lib/ai/errors";
 import type { LLMProvider } from "@/lib/ai/types";
 import { discoverProcessPages, failureOf, siteKey, sitemapLocs } from "@/lib/hiring/discover";
 import { communityLinks } from "@/lib/hiring/community";
@@ -304,7 +305,18 @@ describe("extractHiringProcess", () => {
       }),
     };
     const res = await extractHiringProcess("Acme", [PAGE], llm);
-    expect(res).toMatchObject({ status: "none", method: "llm_failed", stages: [] });
+    expect(res).toMatchObject({ status: "none", method: "llm_failed", stages: [], limitHit: false });
+  });
+
+  it("flags quota/limit errors separately from transient LLM errors", async () => {
+    const llm: LLMProvider = {
+      name: "gemini",
+      complete: vi.fn(async () => {
+        throw new AiLimitError("provider_quota");
+      }),
+    };
+    const res = await extractHiringProcess("Acme", [PAGE], llm);
+    expect(res).toMatchObject({ method: "llm_failed", limitHit: true });
   });
 
   it("uses the heuristic with the mock provider, capped at low confidence", async () => {
