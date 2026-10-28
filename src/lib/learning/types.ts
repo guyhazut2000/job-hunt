@@ -62,3 +62,7 @@ export interface SkillNode {
   /** Optional slug of the matching https://roadmap.sh/<slug> page (external reference only). */
   roadmapSh?: string;
 }
+
+/** Stage workspace tabs (shared by the server page and the client workspace). */
+export const WORKSPACE_TABS = ["practice", "qa", "tutor"] as const;
+export type WorkspaceTab = (typeof WORKSPACE_TABS)[number];
