@@ -8,6 +8,7 @@ const en = {
   sortLabel: "Sort",
   sortBy: "Sort by",
   sorts: {
+    relevance: "Most relevant",
     match: "Best match",
     newest: "Newest posted",
     updated: "Recently updated",
@@ -97,6 +98,7 @@ const he: JobSearchStrings = {
   sortLabel: "מיון",
   sortBy: "מיון לפי",
   sorts: {
+    relevance: "הכי רלוונטיות",
     match: "הכי מתאימות לי",
     newest: "פורסמו לאחרונה",
     updated: "עודכנו לאחרונה",

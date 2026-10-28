@@ -11,8 +11,20 @@ import { SalaryChip } from "./salary/SalaryChip";
 import { LinkedinJobInlineLink } from "./LinkedinJobLink";
 import { MatchMeter } from "./MatchMeter";
 import { TruncatedText } from "./TruncatedText";
+import { cn } from "@/lib/utils";
 
-export function JobCard({ job, t, score }: { job: Job & { company: Company }; t: Dictionary; score?: number }) {
+export function JobCard({
+  job,
+  t,
+  score,
+  highlight,
+}: {
+  job: Job & { company: Company };
+  t: Dictionary;
+  score?: number;
+  /** Search terms to mark in the title and company name. */
+  highlight?: string[];
+}) {
   return (
     <article className="group hover:bg-muted/60 relative grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 px-4 py-5 transition-colors sm:px-5">
       <div className="flex min-w-0 flex-col gap-1.5">
@@ -21,7 +33,7 @@ export function JobCard({ job, t, score }: { job: Job & { company: Company }; t:
             href={`/companies/${job.company.slug}`}
             className="text-foreground relative z-10 -my-2 inline-flex min-h-11 min-w-0 items-center font-bold hover:underline sm:min-h-0"
           >
-            <TruncatedText text={job.company.name} />
+            <TruncatedText text={job.company.name} highlight={highlight} />
           </Link>
           <span aria-hidden>·</span>
           <time dateTime={job.postedAt.toISOString()} className="shrink-0 font-mono text-xs">
@@ -35,7 +47,7 @@ export function JobCard({ job, t, score }: { job: Job & { company: Company }; t:
             dir="auto"
           >
             {/* above the card-wide ::after overlay so hovering the title can reveal the tooltip */}
-            <TruncatedText text={job.title} lines={2} className="relative z-[1]" />
+            <TruncatedText text={job.title} lines={2} className="relative z-[1]" highlight={highlight} />
           </Link>
         </h3>
         <p className="text-foreground/75 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
@@ -61,7 +73,10 @@ export function JobCard({ job, t, score }: { job: Job & { company: Company }; t:
         {job.techStack.length > 0 && (
           <ul className="flex flex-wrap gap-1 pt-1" dir="ltr" aria-label={t.jobs.tech}>
             {job.techStack.slice(0, 6).map((s) => (
-              <li key={s} className="chip">
+              <li
+                key={s}
+                className={cn("chip", highlight?.includes(s.toLowerCase()) && "border-primary/40 bg-primary/10")}
+              >
                 {s}
               </li>
             ))}

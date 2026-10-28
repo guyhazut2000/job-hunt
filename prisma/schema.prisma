@@ -195,7 +195,7 @@ model Company {
 
   /// AUTO = jobs are pulled from `atsProvider`/`atsBoardId`; MANUAL = no working feed, the user checks
   /// `careersUrl` by hand. Companies are never hidden or deleted because a feed is missing or failing.
-  syncMode          CompanySyncMode @default(AUTO)
+  syncMode          CompanySyncMode    @default(AUTO)
   /// The company's own careers page (never a LinkedIn URL).
   careersUrl        String?
   notesHe           String?
@@ -204,10 +204,12 @@ model Company {
   lastSyncError     String?
   lastSyncErrorAt   DateTime?
   /// Consecutive failed syncs; >= SYNC_FAILING_THRESHOLD shows a "feed failing" note in the UI.
-  syncFailures      Int             @default(0)
+  syncFailures      Int                @default(0)
   /// How the company got here: "curated", "manual-seed", "admin", "discovery:YC", "discovery:WIKIDATA"…
   addedVia          String?
   startupCandidates StartupCandidate[]
+
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Company_name_trgm_idx")
 }
 
 enum CompanySyncMode {
@@ -343,6 +345,11 @@ model Job {
   @@index([isActive, level])
   @@index([isActive, sourceUpdatedAt])
   @@index([companyId, isActive])
+  // Free-text search (ILIKE '%term%') — trigram GIN indexes, pg_trgm.
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "Job_title_trgm_idx")
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin, map: "Job_description_trgm_idx")
+  @@index([location(ops: raw("gin_trgm_ops"))], type: Gin, map: "Job_location_trgm_idx")
+  @@index([department(ops: raw("gin_trgm_ops"))], type: Gin, map: "Job_department_trgm_idx")
 }
 
 model Application {

@@ -30,6 +30,10 @@ import {
   type JobFilters,
 } from "@/lib/jobs/filters";
 import { splitLocations } from "@/lib/jobs/facets";
+import { matchCompanies, rankJob } from "@/lib/jobs/search";
+import { highlightTerms, parseSearchQuery } from "@/lib/search/query";
+import { fillQ, searchStrings } from "@/lib/i18n/search";
+import { SearchBox, type SearchSuggestion } from "@/components/SearchBox";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Jobs" };
@@ -41,29 +45,37 @@ export default async function JobsPage({
 }) {
   const [{ t, locale }, session, params] = await Promise.all([getDictionary(), auth(), searchParams]);
   const s = jobSearchStrings(locale);
+  const ss = searchStrings(locale);
   const userId = session?.user?.id;
   const filters = parseFilters(params);
   const profile = userId ? await db.profile.findUnique({ where: { userId } }) : null;
   const candidate = hasScorableProfile(profile) ? toCandidate(profile) : null;
   const hasProfile = !!candidate;
   const sort = effectiveSort(filters, hasProfile);
-  const where = filtersToWhere(filters, { userId });
+  const terms = parseSearchQuery(filters.q);
   const href = (f: JobFilters) => `/jobs${filtersToQuery(f)}`;
 
   // Facet counts are over all open roles (cheap: a handful of grouped queries on ~600 rows).
   const active = { isActive: true } as const;
-  const [fnG, levelG, typeG, modeG, companyG, locRows] = await Promise.all([
+  const [fnG, levelG, typeG, modeG, companyG, locRows, techRows] = await Promise.all([
     db.job.groupBy({ by: ["jobFunction"], where: active, _count: true }),
     db.job.groupBy({ by: ["level"], where: active, _count: true }),
     db.job.groupBy({ by: ["employmentType"], where: active, _count: true }),
     db.job.groupBy({ by: ["workMode"], where: active, _count: true }),
     db.job.groupBy({ by: ["companyId"], where: active, _count: true }),
     db.job.findMany({ where: active, select: { location: true } }),
+    db.$queryRaw<{ tag: string; n: bigint }[]>`
+      SELECT tag, count(*) AS n FROM (SELECT unnest("techStack") AS tag FROM "Job" WHERE "isActive") t
+      GROUP BY tag ORDER BY n DESC LIMIT 200`,
   ]);
   const companyRows = await db.company.findMany({
     where: { id: { in: companyG.map((c) => c.companyId) } },
-    select: { id: true, slug: true, name: true },
+    select: { id: true, slug: true, name: true, website: true },
   });
+  // Company names/domains are resolved to ids up front so the text search stays index-friendly.
+  const companyMatches = terms.length ? matchCompanies(terms, companyRows) : undefined;
+  const where = filtersToWhere(filters, { userId, companyMatches });
+  const marks = highlightTerms(terms);
   const count = <K extends string>(rows: ({ _count: number } & Record<K, string>)[], k: K) =>
     Object.fromEntries(rows.map((r) => [r[k], r._count]));
   const companyCount = count(companyG, "companyId");
@@ -103,11 +115,38 @@ export default async function JobsPage({
     const ids = new Set((await db.job.findMany({ where, select: { id: true } })).map((j) => j.id));
     const matching = scoredAll
       .filter((x) => ids.has(x.job.id))
+      .map((x) => (terms.length ? { ...x, rank: rankJob(x.job, terms) } : x))
       .filter((x) => filters.minMatch === undefined || x.score >= filters.minMatch)
       .filter((x) => !filters.fit || fitIds.has(x.job.companyId))
       .sort(compareJobs(sort));
     total = matching.length;
     rows = matching.slice((filters.page - 1) * PAGE_SIZE, filters.page * PAGE_SIZE);
+  } else if (sort === "relevance") {
+    // Rank every match on light columns (no descriptions), then load only the visible page.
+    const light = await db.job.findMany({
+      where,
+      select: {
+        id: true,
+        title: true,
+        location: true,
+        department: true,
+        techStack: true,
+        postedAt: true,
+        company: { select: { name: true } },
+      },
+    });
+    const ranked = light
+      .map((job) => ({ job, score: 0, rank: rankJob(job, terms) }))
+      .sort(compareJobs("relevance"))
+      .slice((filters.page - 1) * PAGE_SIZE, filters.page * PAGE_SIZE)
+      .map((x) => x.job.id);
+    total = light.length;
+    const full = await db.job.findMany({ where: { id: { in: ranked } }, include: { company: true } });
+    const byId = new Map(full.map((j) => [j.id, j]));
+    rows = ranked
+      .map((id) => byId.get(id))
+      .filter((j): j is Job & { company: Company } => !!j)
+      .map((job) => ({ job, score: candidate ? scoreMatch(candidate, job).score : undefined }));
   } else {
     const [n, jobs] = await Promise.all([db.job.count({ where }), fetchPage()]);
     total = n;
@@ -150,7 +189,7 @@ export default async function JobsPage({
   if (filters.tech) chip("tech", filters.tech);
   const clearHref = href(clearedFilters(filters));
 
-  const sortOptions = SORTS.map((k) => ({
+  const sortOptions = SORTS.filter((k) => k !== "relevance" || terms.length > 0).map((k) => ({
     key: k,
     label: s.sorts[k],
     href: href({ ...filters, sort: k, page: 1 }),
@@ -158,6 +197,11 @@ export default async function JobsPage({
   }));
 
   const formProps = { t, s, filters, facets, hasProfile, signedIn: !!userId, clearHref };
+  const suggestions: SearchSuggestion[] = [
+    ...facets.companies.map((c) => ({ kind: "company" as const, label: c.name, params: { company: c.slug } })),
+    ...techRows.map((r) => ({ kind: "skill" as const, label: r.tag, params: { tech: r.tag } })),
+  ];
+  const clearSearchHref = href({ ...filters, q: undefined, page: 1 });
 
   return (
     <div className="grid gap-8 lg:grid-cols-[17rem_minmax(0,1fr)]">
@@ -176,10 +220,18 @@ export default async function JobsPage({
             </h1>
           </div>
           <p className="text-muted-foreground text-sm" aria-live="polite" data-testid="result-count">
-            <span className="text-foreground font-mono font-medium">{total.toLocaleString()}</span> {t.jobs.results} ·{" "}
-            {s.sorts[sort]}
+            <span className="text-foreground font-mono font-medium">{total.toLocaleString()}</span> {t.jobs.results}
+            {filters.q && (
+              <>
+                {" "}
+                <span dir="auto">{fillQ(ss.resultsFor, filters.q)}</span>
+              </>
+            )}{" "}
+            · {s.sorts[sort]}
           </p>
         </header>
+
+        <SearchBox s={ss.jobs} suggestions={suggestions} testId="jobs-search" />
 
         <div className="flex flex-wrap items-center gap-2">
           <FilterSheet label={t.ui.filters} count={nFilters}>
@@ -297,18 +349,37 @@ export default async function JobsPage({
         {top.length > 0 && <h2 className="kicker pt-2">{s.sorts[sort]}</h2>}
 
         {rows.length === 0 ? (
-          <div className="bg-card text-muted-foreground flex flex-col items-center gap-3 rounded-lg border p-8 text-center">
-            <p>{t.jobs.noResults}</p>
-            {nFilters > 0 && (
-              <Button asChild variant="outline">
-                <Link href={clearHref}>{s.clearAll}</Link>
-              </Button>
+          <div
+            className="bg-card text-muted-foreground flex flex-col items-center gap-3 rounded-lg border p-8 text-center"
+            data-testid="jobs-empty"
+          >
+            {filters.q ? (
+              <>
+                <p className="text-foreground text-lg font-bold break-words" dir="auto">
+                  {fillQ(ss.noResultsFor, filters.q)}
+                </p>
+                <p className="max-w-md text-sm">{ss.noResultsHint}</p>
+              </>
+            ) : (
+              <p>{t.jobs.noResults}</p>
             )}
+            <div className="flex flex-wrap justify-center gap-2">
+              {filters.q && (
+                <Button asChild variant="outline">
+                  <Link href={clearSearchHref}>{ss.clearSearch}</Link>
+                </Button>
+              )}
+              {nFilters > (filters.q ? 1 : 0) && (
+                <Button asChild variant="outline">
+                  <Link href={clearHref}>{ss.clearFilters}</Link>
+                </Button>
+              )}
+            </div>
           </div>
         ) : (
           <JobList>
             {rows.map(({ job, score }) => (
-              <JobCard key={job.id} job={job} t={t} score={score} />
+              <JobCard key={job.id} job={job} t={t} score={score} highlight={marks} />
             ))}
           </JobList>
         )}

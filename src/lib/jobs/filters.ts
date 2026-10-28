@@ -1,8 +1,10 @@
 import type { EmploymentType, JobLevel, Prisma, Seniority, WorkMode } from "@prisma/client";
 import { ROLE_CATEGORIES, SENIORITIES, WORK_MODES } from "../taxonomy";
+import { MAX_QUERY_LENGTH, parseSearchQuery } from "../search/query";
 import { EMPLOYMENT_TYPES, JOB_FUNCTIONS, JOB_LEVELS } from "./classify";
+import { type CompanyMatches, searchWhere } from "./search";
 
-export const SORTS = ["match", "newest", "updated", "company", "title"] as const;
+export const SORTS = ["relevance", "match", "newest", "updated", "company", "title"] as const;
 export type SortKey = (typeof SORTS)[number];
 
 export const POSTED_WINDOWS = { "1d": 1, "7d": 7, "30d": 30 } as const;
@@ -66,7 +68,7 @@ export function parseFilters(params: Params): JobFilters {
   // `location` is the pre-v2 single city param; fold it into `city`.
   const city = [...new Set([...all(params.city), ...all(params.location)].map((c) => c.slice(0, 60)))].slice(0, 20);
   return {
-    q: text(params.q)?.slice(0, 100),
+    q: text(params.q)?.slice(0, MAX_QUERY_LENGTH),
     role: role && (ROLE_CATEGORIES as readonly string[]).includes(role) ? role : undefined,
     seniority: seniority && SENIORITIES.includes(seniority) ? seniority : undefined,
     fn: pick(params.fn, JOB_FUNCTIONS),
@@ -85,10 +87,21 @@ export function parseFilters(params: Params): JobFilters {
   };
 }
 
-/** The sort actually applied: an explicit choice, else best match for users with a profile, else newest. */
+/** Whether the filters carry a usable free-text query (not just blanks / one-letter noise). */
+export function hasSearch(f: Pick<JobFilters, "q">): boolean {
+  return parseSearchQuery(f.q).length > 0;
+}
+
+/**
+ * The sort actually applied: an explicit choice, else relevance while searching, else best match for
+ * users with a profile, else newest.
+ */
 export function effectiveSort(f: JobFilters, hasProfile: boolean): SortKey {
-  if (f.sort === "match" && !hasProfile) return "newest";
-  return f.sort ?? (hasProfile ? "match" : "newest");
+  const searching = hasSearch(f);
+  const fallback: SortKey = searching ? "relevance" : hasProfile ? "match" : "newest";
+  if (f.sort === "match" && !hasProfile) return searching ? "relevance" : "newest";
+  if (f.sort === "relevance" && !searching) return hasProfile ? "match" : "newest";
+  return f.sort ?? fallback;
 }
 
 /** Whether results must be scored in memory (match sort / match threshold / company fit). */
@@ -100,6 +113,8 @@ export interface WhereContext {
   now?: Date;
   /** Signed-in user, required for the "hide saved/applied" filters. */
   userId?: string;
+  /** Company ids per search term, pre-resolved so the text search stays index-friendly. */
+  companyMatches?: CompanyMatches;
 }
 
 export function filtersToWhere(f: JobFilters, ctx: WhereContext = {}): Prisma.JobWhereInput {
@@ -124,15 +139,7 @@ export function filtersToWhere(f: JobFilters, ctx: WhereContext = {}): Prisma.Jo
       none: hideAll ? { userId: ctx.userId } : { userId: ctx.userId, status: { in: [...APPLIED_STATUSES] } },
     };
   }
-  if (f.q) {
-    and.push({
-      OR: [
-        { title: { contains: f.q, mode: "insensitive" } },
-        { description: { contains: f.q, mode: "insensitive" } },
-        { company: { name: { contains: f.q, mode: "insensitive" } } },
-      ],
-    });
-  }
+  if (f.q) and.push(...searchWhere(parseSearchQuery(f.q), ctx.companyMatches));
   if (and.length) where.AND = and;
   return where;
 }
@@ -146,6 +153,7 @@ export function sortToOrderBy(sort: SortKey): Prisma.JobOrderByWithRelationInput
       return [{ company: { name: "asc" } }, { postedAt: "desc" }, { id: "asc" }];
     case "title":
       return [{ title: "asc" }, { id: "asc" }];
+    case "relevance": // ranked in memory; the DB order is only the tiebreak
     case "match":
     case "newest":
     default:
@@ -154,10 +162,12 @@ export function sortToOrderBy(sort: SortKey): Prisma.JobOrderByWithRelationInput
 }
 
 /** In-memory ordering used on the scored path, mirroring `sortToOrderBy`. */
-export function compareJobs<T extends { score: number; job: SortableJob }>(sort: SortKey) {
+export function compareJobs<T extends { score: number; rank?: number; job: SortableJob }>(sort: SortKey) {
   const time = (d: Date | null | undefined) => d?.getTime() ?? 0;
   const byPosted = (a: T, b: T) => time(b.job.postedAt) - time(a.job.postedAt) || a.job.id.localeCompare(b.job.id);
   switch (sort) {
+    case "relevance":
+      return (a: T, b: T) => (b.rank ?? 0) - (a.rank ?? 0) || b.score - a.score || byPosted(a, b);
     case "match":
       return (a: T, b: T) => b.score - a.score || byPosted(a, b);
     case "updated":
