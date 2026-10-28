@@ -25,9 +25,34 @@ export function isBlockedUrl(url: string): boolean {
   }
 }
 
+export type FetchFailure =
+  /** Never fetched: third-party/login host or path. */
+  | "blocked"
+  /** robots.txt disallows our user agent. */
+  | "robots"
+  /** 401/403/429/503 or an anti-bot challenge page — respected, never circumvented. */
+  | "bot_wall"
+  /** 404 / 410. */
+  | "not_found"
+  /** Any other non-2xx status. */
+  | "http"
+  /** DNS / TLS / connection reset / timeout (after one retry). */
+  | "error"
+  | "not_html";
+
 export type FetchResult =
-  | { ok: true; url: string; title: string; text: string; links: { href: string; text: string }[] }
-  | { ok: false; url: string; reason: "blocked" | "robots" | "http" | "error" | "not_html" };
+  | {
+      ok: true;
+      url: string;
+      title: string;
+      text: string;
+      links: { href: string; text: string }[];
+      /** URLs found in the raw HTML outside <a> tags (JSON data attributes, embedded router data). */
+      rawLinks: string[];
+      /** The HTML had almost no readable text (client-rendered app shell). */
+      jsShell: boolean;
+    }
+  | { ok: false; url: string; reason: FetchFailure; status?: number };
 
 export interface FetchDeps {
   fetchImpl?: typeof fetch;
@@ -53,34 +78,153 @@ async function robotsFor(origin: string, deps: FetchDeps): Promise<string | null
   return body;
 }
 
-export async function fetchPublicPage(url: string, deps: FetchDeps = {}): Promise<FetchResult> {
+/** Anti-bot interstitials (Cloudflare, Akamai, PerimeterX, Imperva…). We stop there; never bypass. */
+const CHALLENGE_RE =
+  /<title>\s*(just a moment|attention required|access denied|pardon our interruption|are you a robot)|cf-chl-|challenge-platform|_incapsula_resource|px-captcha|captcha-delivery\.com/i;
+
+/** robots.txt body from the shared cache (null = none / unreachable / not fetched yet). */
+export function cachedRobots(origin: string, deps: FetchDeps): string | null {
+  return deps.robotsCache?.get(origin) ?? null;
+}
+
+/** robots.txt `Sitemap:` lines. */
+export function robotsSitemaps(robots: string | null): string[] {
+  if (!robots) return [];
+  return [...robots.matchAll(/^\s*sitemap\s*:\s*(\S+)/gim)].map((m) => m[1]).slice(0, 5);
+}
+
+async function getOnce(url: string, accept: string, deps: FetchDeps): Promise<Response> {
+  return (deps.fetchImpl ?? fetch)(url, {
+    headers: { "user-agent": USER_AGENT, accept, "accept-language": "en,he;q=0.8" },
+    redirect: "follow",
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+}
+
+/**
+ * Robots-checked GET with one retry on network errors/timeouts (a slow 400 KB careers page used to
+ * fail once and the company was marked "no info"). Returns the raw body for HTML/XML/text responses.
+ */
+export async function politeGet(
+  url: string,
+  deps: FetchDeps,
+  accept = "text/html,application/xhtml+xml",
+): Promise<
+  { ok: true; url: string; body: string } | { ok: false; url: string; reason: FetchFailure; status?: number }
+> {
   if (isBlockedUrl(url)) return { ok: false, url, reason: "blocked" };
   const u = new URL(url);
   const robots = await robotsFor(u.origin, deps);
   if (!isAllowedByRobots(robots, u.pathname + u.search)) return { ok: false, url, reason: "robots" };
-  await paceHost(u.host, deps.minIntervalMs ?? 1_000);
-  try {
-    const res = await (deps.fetchImpl ?? fetch)(url, {
-      headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml" },
-      redirect: "follow",
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    const finalUrl = res.url || url;
-    if (isBlockedUrl(finalUrl)) return { ok: false, url, reason: "blocked" };
-    if (!res.ok) return { ok: false, url, reason: "http" };
-    const type = res.headers.get("content-type") ?? "";
-    if (type && !/html|xml|text\/plain/i.test(type)) return { ok: false, url, reason: "not_html" };
-    const html = (await res.text()).slice(0, MAX_BYTES);
-    return {
-      ok: true,
-      url: finalUrl,
-      title: pageTitle(html),
-      text: htmlToText(html),
-      links: pageLinks(html, finalUrl),
-    };
-  } catch {
-    return { ok: false, url, reason: "error" };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await paceHost(u.host, deps.minIntervalMs ?? 1_000);
+    try {
+      const res = await getOnce(url, accept, deps);
+      const finalUrl = res.url || url;
+      if (isBlockedUrl(finalUrl)) return { ok: false, url, reason: "blocked" };
+      if (!res.ok) {
+        const s = res.status;
+        const reason: FetchFailure =
+          s === 401 || s === 403 || s === 429 || s === 503 ? "bot_wall" : s === 404 || s === 410 ? "not_found" : "http";
+        return { ok: false, url, reason, status: s };
+      }
+      const type = res.headers.get("content-type") ?? "";
+      if (type && !/html|xml|text\/plain/i.test(type)) return { ok: false, url, reason: "not_html" };
+      const body = (await res.text()).slice(0, MAX_BYTES);
+      if (CHALLENGE_RE.test(body.slice(0, 20_000)) && htmlToText(body).length < 1_500) {
+        return { ok: false, url, reason: "bot_wall", status: res.status };
+      }
+      return { ok: true, url: finalUrl, body };
+    } catch {
+      if (attempt === 1) return { ok: false, url, reason: "error" };
+    }
   }
+  return { ok: false, url, reason: "error" };
+}
+
+/** Pages with less readable text than this are treated as client-rendered shells. */
+export const JS_SHELL_CHARS = 300;
+
+export async function fetchPublicPage(url: string, deps: FetchDeps = {}): Promise<FetchResult> {
+  const got = await politeGet(url, deps);
+  if (!got.ok) return got;
+  const html = got.body;
+  let text = htmlToText(html);
+  const jsShell = text.length < JS_SHELL_CHARS;
+  if (text.length < 1_500) {
+    // Client-rendered pages often ship their content as JSON (Next.js __NEXT_DATA__, ld+json).
+    const embedded = embeddedText(html);
+    if (embedded.length > text.length) text = `${text}\n${embedded}`.trim();
+  }
+  return {
+    ok: true,
+    url: got.url,
+    title: pageTitle(html),
+    text,
+    links: pageLinks(html, got.url),
+    rawLinks: rawLinks(html, got.url),
+    jsShell: jsShell && text.length < JS_SHELL_CHARS,
+  };
+}
+
+/** Human-readable strings inside embedded JSON (__NEXT_DATA__, application/ld+json, Nuxt state). */
+export function embeddedText(html: string, maxChars = 60_000): string {
+  const out: string[] = [];
+  let total = 0;
+  const walk = (v: unknown, depth: number) => {
+    if (total >= maxChars || depth > 40) return;
+    if (typeof v === "string") {
+      const t = htmlToText(v).replace(/\s+/g, " ").trim();
+      if (t.length >= 25 && /\s/.test(t) && !/^(https?:|\/|[{[])/.test(t)) {
+        out.push(t);
+        total += t.length;
+      }
+    } else if (Array.isArray(v)) for (const x of v) walk(x, depth + 1);
+    else if (v && typeof v === "object") for (const x of Object.values(v)) walk(x, depth + 1);
+  };
+  const re =
+    /<script\b[^>]*(?:id=["']__NEXT_DATA__["']|type=["']application\/(?:ld\+)?json["'])[^>]*>([\s\S]*?)<\/script>/gi;
+  for (let m; (m = re.exec(html)) && total < maxChars;) {
+    try {
+      walk(JSON.parse(m[1]), 0);
+    } catch {
+      /* not JSON */
+    }
+  }
+  return [...new Set(out)].join("\n").slice(0, maxChars);
+}
+
+/**
+ * URLs that appear in the raw HTML outside <a> tags — menus rendered from JSON data attributes
+ * (`data-model="{&quot;href&quot;:&quot;\/careers\/journey&quot;}"`) or router payloads. Same origin only;
+ * absolute URLs and root-relative paths that look like pages.
+ */
+export function rawLinks(html: string, base: string, max = 400): string[] {
+  let origin: string;
+  try {
+    origin = new URL(base).origin;
+  } catch {
+    return [];
+  }
+  const src = decodeEntities(html.slice(0, MAX_BYTES))
+    .replace(/\\u002f/gi, "/")
+    .replace(/\\\//g, "/");
+  const out = new Set<string>();
+  const re = /(?:["'(]|\s)((?:https?:\/\/[a-z0-9.-]+)?\/[a-z0-9\u0590-\u05ff%][^"'()\s<>{}\\]{2,200})/gi;
+  for (let m; (m = re.exec(src)) && out.size < max;) {
+    const raw = m[1];
+    if (/\.(png|jpe?g|gif|svg|webp|ico|css|js|mjs|json|woff2?|ttf|mp4|webm|pdf|zip|xml)(\?|$)/i.test(raw)) continue;
+    if (raw.startsWith("//")) continue;
+    try {
+      const u = new URL(raw, origin);
+      if (u.origin !== origin && !raw.startsWith("http")) continue;
+      u.hash = "";
+      out.add(u.toString());
+    } catch {
+      /* ignore */
+    }
+  }
+  return [...out];
 }
 
 const ENTITIES: Record<string, string> = {

@@ -940,10 +940,17 @@ model HiringProcess {
   notesEn           String?
   /// [{ url, title }] pages that support at least one stage.
   sources           Json          @default("[]")
-  /// [{ url, title, result: "stages" | "no_info" | "blocked" | "error" }] every page that was looked at.
+  /// [{ url, title, result: "stages" | "no_info" | "blocked" | "bot_wall" | "js_rendered" | "error" }] every page that was looked at.
   checked           Json          @default("[]")
   /// "gemini-…" | "heuristic" | "user"
   method            String?
+  /// Why status is "none": no_website | robots | bot_wall | js_rendered | unreachable | no_process_text |
+  /// no_pages | llm_none | grounding_dropped | below_threshold (docs/hiring-process.md).
+  failureReason     String?
+  /// Pipeline version that produced the row; older versions are re-checked by the cron.
+  pipelineVersion   Int           @default(1)
+  /// Discovery/extraction counters (fetches, bot walls, sitemap URLs, job sources, proposed stages).
+  diagnostics       Json?
   checkedAt         DateTime      @default(now())
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt

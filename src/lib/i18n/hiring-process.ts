@@ -2,7 +2,8 @@ import type { Locale } from "./dictionaries";
 
 const he = {
   title: "תהליך הגיוס",
-  leadOfficial: "השלבים מבוססים על עמודים רשמיים ופומביים של החברה. כל שלב מקושר למקור שלו.",
+  leadOfficial: "השלבים מבוססים על עמודים רשמיים ופומביים של החברה או על המשרות שלה. כל שלב מקושר למקור שלו.",
+  officialBadge: "רשמי",
   leadJob: "השלבים מופיעים בתיאור המשרה עצמו.",
   empty: "לא נמצא מידע על תהליך הגיוס בחברה זו",
   emptyNotChecked: "עוד לא בדקנו מקורות רשמיים לחברה הזו. הבדיקה רצה אוטומטית פעם ביום.",
@@ -12,7 +13,16 @@ const he = {
     stages: "תואר תהליך",
     no_info: "אין מידע על התהליך",
     blocked: "חסום לסריקה (robots.txt)",
+    bot_wall: "האתר חוסם גישה אוטומטית",
+    js_rendered: "התוכן נטען רק בדפדפן",
     error: "לא נגיש",
+  },
+  community: {
+    title: "מדיווחי קהילה",
+    badge: "מקור חיצוני · לא מאומת",
+    lead: "חוויות ראיון שמועמדים פרסמו באתרים חיצוניים. אנחנו לא קוראים, שומרים או מסכמים אותן — הקישורים פותחים את החיפוש באתר עצמו.",
+    hebrew: "בעברית",
+    search: "חיפוש",
   },
   sources: "מקורות",
   quote: "ציטוט מהמקור",
@@ -67,7 +77,8 @@ type HiringStrings = typeof he;
 
 const en: HiringStrings = {
   title: "Hiring process",
-  leadOfficial: "Stages are based on the company's own public pages. Each stage links to its source.",
+  leadOfficial: "Stages are based on the company's own public pages or job postings. Each stage links to its source.",
+  officialBadge: "Official",
   leadJob: "These stages are described in the job posting itself.",
   empty: "No information found about this company's hiring process",
   emptyNotChecked: "We haven't checked this company's official pages yet. The check runs automatically once a day.",
@@ -77,7 +88,16 @@ const en: HiringStrings = {
     stages: "Describes a process",
     no_info: "No process info",
     blocked: "Blocked by robots.txt",
+    bot_wall: "Site blocks automated access",
+    js_rendered: "Content only loads in a browser",
     error: "Unreachable",
+  },
+  community: {
+    title: "From community reports",
+    badge: "External · not verified",
+    lead: "Interview experiences candidates posted on external sites. We don't read, store or summarize them — the links open the site's own search.",
+    hebrew: "Hebrew",
+    search: "Search",
   },
   sources: "Sources",
   quote: "Quote from the source",
