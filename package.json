@@ -26,6 +26,7 @@
     "@ai-sdk/google": "^3.0.139",
     "@ai-sdk/react": "^3.0.320",
     "@prisma/client": "^6.19.3",
+    "@vercel/blob": "^2.8.2",
     "ai": "^6.0.317",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
