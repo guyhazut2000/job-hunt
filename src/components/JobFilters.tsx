@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { fill, type JobSearchStrings } from "@/lib/i18n/job-search";
 import { EMPLOYMENT_TYPES, JOB_FUNCTIONS, JOB_LEVELS } from "@/lib/jobs/classify";
@@ -12,6 +13,7 @@ import { ROLE_CATEGORIES, TECH_KEYWORDS, WORK_MODES } from "@/lib/taxonomy";
 import { Button } from "@/components/ui/button";
 import { CleanGetForm } from "./CleanGetForm";
 import { CompanyPicker, type CompanyOption } from "./CompanyPicker";
+import { FacetList, type FacetItem } from "./FacetList";
 
 const TECH_OPTIONS = [...new Set(Object.values(TECH_KEYWORDS))].sort();
 
@@ -111,6 +113,7 @@ export function JobFilterForm({
 
       <Section title={s.sections.fn} count={filters.fn.length + (filters.role ? 1 : 0)} open>
         <CheckList
+          s={s}
           name="fn"
           items={keep(JOB_FUNCTIONS, facets.fn, filters.fn).map((v) => [v, s.functions[v], facets.fn[v] ?? 0])}
           selected={filters.fn}
@@ -132,6 +135,7 @@ export function JobFilterForm({
 
       <Section title={s.sections.level} count={filters.level.length} open>
         <CheckList
+          s={s}
           name="level"
           items={keep(JOB_LEVELS, facets.level, filters.level).map((v) => [v, s.levels[v], facets.level[v] ?? 0])}
           selected={filters.level}
@@ -140,6 +144,7 @@ export function JobFilterForm({
 
       <Section title={s.sections.city} count={filters.city.length} open>
         <CheckList
+          s={s}
           name="city"
           items={[
             ...facets.cities.map(([c, n]) => [c, c, n] as [string, string, number]),
@@ -153,6 +158,7 @@ export function JobFilterForm({
 
       <Section title={s.sections.workMode} count={filters.workMode.length} open>
         <CheckList
+          s={s}
           name="workMode"
           items={WORK_MODES.map((w) => [w, t.workMode[w], facets.workMode[w] ?? 0])}
           selected={filters.workMode}
@@ -166,11 +172,14 @@ export function JobFilterForm({
           selected={filters.company}
           placeholder={s.companySearch}
           empty={s.companyNone}
+          moreLabel={s.showMore}
+          lessLabel={s.showLess}
         />
       </Section>
 
       <Section title={s.sections.type} count={filters.type.length}>
         <CheckList
+          s={s}
           name="type"
           items={keep(EMPLOYMENT_TYPES, facets.type, filters.type).map((v) => [v, s.types[v], facets.type[v] ?? 0])}
           selected={filters.type}
@@ -194,7 +203,7 @@ export function JobFilterForm({
       <p className="text-muted-foreground pt-2 text-xs">{s.allOpenRoles}</p>
 
       {/* Sticky so the action stays reachable while the sheet scrolls. */}
-      <div className="bg-popover lg:bg-background sticky bottom-0 z-10 -mx-1 mt-2 flex gap-2 border-t px-1 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+      <div className="filter-footer bg-popover lg:bg-background sticky bottom-0 z-10 -mx-1 mt-2 flex gap-2 border-t px-1 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
         <Button type="submit" className="flex-1">
           {idPrefix === "m" ? t.ui.showResults : s.apply}
         </Button>
@@ -219,8 +228,8 @@ function Section({
 }) {
   return (
     <details className="group border-rule/60 border-t py-1" open={open || count > 0}>
-      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold select-none [&::-webkit-details-marker]:hidden">
-        <span>
+      <summary className="hover:text-primary -mx-1 flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-md px-1 text-sm font-semibold select-none [&::-webkit-details-marker]:hidden">
+        <span className="inline-flex items-center">
           {title}
           {count > 0 && (
             <span className="bg-primary text-primary-foreground ms-2 inline-grid size-5 place-items-center rounded-full font-mono text-[0.7rem]">
@@ -228,11 +237,12 @@ function Section({
             </span>
           )}
         </span>
-        <span aria-hidden className="text-muted-foreground transition-transform group-open:rotate-180">
-          ▾
-        </span>
+        <ChevronDown
+          aria-hidden
+          className="text-muted-foreground size-4 shrink-0 transition-transform group-open:rotate-180"
+        />
       </summary>
-      <div className="pt-1 pb-3">{children}</div>
+      <div className="pt-0.5 pb-3">{children}</div>
     </details>
   );
 }
@@ -247,35 +257,27 @@ function Check({ name, value, checked, label }: { name: string; value: string; c
 }
 
 function CheckList({
+  s,
   name,
   items,
   selected,
-  dirAuto,
 }: {
+  s: JobSearchStrings;
   name: string;
-  items: [value: string, label: string, count: number][];
+  items: FacetItem[];
   selected: readonly string[];
-  dirAuto?: boolean;
 }) {
   return (
-    <ul className="flex flex-col" role="list">
-      {items.map(([v, l, n]) => (
-        <li key={v}>
-          <label className="hover:bg-muted -mx-2 flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-2 text-sm">
-            <input
-              type="checkbox"
-              name={name}
-              value={v}
-              defaultChecked={selected.includes(v)}
-              className="accent-primary size-4"
-            />
-            <span className="flex-1" dir={dirAuto ? "auto" : undefined}>
-              {l}
-            </span>
-            <span className="text-muted-foreground font-mono text-xs">{n}</span>
-          </label>
-        </li>
-      ))}
-    </ul>
+    <FacetList
+      name={name}
+      items={items}
+      selected={selected}
+      labels={{
+        showAll: fill(s.showAll, items.length),
+        showLess: s.showLess,
+        search: fill(s.listSearch, items.length),
+        none: s.listNone,
+      }}
+    />
   );
 }

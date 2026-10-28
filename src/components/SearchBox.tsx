@@ -267,7 +267,7 @@ export function SearchBox({
         role="listbox"
         aria-label={s.label}
         hidden={!showList}
-        className="bg-popover text-popover-foreground absolute inset-x-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-md border p-1 shadow-lg"
+        className="bg-popover text-popover-foreground scroll-thin absolute inset-x-0 top-full z-40 mt-1 max-h-80 overflow-y-auto overscroll-contain rounded-md border p-1 shadow-lg"
       >
         {matches.map((sg, i) => {
           const Icon = sg.kind === "company" ? Building2 : Sparkles;

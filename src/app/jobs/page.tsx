@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { auth } from "@/auth";
 import { FilterSheet } from "@/components/FilterSheet";
+import { ScrollFade } from "@/components/ScrollFade";
 import { JobCard, JobList } from "@/components/JobCard";
 import { JobFilterForm, type Facets } from "@/components/JobFilters";
 import { SortMenu } from "@/components/SortMenu";
@@ -206,9 +207,20 @@ export default async function JobsPage({
   return (
     <div className="grid gap-8 lg:grid-cols-[17rem_minmax(0,1fr)]">
       <aside className="hidden lg:block">
-        <div className="sticky top-24 max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain pe-1">
-          <h2 className="kicker mb-4">{t.ui.filters}</h2>
-          <JobFilterForm {...formProps} idPrefix="d" />
+        {/* Sticky below the site header; only the filter list scrolls (thin scrollbar + edge fades),
+            and only when it's taller than the viewport. */}
+        <div className="sticky top-[calc(var(--header-h)+1.5rem)] flex max-h-[calc(100dvh-var(--header-h)-2.5rem)] flex-col">
+          <h2 className="kicker mb-2 flex items-center gap-2">
+            {t.ui.filters}
+            {nFilters > 0 && (
+              <span className="bg-primary text-primary-foreground inline-grid size-5 place-items-center rounded-full font-mono text-[0.7rem] tracking-normal">
+                {nFilters}
+              </span>
+            )}
+          </h2>
+          <ScrollFade className="-me-4 pe-1" bottomFade={false} data-filter-scroll>
+            <JobFilterForm {...formProps} idPrefix="d" />
+          </ScrollFade>
         </div>
       </aside>
       <section className="flex min-w-0 flex-col gap-5" aria-labelledby="jobs-title">
@@ -305,7 +317,7 @@ export default async function JobsPage({
                 {s.fitCompaniesMore}
               </Link>
             </div>
-            <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="list">
+            <ul className="scroll-chips -mx-1 flex gap-2 px-1 pb-1" role="list">
               {fitStrip.map((f) => (
                 <li key={f.companyId} className="shrink-0">
                   <Link

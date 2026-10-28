@@ -90,6 +90,11 @@ const en = {
   fitCompaniesMore: "Show only these",
   fitRoles: "{n} fitting roles",
   allOpenRoles: "counts are for all open roles",
+  showAll: "Show all {n}",
+  showMore: "Show {n} more",
+  showLess: "Show less",
+  listSearch: "Search {n} options…",
+  listNone: "No matches",
 };
 
 export type JobSearchStrings = typeof en;
@@ -177,6 +182,11 @@ const he: JobSearchStrings = {
   fitCompaniesMore: "הצג רק אותן",
   fitRoles: "{n} משרות מתאימות",
   allOpenRoles: "המספרים מתייחסים לכל המשרות הפתוחות",
+  showAll: "הצג את כל ה-{n}",
+  showMore: "הצג עוד {n}",
+  showLess: "הצג פחות",
+  listSearch: "חיפוש מתוך {n} אפשרויות…",
+  listNone: "אין התאמות",
 };
 
 const strings: Record<Locale, JobSearchStrings> = { en, he };
