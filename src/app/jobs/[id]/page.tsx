@@ -3,7 +3,7 @@ import { GapPlan } from "@/components/learning/GapPlan";
 import Link from "next/link";
 import type { AtsProvider } from "@prisma/client";
 import { notFound } from "next/navigation";
-import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
+import { ArrowRight, ExternalLink, MapPin, Sparkles } from "lucide-react";
 import { auth } from "@/auth";
 import { BackToTop } from "@/components/BackToTop";
 import { CollapsibleText } from "@/components/CollapsibleText";
@@ -124,6 +124,49 @@ export default async function JobPage({
     </Button>
   );
 
+  const matchPanel = match ? (
+    <section className="bg-card flex flex-col gap-4 rounded-lg border p-4" aria-label={t.jobs.match}>
+      <div className="flex items-center gap-4">
+        <MatchMeter score={match.score} label={t.jobs.match} size="lg" />
+      </div>
+      <MatchReasons t={t.match} reasons={match.reasons} />
+      {match.matchedSkills.length > 0 && (
+        <div>
+          <h3 className="mb-1.5 text-sm font-bold">{t.jobs.matchedSkills}</h3>
+          <ul className="flex flex-wrap gap-1" dir="ltr">
+            {match.matchedSkills.map((s) => (
+              <li key={s} className="chip bg-fit-soft text-accent-foreground">
+                ✓ {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {match.missingSkills.length > 0 && (
+        <div>
+          <h3 className="mb-1.5 text-sm font-bold">{t.jobs.missingSkills}</h3>
+          <ul className="flex flex-wrap gap-1" dir="ltr">
+            {match.missingSkills.map((s) => (
+              <li key={s} className="chip bg-caution-soft text-caution">
+                {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  ) : (
+    <p className="bg-card text-muted-foreground rounded-lg border p-4 text-sm">
+      {userId ? (
+        <Link href="/profile" className="text-foreground underline underline-offset-4">
+          {t.pv2.matchProfileHint}
+        </Link>
+      ) : (
+        t.jobs.matchLoginHint
+      )}
+    </p>
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <Link
@@ -178,6 +221,12 @@ export default async function JobPage({
             </div>
           </header>
 
+          {/* Mobile: match + AI suggestions right after the header instead of below the whole description. */}
+          <div className="flex flex-col gap-4 lg:hidden" data-testid="job-insights-mobile">
+            {userId && <CvTips jobId={job.id} label={t.jobs.generate} title={t.jobs.cvTips} id="cv-tips-m" />}
+            {matchPanel}
+          </div>
+
           <SalarySection job={job} company={job.company} profile={profile} loggedIn={!!userId} locale={locale} />
 
           {match && profile && userId && <GapPlan job={job} profile={profile} userId={userId} locale={locale} />}
@@ -215,8 +264,13 @@ export default async function JobPage({
           </div>
         </article>
 
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
-          <div className="bg-card hidden flex-col gap-2 rounded-lg border p-4 lg:flex">
+        {/* Desktop: the sidebar sticks below the header and scrolls on its own when taller than the viewport,
+            so the AI suggestions never wait for the end of the page. Mobile gets its own copy under the header. */}
+        <aside
+          data-testid="job-sidebar"
+          className="scroll-thin sticky top-[calc(var(--header-h)+1rem)] -mx-1 hidden max-h-[calc(100dvh-var(--header-h)-2rem)] flex-col gap-4 self-start overflow-y-auto px-1 pb-1 lg:flex"
+        >
+          <div className="bg-card flex flex-col gap-2 rounded-lg border p-4">
             {applyButton("page")}
             {linkedinSlot("page")}
             <LinkedinCompanyButton company={job.company} jobId={job.id} s={li} />
@@ -225,55 +279,21 @@ export default async function JobPage({
             )}
           </div>
 
-          {match ? (
-            <section className="bg-card flex flex-col gap-4 rounded-lg border p-4" aria-label={t.jobs.match}>
-              <div className="flex items-center gap-4">
-                <MatchMeter score={match.score} label={t.jobs.match} size="lg" />
-              </div>
-              <MatchReasons t={t.match} reasons={match.reasons} />
-              {match.matchedSkills.length > 0 && (
-                <div>
-                  <h3 className="mb-1.5 text-sm font-bold">{t.jobs.matchedSkills}</h3>
-                  <ul className="flex flex-wrap gap-1" dir="ltr">
-                    {match.matchedSkills.map((s) => (
-                      <li key={s} className="chip bg-fit-soft text-accent-foreground">
-                        ✓ {s}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {match.missingSkills.length > 0 && (
-                <div>
-                  <h3 className="mb-1.5 text-sm font-bold">{t.jobs.missingSkills}</h3>
-                  <ul className="flex flex-wrap gap-1" dir="ltr">
-                    {match.missingSkills.map((s) => (
-                      <li key={s} className="chip bg-caution-soft text-caution">
-                        {s}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </section>
-          ) : (
-            <p className="bg-card text-muted-foreground rounded-lg border p-4 text-sm">
-              {userId ? (
-                <Link href="/profile" className="text-foreground underline underline-offset-4">
-                  {t.pv2.matchProfileHint}
-                </Link>
-              ) : (
-                t.jobs.matchLoginHint
-              )}
-            </p>
-          )}
-          {userId && <CvTips jobId={job.id} label={t.jobs.generate} title={t.jobs.cvTips} />}
+          {userId && <CvTips jobId={job.id} label={t.jobs.generate} title={t.jobs.cvTips} id="cv-tips" />}
+          {matchPanel}
         </aside>
       </div>
 
       {/* mobile action bar — sits above the bottom nav */}
       <div className="bg-background/95 fixed inset-x-0 bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] z-30 flex gap-2 border-t px-4 py-3 backdrop-blur-md md:bottom-0 lg:hidden">
         <div className="flex-1">{applyButton("bar")}</div>
+        {userId && (
+          <Button asChild variant="outline" size="icon-lg">
+            <a href="#cv-tips-m" aria-label={t.jobs.cvTips} title={t.jobs.cvTips}>
+              <Sparkles aria-hidden />
+            </a>
+          </Button>
+        )}
         {userId && (
           <SaveJobButton jobId={job.id} saved={!!application} label={t.jobs.save} savedLabel={t.jobs.saved} compact />
         )}
