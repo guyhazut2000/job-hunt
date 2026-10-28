@@ -62,16 +62,51 @@ match scores recalculate. The job panel then shows "before marking X as learned:
 Demand per node is one grouped `unnest("techStack")` query on active jobs, cached for 1h (`unstable_cache`, tag
 `learning-demand`). `/learn/[skill]` loads at most 400 newest active jobs listing the skill for impact.
 
-## v2: AI (hooks only)
+## Learning hub (`/learn/me` + stage workspace)
 
-`src/lib/learning/ai.ts` has the interfaces and TODOs, plus the deterministic fallback `heuristicStudyPlan`:
+### Dashboard — `/learn/me` (signed in; linked from the header "More" menu, the mobile sheet, `/learn`, GapPlan)
 
-- personalised weekly plan (re-paced by the model, resources restricted to the node's links);
-- interview questions per stage, for self-check before "done";
-- CV bullet from the finished project + proof link (offered, never auto-saved).
+- **Stats**: hours this week vs a weekly goal (`LearningPrefs.weeklyGoalHours`, 1–60), total hours, skills done,
+  streak (consecutive active days, Israel time; yesterday keeps it alive), active days this week (Sun → today).
+  Activity = logged study sessions + stage/topic/practice/Q&A updates.
+- **Continue** banner → the most recently touched stage.
+- **Next best topic** + a queue of 3–4 more (`recommend()` in `src/lib/learning/recommend.ts`, pure and deterministic):
+  only skills whose prerequisites are known (plus anything in progress) are eligible. Score =
+  continuity (60 + 40 × completion) + job impact (0–40, jobs that rise × avg gain, normalised) +
+  foundation (a ready prerequisite gets half the impact of the locked skill it unlocks) + role track (15) +
+  unlocks (3 each, max 12) + market demand (0–10). Ties break by id. Each item lists its reasons.
+- **Active skills** with per-stage bars, **review queue** (weak Q&A cards that are due), **log a session**
+  (5–600 min + note, max 30 / 24h).
 
-All must go through `guardedLLM("study_plan", userId)` (cache + `AI_*` limits, see `docs/ai.md`) and the plan gate
-`LEARNING_AI_LIMITS` (FREE 3 / month, PRO unlimited), and fall back to heuristics when limited.
+### Progress model (additive migration `20261028030000_learning_hub`)
+
+| Table                 | What                                                                           |
+| --------------------- | ------------------------------------------------------------------------------ |
+| `StageProgress`       | per user × skill × stage: status, ticked roadmap topics, practice state (JSON) |
+| `StudySession`        | minutes + note, optional skill/stage                                           |
+| `LearningPrefs`       | weekly goal                                                                    |
+| `QuestionReview`      | per user × question: last rating, reps, `dueAt` (spaced repetition lite)       |
+| `StageContent`        | generated practice + Q&A per skill × stage × locale, shared by all users       |
+| `TutorThread/Message` | AI tutor history per user × stage                                              |
+
+Stage fraction = 1 when done, else 0.9 × ticked topics / topics. When all three stages are done the skill becomes
+DONE: it is added to the profile (BASIC) and match scores are revalidated, same as the manual "done" button.
+Un-marking a stage of a DONE skill moves it back to LEARNING. Reviews: knew → 1, 3, 7, 16, 35 days; partly →
+tomorrow; didn't know → due now.
+
+### Stage workspace — `/learn/[skill]/[stage]` (tabs synced to `?tab=practice|qa|tutor`)
+
+- **Practice**: 1–4 exercises (goal, steps, expected result, progressive hints, checklist, notes / solution /
+  GitHub link, mark done; "ask the tutor" pre-fills the chat).
+- **Q&A**: 3–8 questions; reveal the answer, then rate knew / partly / didn't. Weak ones come back on the dashboard.
+- **AI tutor**: streamed chat (AI SDK `useChat` → `POST /api/learn/tutor`), Socratic, stage- and level-aware,
+  Hebrew by default. History per user × stage; "new conversation" starts a fresh thread. Shows remaining daily AI
+  quota; offline mode (no key / `LLM_PROVIDER=mock`) replies with a stage question instead.
+
+Content source, in order: cached `StageContent` row → Gemini on first open (zod-validated, then stored and shared)
+→ curated static content (`src/lib/learning/content-static.json`, 16 skills × 3 stages × he/en; drafted with
+Gemini and reviewed) → generic content built from the roadmap topics. Regenerate: max 3 per stage row, and a
+plan-gated monthly action (`LEARNING_AI_LIMITS`, FREE 3 / month, PRO unlimited).
 
 ## Limits
 

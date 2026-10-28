@@ -106,6 +106,12 @@ model User {
   emailCandidates EmailCandidate[]
   skillProgress   SkillProgress[]
   savedPlaces     SavedPlace[]
+  documents       Document[]
+  stageProgress   StageProgress[]
+  studySessions   StudySession[]
+  questionReviews QuestionReview[]
+  tutorThreads    TutorThread[]
+  learningPrefs   LearningPrefs?
 }
 
 model Profile {
@@ -728,4 +734,161 @@ model GeocodeCache {
   label     String?
   provider  String
   createdAt DateTime @default(now())
+}
+
+/// Kinds of documents a user can keep for applications. CVs uploaded through the profile flow stay in
+/// `Resume` (they are parsed); `CV` here exists so the apply flow can treat both sources uniformly.
+enum DocumentType {
+  CV
+  TRANSCRIPT
+  DEGREE
+  CERTIFICATION
+  RECOMMENDATION_LETTER
+  PORTFOLIO
+  COVER_LETTER
+  OTHER
+}
+
+/// A user's application document (grades, degree, certification, ...). File bytes live in private
+/// object storage (Vercel Blob, private store) under `storageKey`; only metadata is in Postgres.
+/// Access goes through /api/documents/[id]/file (session + ownership + short-lived signed token).
+model Document {
+  id         String       @id @default(cuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       DocumentType
+  title      String
+  issuer     String?
+  issueDate  DateTime?
+  expiryDate DateTime?
+  /// "he" | "en" | null
+  language   String?
+  tags       String[]     @default([])
+  notes      String?
+  /// Learning-graph node ids this document proves (certifications); added to the profile on save.
+  skills     String[]     @default([])
+  fileName   String
+  /// Sniffed from magic bytes on upload, never trusted from the client.
+  mimeType   String
+  sizeBytes  Int
+  sha256     String
+  storageKey String       @unique
+  version    Int          @default(1)
+  /// When the current file version was uploaded (used for the upload rate limit).
+  uploadedAt DateTime     @default(now())
+  isDefault  Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@index([userId, type])
+}
+
+// ── Learning hub: per-stage progress, study log, spaced review, shared stage content, AI tutor ──
+
+/// Progress on one stage (fundamentals / intermediate / applied) of a skill.
+model StageProgress {
+  id         String         @id @default(cuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill      String
+  stage      String
+  status     LearningStatus @default(LEARNING)
+  /// Roadmap topics (node.stages[stage]) the user ticked.
+  topicsDone String[]       @default([])
+  /// { [exerciseId]: { done: boolean, notes?: string } } — validated in src/lib/learning/progress.ts.
+  practice   Json           @default("{}")
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([userId, skill, stage])
+  @@index([userId, updatedAt])
+}
+
+/// Optional study-time log entry.
+model StudySession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill     String
+  stage     String?
+  minutes   Int
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model LearningPrefs {
+  userId          String   @id
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weeklyGoalHours Int      @default(5)
+  updatedAt       DateTime @updatedAt
+}
+
+enum ReviewRating {
+  KNEW
+  PARTLY
+  MISSED
+}
+
+/// Spaced-repetition-lite state for one Q&A card. Question/answer are snapshotted so reviews
+/// survive content regeneration.
+model QuestionReview {
+  id         String       @id @default(cuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill      String
+  stage      String
+  questionId String
+  question   String
+  answer     String
+  rating     ReviewRating
+  reps       Int          @default(0)
+  dueAt      DateTime
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([userId, skill, stage, questionId])
+  @@index([userId, dueAt])
+}
+
+/// Practice + Q&A for one (skill, stage, locale), shared by all users. Generated once by the
+/// LLM (or absent → curated/static fallback is used without persisting).
+model StageContent {
+  id         String   @id @default(cuid())
+  skill      String
+  stage      String
+  locale     String
+  source     String
+  model      String?
+  content    Json
+  regenCount Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([skill, stage, locale])
+}
+
+model TutorThread {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill     String
+  stage     String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  messages  TutorMessage[]
+
+  @@index([userId, skill, stage, updatedAt])
+}
+
+model TutorMessage {
+  id        String      @id @default(cuid())
+  threadId  String
+  thread    TutorThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  createdAt DateTime    @default(now())
+
+  @@index([threadId, createdAt])
 }

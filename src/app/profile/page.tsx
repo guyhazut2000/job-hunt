@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FolderOpen } from "lucide-react";
 import Link from "next/link";
 import { CompletenessMeter } from "@/components/profile/CompletenessMeter";
 import { CvList } from "@/components/profile/CvList";
@@ -7,6 +7,7 @@ import { PreferencesForm } from "@/components/profile/PreferencesForm";
 import { ProfessionalForm } from "@/components/profile/ProfessionalForm";
 import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
+import { documentStrings } from "@/lib/i18n/documents";
 import { computeCompleteness } from "@/lib/profile/completeness";
 import { readPreferences, readProfessional } from "@/lib/profile/load";
 import { requireUser } from "@/lib/session";
@@ -19,7 +20,7 @@ type Tab = (typeof TABS)[number];
 
 export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const user = await requireUser();
-  const { t } = await getDictionary();
+  const { t, locale } = await getDictionary();
   const sp = await searchParams;
   const tab: Tab = (TABS as readonly string[]).includes(sp.tab ?? "") ? (sp.tab as Tab) : "pro";
   const [profile, resumes] = await Promise.all([
@@ -117,6 +118,16 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
                 <CvUploadForm t={p} showOptions={resumes.length > 0} />
                 <p className="text-muted-foreground text-xs">{p.storageNote}</p>
               </section>
+              <Link
+                href="/documents"
+                className="bg-card hover:bg-muted flex min-h-12 items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm font-semibold"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <FolderOpen className="size-4 shrink-0" aria-hidden />
+                  {documentStrings(locale).fromProfile}
+                </span>
+                <ArrowLeft className="size-4 shrink-0 ltr:rotate-180" aria-hidden />
+              </Link>
             </div>
           )}
         </div>

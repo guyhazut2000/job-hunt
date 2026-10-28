@@ -2,11 +2,13 @@
 
 ## What uses AI
 
-| Feature                      | Where                              | Code                                                | Fallback without AI                                      |
-| ---------------------------- | ---------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
-| CV tips for a job            | Job page → "CV tips"               | `src/lib/ai/cv-suggestions.ts` (feature `cv_tips`)  | Heuristic suggestions (missing skills, impact, headline) |
-| CV → structured profile      | Profile / onboarding CV upload     | `src/lib/profile/extract.ts` (feature `cv_extract`) | Heuristic extractor                                      |
-| Personalised outreach drafts | "People at the company" → AI draft | `src/lib/outreach/messages.ts` (feature `outreach`) | Rendered templates                                       |
+| Feature                      | Where                               | Code                                                       | Fallback without AI                                      |
+| ---------------------------- | ----------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------- |
+| CV tips for a job            | Job page → "CV tips"                | `src/lib/ai/cv-suggestions.ts` (feature `cv_tips`)         | Heuristic suggestions (missing skills, impact, headline) |
+| CV → structured profile      | Profile / onboarding CV upload      | `src/lib/profile/extract.ts` (feature `cv_extract`)        | Heuristic extractor                                      |
+| Personalised outreach drafts | "People at the company" → AI draft  | `src/lib/outreach/messages.ts` (feature `outreach`)        | Rendered templates                                       |
+| Stage practice + Q&A         | `/learn/[skill]/[stage]` first open | `src/lib/learning/hub.ts` (`learn_content`, `learn_regen`) | Curated static content (16 skills), then generic         |
+| AI tutor chat                | Stage workspace → "AI tutor" tab    | `src/lib/learning/tutor.ts` (`tutor_chat`)                 | Offline reply with a stage question                      |
 
 User-facing output is in the user's locale (Hebrew by default). All calls use structured output
 (zod schemas through the Vercel AI SDK `Output.object`) and are validated again before use; any
@@ -37,6 +39,21 @@ invalid or failed response falls back to the non-AI behaviour.
 
 When a limit is hit the feature shows its non-AI result plus a friendly note (Hebrew/English strings in
 `src/lib/i18n/ai.ts`), e.g. "שירות ה-AI עמוס כרגע. בינתיים מוצגות המלצות בסיסיות…".
+
+## Learning hub usage estimates
+
+| Call                       | Requests | Tokens (approx.)                                 | Notes                                                                                       |
+| -------------------------- | -------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Stage content (first open) | 1        | ~0.5k in, ~1–2k out (≤ 4.5k)                     | Once per skill × stage × locale for the **whole app** — stored in `StageContent` and shared |
+| Regenerate                 | 1        | same                                             | ≤ 3 per stage, FREE plan 3 / month                                                          |
+| Tutor turn                 | 1        | ~1–3k in (system + ≤ 16 history msgs), ≤ 700 out | Counted against `AI_USER_DAILY_LIMIT`; + 5 / minute burst limit                             |
+
+With 81 skills × 3 stages × 2 locales the whole catalogue is ~490 one-off generations, spread over time and
+capped by `AI_GLOBAL_DAILY_CAP` (400/day), well inside Flash-Lite's ~500 RPD. A user's 15 calls/day ≈ 15 tutor
+turns, so ~25 heavy tutor users exhaust the global cap; after that the tutor shows the quota message and
+practice / Q&A keep working. Messages are capped at 2,000 characters; text that looks like a credential is
+rejected before it reaches the model. The prompt contains only the skill, stage, exercises/questions and the
+chat — never profile data or secrets.
 
 ## Env vars
 

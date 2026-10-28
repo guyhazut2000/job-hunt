@@ -6,7 +6,9 @@ import { MobileNav } from "@/components/MobileNav";
 import { DirectionProvider } from "@/components/ui/direction";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getDictionary, isRtl } from "@/lib/i18n";
+import { documentStrings } from "@/lib/i18n/documents";
 import { learningStrings } from "@/lib/i18n/learning";
+import { learningHubStrings } from "@/lib/i18n/learning-hub";
 import { auth } from "@/auth";
 import { cn } from "@/lib/utils";
 import "./globals.css";
@@ -70,6 +72,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 logout: t.nav.logout,
                 pricing: t.nav.pricing,
                 learn: learningStrings(locale).nav,
+                documents: documentStrings(locale).nav,
+                learnMine: learningHubStrings(locale).navMine,
                 admin: t.nav.admin,
                 language: t.nav.language,
                 account: t.ui.account,

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Check, Route, Sparkles, TrendingUp, UserRound } from "lucide-react";
+import { ArrowLeft, Check, LayoutDashboard, Route, Sparkles, TrendingUp, UserRound } from "lucide-react";
 import { auth } from "@/auth";
 import { LearnExplorer, type ExplorerSkill } from "@/components/learning/LearnExplorer";
 import { ProgressRing, SkillCard, SkillMonogram, type LearnStatus } from "@/components/learning/SkillVisuals";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
 import { fmt, learningStrings } from "@/lib/i18n/learning";
+import { learningHubStrings } from "@/lib/i18n/learning-hub";
 import { crossJobImpact, GRAPH, knownSkillIds, TRACKS, trackOrder } from "@/lib/learning/graph";
 import { demandMap, getProgress } from "@/lib/learning/server";
 import { LEARN_CATEGORIES } from "@/lib/learning/types";
@@ -24,6 +25,7 @@ export default async function LearnPage() {
   const [{ locale }, session] = await Promise.all([getDictionary(), auth()]);
   const s = learningStrings(locale);
   const userId = session?.user?.id;
+  const hub = learningHubStrings(locale);
   const [demand, progress, profile] = await Promise.all([
     demandMap(),
     getProgress(userId),
@@ -156,6 +158,19 @@ export default async function LearnPage() {
         </aside>
       ) : (
         <>
+          <Link
+            href="/learn/me"
+            className="group bg-primary text-primary-foreground flex min-h-16 items-center justify-between gap-3 rounded-2xl px-4 py-3.5 shadow-sm transition-transform hover:-translate-y-0.5 motion-reduce:transition-none sm:px-6"
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <LayoutDashboard className="size-6 shrink-0" aria-hidden />
+              <span className="flex min-w-0 flex-col">
+                <span className="font-bold">{hub.navMine}</span>
+                <span className="text-primary-foreground/85 text-sm">{hub.dashLead}</span>
+              </span>
+            </span>
+            <ArrowLeft className="size-5 shrink-0 ltr:rotate-180" aria-hidden />
+          </Link>
           {continuing.length > 0 && (
             <section aria-labelledby="continue" className="flex flex-col gap-4">
               <h2 id="continue" className="text-2xl font-bold">
