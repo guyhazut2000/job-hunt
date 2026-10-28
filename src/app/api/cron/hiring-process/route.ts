@@ -31,7 +31,7 @@ async function handle(req: Request) {
     limit: clampInt(q.get("limit"), 20, 60),
     jobLimit: clampInt(q.get("jobs"), 6, 30),
     maxLlmCalls: clampInt(q.get("llm"), 20, 28),
-    timeBudgetMs: 270_000,
+    timeBudgetMs: 255_000,
     slugs,
   });
   return NextResponse.json(summary);

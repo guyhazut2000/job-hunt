@@ -130,6 +130,8 @@ export class Pacer {
   private chain: Promise<void> = Promise.resolve();
   calls = 0;
   failures = 0;
+  /** Epoch ms after which no new call may start (keeps the run inside the function's time box). */
+  deadline = Number.POSITIVE_INFINITY;
   constructor(
     private readonly max: number,
     private readonly gapMs = LLM_GAP_MS,
@@ -142,6 +144,7 @@ export class Pacer {
     const turn = this.chain.then(async () => {
       if (this.exhausted) return false;
       const wait = this.last + this.gapMs - Date.now();
+      if (Date.now() + Math.max(0, wait) > this.deadline) return false;
       if (wait > 0) await sleep(wait);
       this.last = Date.now();
       this.calls++;
@@ -239,6 +242,8 @@ export async function runHiringProcessBatch(opts: RunOptions = {}): Promise<RunS
   const deadline = started + budget;
   const llm = await guardedLLM("hiring_process", null);
   const pacer = new Pacer(opts.maxLlmCalls ?? 20);
+  // No LLM call may start in the last 30 s of the budget (a call can take ~20 s).
+  pacer.deadline = deadline - 30_000;
   const deps: FetchDeps = { robotsCache: new Map(), ...opts.deps };
   const summary: RunSummary = {
     companies: 0,
@@ -310,7 +315,17 @@ export async function runHiringProcessBatch(opts: RunOptions = {}): Promise<RunS
         continue;
       }
       try {
-        const { ex, failureReason } = await processCompany(c, llm, pacer, deps);
+        // Hard stop at the budget end: a slow discovery must never push the function past its time box.
+        const res = await Promise.race([
+          processCompany(c, llm, pacer, deps),
+          sleep(Math.max(0, deadline - Date.now())).then(() => null),
+        ]);
+        if (!res) {
+          summary.deferred++;
+          stop = true;
+          continue;
+        }
+        const { ex, failureReason } = res;
         summary.companies++;
         if (ex.method === "llm_failed") {
           summary.deferred++;
