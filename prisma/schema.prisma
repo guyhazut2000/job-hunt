@@ -90,36 +90,40 @@ enum ApplicationStatus {
 }
 
 model User {
-  id              String             @id @default(cuid())
-  email           String             @unique
-  name            String?
-  passwordHash    String
-  role            Role               @default(USER)
+  id                   String                  @id @default(cuid())
+  email                String                  @unique
+  name                 String?
+  passwordHash         String
+  role                 Role                    @default(USER)
   /// DEPRECATED: unused since pricing was removed; kept for additive-only migrations.
-  plan            Plan               @default(FREE)
-  locale          String             @default("he")
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  profile         Profile?
-  resumes         Resume[]
-  applications    Application[]
+  plan                 Plan                    @default(FREE)
+  locale               String                  @default("he")
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  profile              Profile?
+  resumes              Resume[]
+  applications         Application[]
   /// DEPRECATED: unused since pricing was removed.
-  subscription    Subscription?
-  contacts        Contact[]
-  emailSync       EmailSyncSettings?
-  emailAccounts   EmailAccount[]
-  emailCandidates EmailCandidate[]
-  skillProgress   SkillProgress[]
-  savedPlaces     SavedPlace[]
-  documents       Document[]
-  stageProgress   StageProgress[]
-  studySessions   StudySession[]
-  questionReviews QuestionReview[]
-  tutorThreads    TutorThread[]
-  chatThreads     ChatThread[]
-  learningPrefs   LearningPrefs?
-  hiringProcesses HiringProcess[]
-  answerFeedback  AnswerFeedback[]
+  subscription         Subscription?
+  contacts             Contact[]
+  emailSync            EmailSyncSettings?
+  emailAccounts        EmailAccount[]
+  emailCandidates      EmailCandidate[]
+  skillProgress        SkillProgress[]
+  savedPlaces          SavedPlace[]
+  documents            Document[]
+  stageProgress        StageProgress[]
+  studySessions        StudySession[]
+  questionReviews      QuestionReview[]
+  tutorThreads         TutorThread[]
+  chatThreads          ChatThread[]
+  learningPrefs        LearningPrefs?
+  hiringProcesses      HiringProcess[]
+  answerFeedback       AnswerFeedback[]
+  notifications        Notification[]
+  notificationPrefs    NotificationPreference?
+  savedSearches        SavedSearch[]
+  notificationChannels NotificationChannel[]
 }
 
 model Profile {
@@ -1035,4 +1039,113 @@ model AnswerFeedback {
 
   @@unique([userId, skill, stage, itemId])
   @@index([userId, updatedAt])
+}
+
+// ── Notifications (issue #41) ─────────────────────────────────────────────────────────────────────
+// Kinds and channels are plain strings (validated in src/lib/notifications/kinds.ts) so new ones
+// never need an enum migration.
+
+/// One in-site notification. Push / Telegram copies are tracked in NotificationDelivery.
+model Notification {
+  id         String                 @id @default(cuid())
+  userId     String
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// JOB_MATCH | SAVED_JOB_CLOSED | FOLLOW_UP | SYSTEM (see kinds.ts)
+  kind       String
+  title      String
+  body       String?
+  /// In-app path (e.g. /jobs/abc) the notification opens.
+  url        String?
+  data       Json?
+  /// Same key twice for the same user = same event; the second insert is skipped.
+  dedupeKey  String?
+  readAt     DateTime?
+  createdAt  DateTime               @default(now())
+  deliveries NotificationDelivery[]
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+model NotificationPreference {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Quiet hours, Israel time; start > end wraps midnight (22 → 7).
+  quietEnabled        Boolean   @default(true)
+  quietStart          Int       @default(22)
+  quietEnd            Int       @default(7)
+  /// Also quiet from Friday quietStartShabbat (16:00) to Saturday night (20:00).
+  quietShabbat        Boolean   @default(false)
+  followUpEnabled     Boolean   @default(true)
+  followUpDays        Int       @default(7)
+  /// Per-kind overrides: { "JOB_MATCH": { "push": false, "telegram": true }, ... }. Missing = default on.
+  channels            Json      @default("{}")
+  /// Max push/Telegram messages per hour; the rest stay in-app only.
+  maxPerHour          Int       @default(6)
+  /// One-time code for linking Telegram (/start <code>), hashed, short-lived.
+  telegramLinkCode    String?   @unique
+  telegramLinkExpires DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+/// A /jobs query the user wants alerts for. `query` is the /jobs query string (without "?").
+model SavedSearch {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  query          String
+  active         Boolean   @default(true)
+  /// Jobs created after this were not checked yet.
+  lastCheckedAt  DateTime  @default(now())
+  lastNotifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([active])
+}
+
+/// An external delivery target: a browser push subscription or a linked Telegram chat.
+model NotificationChannel {
+  id         String                 @id @default(cuid())
+  userId     String
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// WEB_PUSH | TELEGRAM
+  type       String
+  /// Push endpoint URL, or Telegram chat id.
+  endpoint   String
+  p256dh     String?
+  auth       String?
+  label      String?
+  failures   Int                    @default(0)
+  lastUsedAt DateTime?
+  createdAt  DateTime               @default(now())
+  deliveries NotificationDelivery[]
+
+  @@unique([type, endpoint])
+  @@index([userId])
+}
+
+/// Send queue with retry: one row per notification × channel.
+model NotificationDelivery {
+  id             String              @id @default(cuid())
+  notificationId String
+  notification   Notification        @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  channelId      String
+  channel        NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  /// PENDING | SENT | FAILED | SKIPPED
+  status         String              @default("PENDING")
+  attempts       Int                 @default(0)
+  /// Not before this (quiet hours / backoff).
+  nextAttemptAt  DateTime            @default(now())
+  lastError      String?
+  sentAt         DateTime?
+  createdAt      DateTime            @default(now())
+
+  @@unique([notificationId, channelId])
+  @@index([status, nextAttemptAt])
 }

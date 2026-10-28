@@ -8,12 +8,19 @@ import { documentStrings } from "@/lib/i18n/documents";
 import { learningStrings } from "@/lib/i18n/learning";
 import { learningHubStrings } from "@/lib/i18n/learning-hub";
 import { chatStrings } from "@/lib/i18n/chat";
+import { db } from "@/lib/db";
+import { notificationStrings } from "@/lib/i18n/notifications";
+import { NotificationBell } from "./notifications/NotificationBell";
 import { Brand } from "./Brand";
 import { NavLinks, type NavLink } from "./NavLinks";
 
 export async function Header() {
   const [{ t, locale }, session] = await Promise.all([getDictionary(), auth()]);
   const user = session?.user;
+  const ns = notificationStrings(locale);
+  const unread = user?.id
+    ? await db.notification.count({ where: { userId: user.id, readAt: null } }).catch(() => 0)
+    : 0;
   // Labels never wrap (a word split across lines reads as a typo); whatever doesn't fit at a
   // breakpoint collapses into the "More" menu instead. Signed-in users have more links, so the
   // secondary ones live in "More" at every width.
@@ -40,6 +47,21 @@ export async function Header() {
           <NavLinks links={links} moreLabel={t.ui.more} />
         </nav>
         <div className="ms-auto flex shrink-0 items-center gap-1.5">
+          {user && (
+            <NotificationBell
+              initialUnread={unread}
+              locale={locale}
+              labels={{
+                bell: ns.bell,
+                bellUnread: ns.bellUnread,
+                viewAll: ns.viewAll,
+                markAllRead: ns.markAllRead,
+                emptyShort: ns.emptyShort,
+                settings: ns.settings,
+                unread: ns.unread,
+              }}
+            />
+          )}
           <form action={setLocale}>
             <input type="hidden" name="locale" value={locale === "he" ? "en" : "he"} />
             <Button variant="ghost" size="sm" type="submit" lang={locale === "he" ? "en" : "he"}>

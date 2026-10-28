@@ -34,6 +34,14 @@
     {
       "path": "/api/cron/hiring-process",
       "schedule": "50 6 * * *"
+    },
+    {
+      "path": "/api/cron/notify",
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/cron/notify",
+      "schedule": "0 15 * * *"
     }
   ]
 }
