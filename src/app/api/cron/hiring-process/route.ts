@@ -1,0 +1,41 @@
+import { NextResponse } from "next/server";
+import { runHiringProcessBatch } from "@/lib/hiring/run";
+
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
+
+const clampInt = (v: string | null, def: number, max: number) => {
+  const n = v === null ? def : Number.parseInt(v, 10);
+  return Number.isFinite(n) ? Math.max(0, Math.min(max, n)) : def;
+};
+
+/**
+ * Hiring-process population (docs/hiring-process.md). Vercel Cron calls this daily with
+ * `Authorization: Bearer $CRON_SECRET`; each run checks a small, time-boxed batch of companies that were
+ * never checked (or not in 30 days) plus job descriptions that describe their own process.
+ * Query: `limit` (companies, ≤40), `jobs` (job-level processes, ≤30), `llm` (max Gemini calls, ≤25),
+ * `slugs` (comma-separated company slugs to (re)check).
+ */
+async function handle(req: Request) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  const q = new URL(req.url).searchParams;
+  const slugs = (q.get("slugs") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 40);
+  const summary = await runHiringProcessBatch({
+    limit: clampInt(q.get("limit"), 12, 40),
+    jobLimit: clampInt(q.get("jobs"), 8, 30),
+    maxLlmCalls: clampInt(q.get("llm"), 15, 25),
+    timeBudgetMs: 270_000,
+    slugs,
+  });
+  return NextResponse.json(summary);
+}
+
+export const GET = handle;
+export const POST = handle;

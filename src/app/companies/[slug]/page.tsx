@@ -6,6 +6,7 @@ import { JobCard, JobList } from "@/components/JobCard";
 import { LinkedinCompanyLinks } from "@/components/LinkedinCompanyLink";
 import { People } from "@/components/outreach/People";
 import { CompanySalaryBands } from "@/components/salary/CompanySalaryBands";
+import { HiringProcessSection } from "@/components/hiring/HiringProcessSection";
 import { careersLink, isManualCompany, isSyncFailing, safeHttpUrl } from "@/lib/companies/status";
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
@@ -130,6 +131,13 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
       )}
       <People company={company} userId={session?.user?.id} t={t} />
       <CompanySalaryBands company={company} jobs={company.jobs} loggedIn={!!session?.user?.id} locale={locale} />
+      <HiringProcessSection
+        companyId={company.id}
+        companyName={company.name}
+        techStack={[...new Set(company.jobs.flatMap((j) => j.techStack))]}
+        userId={session?.user?.id}
+        locale={locale}
+      />
       <h2 className="font-heading border-rule border-t-2 pt-6 text-xl font-bold">
         <span className="font-mono">{company.jobs.length}</span> {t.companies.openRoles}
       </h2>

@@ -117,6 +117,7 @@ model User {
   questionReviews QuestionReview[]
   tutorThreads    TutorThread[]
   learningPrefs   LearningPrefs?
+  hiringProcesses HiringProcess[]
 }
 
 model Profile {
@@ -220,6 +221,7 @@ model Company {
   /// How the company got here: "curated", "manual-seed", "admin", "discovery:YC", "discovery:WIKIDATA"…
   addedVia          String?
   startupCandidates StartupCandidate[]
+  hiringProcesses   HiringProcess[]
 
   /// Optional office override for the jobs map (docs/jobs-map.md), set by an admin. When `officeCity`
   /// is set it replaces only that city's pin; null applies to all of the company's jobs.
@@ -318,9 +320,9 @@ model SalaryReport {
 }
 
 model Job {
-  id                String         @id @default(cuid())
+  id                String          @id @default(cuid())
   companyId         String
-  company           Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company           Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   externalId        String
   source            AtsProvider
   title             String
@@ -333,11 +335,11 @@ model Job {
   applyUrl          String
   postedAt          DateTime
   /// Broad job function (engineering, data, sales, marketing…) — see src/lib/jobs/classify.ts.
-  jobFunction       String         @default("other")
+  jobFunction       String          @default("other")
   /// Professional domain (תחום) from the deterministic classifier in src/lib/jobs/domain-classifier.ts.
-  domain            String         @default("other")
-  level             JobLevel       @default(MID)
-  employmentType    EmploymentType @default(FULL_TIME)
+  domain            String          @default("other")
+  level             JobLevel        @default(MID)
+  employmentType    EmploymentType  @default(FULL_TIME)
   /// Last update time reported by the ATS (Greenhouse `updated_at`); null when the source has none.
   sourceUpdatedAt   DateTime?
   /// Department / team as published by the ATS (null when the source has none).
@@ -349,11 +351,12 @@ model Job {
   payMax            Int?
   payCurrency       String?
   payPeriod         String?
-  isActive          Boolean        @default(true)
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
   applications      Application[]
   contacts          Contact[]
+  hiringProcesses   HiringProcess[]
   /// Exact LinkedIn posting (https://www.linkedin.com/jobs/view/<id>/) found via Brave Search; null = unknown.
   linkedinUrl       String?
   /// Last Brave lookup for linkedinUrl (found or not). Null = never checked.
@@ -362,7 +365,7 @@ model Job {
   /// location mentions (hub:* / gn:* / co:<companyId>). Null = not geocodable (e.g. "Israel" + foreign HQ).
   geoLat            Float?
   geoLng            Float?
-  geoPlaces         String[]       @default([])
+  geoPlaces         String[]        @default([])
   /// office | hub | city | hq
   geoPrecision      String?
   /// What the geo was computed from (location + company HQ/office), so changes trigger a re-geocode.
@@ -401,6 +404,9 @@ model Application {
   // How it got onto the board; EMAIL = detected by email sync (see emailMessageId)
   source         ApplicationSource @default(APP)
   emailMessageId String?
+  /// Hiring-process stage the user marked as current (a STAGE_KINDS key, see src/lib/hiring/kinds.ts).
+  currentStage   String?
+  currentStageAt DateTime?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
@@ -908,4 +914,63 @@ model TutorMessage {
   createdAt DateTime    @default(now())
 
   @@index([threadId, createdAt])
+}
+
+/// Hiring process (docs/hiring-process.md). kind "official" = extracted from cited company-owned public pages
+/// (careers pages, official blogs, the job description); every stage carries a verbatim `evidence` quote from
+/// its `sourceUrl`. kind "user" = one signed-in user's own experience (shown only to that user).
+/// `jobId` set = specific to one job; null = company-wide.
+model HiringProcess {
+  id                String        @id @default(cuid())
+  companyId         String
+  company           Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  jobId             String?
+  job               Job?          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  /// "official" | "user"
+  kind              String        @default("official")
+  userId            String?
+  user              User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// "found" = at least one grounded stage; "none" = sources were checked and no process is published.
+  status            String        @default("none")
+  /// "high" | "medium" | "low"
+  confidence        String        @default("low")
+  /// Overall duration as stated by the source (e.g. "2-4 weeks"); null when not stated.
+  estimatedDuration String?
+  notesHe           String?
+  notesEn           String?
+  /// [{ url, title }] pages that support at least one stage.
+  sources           Json          @default("[]")
+  /// [{ url, title, result: "stages" | "no_info" | "blocked" | "error" }] every page that was looked at.
+  checked           Json          @default("[]")
+  /// "gemini-…" | "heuristic" | "user"
+  method            String?
+  checkedAt         DateTime      @default(now())
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  stages            HiringStage[]
+
+  @@index([companyId, kind])
+  @@index([jobId])
+  @@index([userId, companyId])
+}
+
+/// One ordered stage of a HiringProcess.
+model HiringStage {
+  id        String        @id @default(cuid())
+  processId String
+  process   HiringProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
+  order     Int
+  /// STAGE_KINDS key: phone_screen, home_assignment, technical, system_design, hr, manager, offer…
+  kind      String
+  /// Stage name as the source (or the user) calls it.
+  title     String
+  detailHe  String?
+  detailEn  String?
+  /// Stage duration as stated by the source (e.g. "45 minutes").
+  duration  String?
+  /// Verbatim quote from `sourceUrl` that supports this stage (official processes only).
+  evidence  String?
+  sourceUrl String?
+
+  @@index([processId, order])
 }
