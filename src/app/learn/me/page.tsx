@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { GoalEditor, LogSessionForm } from "@/components/learning/hub/HubForms";
+import { TrackRoadmapView } from "@/components/learning/hub/TrackRoadmapView";
 import { ProgressRing, SkillMonogram } from "@/components/learning/SkillVisuals";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -23,6 +24,7 @@ import { learningHubStrings, type LearningHubStrings } from "@/lib/i18n/learning
 import { GRAPH } from "@/lib/learning/graph";
 import { getHubData } from "@/lib/learning/hub";
 import type { Reason } from "@/lib/learning/recommend";
+import { pickTrack, trackRoadmap, tracksForRoles } from "@/lib/learning/roadmap";
 import { STAGES, type Stage } from "@/lib/learning/types";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -78,8 +80,9 @@ function Stat({
   );
 }
 
-export default async function MyLearningPage() {
+export default async function MyLearningPage({ searchParams }: { searchParams: Promise<{ track?: string }> }) {
   const user = await requireUser();
+  const { track } = await searchParams;
   const [{ locale }, data] = await Promise.all([getDictionary(), getHubData(user.id)]);
   const s = learningStrings(locale);
   const t = learningHubStrings(locale);
@@ -90,6 +93,8 @@ export default async function MyLearningPage() {
   const activeStage = new Map(active.map((a) => [a.node.id, a.roll.nextStage ?? STAGES[0]]));
   const practiceHref = (id: string, stage?: Stage) => `/learn/${id}/${stage ?? activeStage.get(id) ?? STAGES[0]}`;
   const [top, ...queue] = recs;
+  const myTracks = tracksForRoles(data.targetRoles);
+  const roadmap = trackRoadmap(pickTrack(track, data.targetRoles), data);
   const topNode = top ? GRAPH.byId.get(top.id)! : null;
   const logSkills = [
     ...active.map((a) => a.node),
@@ -224,6 +229,8 @@ export default async function MyLearningPage() {
               </div>
             )}
           </section>
+
+          {roadmap && <TrackRoadmapView roadmap={roadmap} mine={myTracks} t={t} />}
 
           {/* Active skills */}
           <section aria-labelledby="active" className="flex flex-col gap-3">

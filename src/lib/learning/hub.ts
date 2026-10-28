@@ -187,10 +187,11 @@ export async function getHubData(userId: string) {
       .map((n) => n.id);
     impact = impactMap(candidate, jobs, ids);
   }
+  const inProgress = new Map(active.map((a) => [a.node.id, a.roll.pct / 100]));
   const recs = recommend(
     {
       known,
-      inProgress: new Map(active.map((a) => [a.node.id, a.roll.pct / 100])),
+      inProgress,
       impact,
       demand,
       targetRoles: candidate?.targetRoles ?? [],
@@ -226,6 +227,9 @@ export async function getHubData(userId: string) {
     resume,
     hasProfile: !!candidate,
     sessions: recentSessions.slice(0, 5),
+    known,
+    inProgress,
+    targetRoles: candidate?.targetRoles ?? profile?.targetRoles ?? [],
   };
 }
 
