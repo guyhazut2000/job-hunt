@@ -1,5 +1,5 @@
 /**
- * Backfill Job.domain (migration 20261028140000_job_domain) with the deterministic classifier.
+ * Backfill Job.domain (migration 20261028160000_job_domain) with the deterministic classifier.
  *
  *   npx tsx --env-file=.env scripts/backfill-job-domain.ts          # every job
  *   npx tsx --env-file=.env scripts/backfill-job-domain.ts --active # open roles only
