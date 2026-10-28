@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { Building2, Loader2, Search, Sparkles, X } from "lucide-react";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { normalizeSearchText } from "@/lib/search/query";
 import { cn } from "@/lib/utils";
 
@@ -198,7 +199,7 @@ export function SearchBox({
           aria-autocomplete="list"
           aria-activedescendant={showList && active >= 0 ? `${listId}-opt-${active}` : undefined}
           aria-keyshortcuts="/"
-          className="input bg-card h-12 min-h-12 ps-10 pe-20 text-base shadow-xs placeholder:text-start [&::-webkit-search-cancel-button]:appearance-none"
+          className="input bg-card h-12 min-h-12 ps-10 pe-24 text-base shadow-xs placeholder:text-start [&::-webkit-search-cancel-button]:appearance-none"
           onChange={(e) => {
             const v = e.target.value;
             setValue(v);
@@ -232,6 +233,14 @@ export function SearchBox({
           }}
         />
         <div className="absolute inset-y-0 end-1.5 flex items-center gap-1">
+          <VoiceInputButton
+            targetRef={inputRef}
+            size="sm"
+            compact
+            hideWhenUnsupported
+            className="[&_button[aria-pressed]]:border-transparent"
+            testId={testId ? `${testId}-voice` : "search-voice"}
+          />
           {value ? (
             <button
               type="button"

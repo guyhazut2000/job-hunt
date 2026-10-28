@@ -1,5 +1,6 @@
 "use client";
 
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
@@ -238,6 +239,7 @@ export function TutorChat({
           }}
           className="max-h-40 min-h-11 flex-1 resize-y text-[0.95rem]"
         />
+        <VoiceInputButton targetRef={inputRef} disabled={busy || outOfQuota} testId="tutor-voice" />
         {busy ? (
           <Button
             type="button"

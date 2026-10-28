@@ -1,5 +1,6 @@
 "use client";
 
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useState, useTransition, type FormEvent } from "react";
 import { Pencil } from "lucide-react";
 import { logStudySession, setWeeklyGoal } from "@/app/learn/hub-actions";
@@ -115,9 +116,12 @@ export function LogSessionForm({
         </div>
       </div>
       <div className="flex flex-col gap-1">
-        <Label htmlFor="log-note" className="text-xs">
-          {t.logNote}
-        </Label>
+        <div className="flex items-end justify-between gap-2">
+          <Label htmlFor="log-note" className="text-xs">
+            {t.logNote}
+          </Label>
+          <VoiceInputButton targetId="log-note" size="sm" testId="log-note-voice" />
+        </div>
         <Textarea
           id="log-note"
           dir="auto"

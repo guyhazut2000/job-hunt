@@ -1,5 +1,6 @@
 "use client";
 
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
@@ -242,9 +243,12 @@ function EditForm({
         </fieldset>
       )}
       <div>
-        <label className="label" htmlFor="doc-notes">
-          {f.notes}
-        </label>
+        <div className="flex items-end justify-between gap-2">
+          <label className="label" htmlFor="doc-notes">
+            {f.notes}
+          </label>
+          <VoiceInputButton targetId="doc-notes" size="sm" testId="doc-notes-voice" />
+        </div>
         <textarea
           id="doc-notes"
           name="notes"

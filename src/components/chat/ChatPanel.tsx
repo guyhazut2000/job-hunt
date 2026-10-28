@@ -1,5 +1,6 @@
 "use client";
 
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
@@ -449,6 +450,13 @@ export function ChatPanel({
             }
           }}
           className="max-h-36 min-h-11 min-w-0 flex-1 resize-none text-base sm:text-[0.95rem]"
+        />
+        <VoiceInputButton
+          targetRef={inputRef}
+          locale={locale}
+          compact={variant === "sheet"}
+          disabled={busy || outOfQuota}
+          testId={`chat-voice-${variant}`}
         />
         {busy ? (
           <Button

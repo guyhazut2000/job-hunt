@@ -1,5 +1,6 @@
 "use client";
 
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { startTransition, useActionState, useEffect, useRef } from "react";
 import type { ContactCategory } from "@prisma/client";
 import { addContact, type ContactFormState } from "@/app/outreach/actions";
@@ -94,9 +95,12 @@ export function ContactForm({
         </select>
       </div>
       <div>
-        <label className="label" htmlFor="contact-notes">
-          {t.notes}
-        </label>
+        <div className="flex items-end justify-between gap-2">
+          <label className="label" htmlFor="contact-notes">
+            {t.notes}
+          </label>
+          <VoiceInputButton targetId="contact-notes" size="sm" testId="contact-notes-voice" />
+        </div>
         <textarea id="contact-notes" name="notes" rows={3} maxLength={2000} className="input" dir="auto" />
       </div>
       <p aria-live="polite" className="text-sm">
