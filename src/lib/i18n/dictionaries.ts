@@ -6,7 +6,6 @@ const en = {
     companies: "Companies",
     dashboard: "My applications",
     profile: "Profile & CV",
-    pricing: "Pricing",
     admin: "Admin",
     login: "Log in",
     register: "Sign up",
@@ -18,7 +17,7 @@ const en = {
     subtitle:
       "Fresh openings pulled straight from company career pages, a transparent match score for every job, and AI tips to tailor your CV.",
     ctaPrimary: "Browse jobs",
-    ctaSecondary: "Create a free account",
+    ctaSecondary: "Create an account",
     stats: { jobs: "open roles", companies: "companies" },
     features: [
       {
@@ -407,28 +406,6 @@ const en = {
     weak: "Password must be at least 8 characters",
     terms: "By signing up you agree to the Terms and Privacy Policy.",
   },
-  pricing: {
-    title: "Simple pricing",
-    subtitle: "Start free. Upgrade when you want AI help on every application.",
-    free: "Free",
-    pro: "Pro",
-    perMonth: "/ month",
-    freeFeatures: [
-      "Full job feed & filters",
-      "Match score on every job",
-      "Application tracker",
-      "3 AI CV reviews / month",
-    ],
-    proFeatures: [
-      "Everything in Free",
-      "Unlimited AI CV suggestions",
-      "Priority new-job alerts (soon)",
-      "Interview prep (soon)",
-    ],
-    current: "Current plan",
-    upgrade: "Upgrade to Pro",
-    billingDisabled: "Payments are not enabled yet — we'll let you know when Pro launches.",
-  },
   admin: {
     title: "Admin",
     users: "Users",
@@ -534,7 +511,6 @@ const he: Dictionary = {
     companies: "חברות",
     dashboard: "המועמדויות שלי",
     profile: 'פרופיל וקו"ח',
-    pricing: "מחירים",
     admin: "ניהול",
     login: "התחברות",
     register: "הרשמה",
@@ -546,7 +522,7 @@ const he: Dictionary = {
     subtitle:
       "משרות עדכניות ישירות מדפי הקריירה של החברות, ציון התאמה שקוף לכל משרה, וטיפים מבוססי AI להתאמת קורות החיים.",
     ctaPrimary: "לכל המשרות",
-    ctaSecondary: "פתיחת חשבון חינם",
+    ctaSecondary: "פתיחת חשבון",
     stats: { jobs: "משרות פתוחות", companies: "חברות" },
     features: [
       {
@@ -926,23 +902,6 @@ const he: Dictionary = {
     exists: "כבר קיים חשבון עם האימייל הזה",
     weak: "הסיסמה צריכה להכיל לפחות 8 תווים",
     terms: "בהרשמה את/ה מסכים/ה לתנאי השימוש ולמדיניות הפרטיות.",
-  },
-  pricing: {
-    title: "תמחור פשוט",
-    subtitle: "מתחילים בחינם. משדרגים כשרוצים עזרת AI בכל הגשה.",
-    free: "חינם",
-    pro: "Pro",
-    perMonth: "/ לחודש",
-    freeFeatures: ["פיד משרות מלא וסינונים", "ציון התאמה לכל משרה", "לוח מעקב מועמדויות", '3 בדיקות קו"ח ב-AI בחודש'],
-    proFeatures: [
-      "כל מה שיש בחינם",
-      'הצעות AI לקו"ח ללא הגבלה',
-      "התראות על משרות חדשות (בקרוב)",
-      "הכנה לראיונות (בקרוב)",
-    ],
-    current: "התוכנית הנוכחית",
-    upgrade: "שדרוג ל-Pro",
-    billingDisabled: "התשלומים עוד לא פעילים — נעדכן כש-Pro יושק.",
   },
   admin: {
     title: "ניהול",

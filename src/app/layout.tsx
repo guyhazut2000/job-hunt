@@ -70,7 +70,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 login: t.nav.login,
                 register: t.nav.register,
                 logout: t.nav.logout,
-                pricing: t.nav.pricing,
                 learn: learningStrings(locale).nav,
                 documents: documentStrings(locale).nav,
                 learnMine: learningHubStrings(locale).navMine,

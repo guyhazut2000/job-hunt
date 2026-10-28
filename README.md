@@ -3,8 +3,8 @@
 Tech job search for Israel — aggregated jobs from company ATS boards, explainable match scores,
 AI CV suggestions and an application tracker. Hebrew-first (RTL) with English support.
 
-> Working name. See [docs/product-spec.md](docs/product-spec.md) and
-> [docs/competitive-analysis.md](docs/competitive-analysis.md).
+> A non-commercial practice project, open source under the [MIT License](LICENSE). No pricing, plans or
+> payments: every feature is available to every user. See [docs/product-spec.md](docs/product-spec.md).
 
 ## Features (MVP)
 
@@ -15,7 +15,7 @@ AI CV suggestions and an application tracker. Hebrew-first (RTL) with English su
 - **Match score** 0–100 with matched/missing skills breakdown
 - **AI CV suggestions** per job behind a pluggable LLM provider (offline mock by default)
 - **Kanban application tracker** (drag & drop, manual entries)
-- **Company pages**, **pricing / Stripe-ready billing stub**, **admin area**
+- **Company pages**, **admin area**
 - Privacy & Terms placeholders, analytics hooks, HE/EN i18n
 
 ## Stack
@@ -58,13 +58,12 @@ Demo accounts (password `password123`):
 
 See [`.env.example`](.env.example). Only `DATABASE_URL` and `AUTH_SECRET` are required.
 
-| Variable                                                         | Notes                                                                                 |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, `LLM_BASE_URL`       | Empty → mock provider. `openai` works with any OpenAI-compatible API.                 |
-| `STRIPE_SECRET_KEY`, `STRIPE_PRICE_PRO`, `STRIPE_WEBHOOK_SECRET` | Billing stays disabled until set.                                                     |
-| `CRON_SECRET`                                                    | Protects `/api/cron/ingest` (GET from Vercel Cron, or POST).                          |
-| `SEED_DEMO_DATA`                                                 | `false` skips fictional demo companies (always skipped when `VERCEL_ENV=production`). |
-| `NEXT_PUBLIC_ANALYTICS_PROVIDER`                                 | `console` or `none`.                                                                  |
+| Variable                                                   | Notes                                                                                 |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, `LLM_BASE_URL` | Empty → mock provider. `openai` works with any OpenAI-compatible API.                 |
+| `CRON_SECRET`                                              | Protects `/api/cron/ingest` (GET from Vercel Cron, or POST).                          |
+| `SEED_DEMO_DATA`                                           | `false` skips fictional demo companies (always skipped when `VERCEL_ENV=production`). |
+| `NEXT_PUBLIC_ANALYTICS_PROVIDER`                           | `console` or `none`.                                                                  |
 
 ## Ingesting real jobs
 
@@ -115,14 +114,13 @@ Functions run in `fra1` (Frankfurt, closest to Israel) via `vercel.json`.
 
 ```
 src/
-  app/                 routes (feed, job, companies, dashboard, profile, pricing, admin, legal, api)
+  app/                 routes (feed, job, companies, dashboard, profile, learn, admin, legal, api)
   app/actions.ts       server actions (zod-validated, user-scoped)
   components/          UI components
   lib/ingestion/       ATS adapters, normalization, sync runner
   lib/ai/              LLMProvider interface, mock + OpenAI-compatible providers, match score, CV tips
   lib/cv/              CV text extraction + parsing
   lib/i18n/            he/en dictionaries
-  lib/billing.ts       plans + Stripe stub
   lib/analytics.ts     track() hook
 prisma/                schema, migrations, seed
 tests/                 vitest unit tests
@@ -134,10 +132,18 @@ Demo companies in the seed are fictional and are only seeded for local developme
 
 ## תקציר בעברית
 
-**job-hunt** היא פלטפורמת SaaS לחיפוש עבודה בהייטק בישראל: משרות שנאספות ישירות ממערכות הגיוס של החברות
+**job-hunt** הוא פרויקט תרגול לא מסחרי לחיפוש עבודה בהייטק בישראל: משרות שנאספות ישירות ממערכות הגיוס של החברות
 (Greenhouse, Lever, Comeet), ציון התאמה שקוף לפרופיל, הצעות AI לשיפור קורות החיים לכל משרה, ולוח מעקב מועמדויות.
 הממשק בעברית (RTL) עם תמיכה מלאה באנגלית.
 
 הרצה מקומית: `npm install` ← `cp .env.example .env` ← `npm run db:up` ← `npx prisma migrate dev` ← `npm run db:seed` ← `npm run dev`.
 
 משתמשי דמו: `admin@job-hunt.local` / `demo@job-hunt.local` עם הסיסמה `password123`.
+
+## License
+
+[MIT](LICENSE) © 2026 Guy Hazut. This is a non-commercial practice project; there are no paid plans. Being
+open source and non-commercial also keeps it within the terms of the free Transitous routing API used by the jobs
+map (see [docs/jobs-map.md](docs/jobs-map.md)).
+
+רישיון: [MIT](LICENSE). פרויקט תרגול לא מסחרי, בלי מחירים או מנויים.

@@ -74,12 +74,12 @@ Everything runs on free providers that need no API key. Guy doesn't have to set 
 
 ### Costs and ToS
 
-| Provider                             | Cost                    | Terms that matter                                                                                                                                                                                                                                                                |
-| ------------------------------------ | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OpenFreeMap (tiles, style "liberty") | Free, no key, no limits | Attribution "OpenFreeMap © OpenMapTiles Data from OpenStreetMap" (shown)                                                                                                                                                                                                         |
-| GeoNames                             | Free                    | CC BY 4.0 attribution (shown)                                                                                                                                                                                                                                                    |
-| Nominatim (OSMF)                     | Free                    | ≤1 req/s, identify via UA, cache, no bulk/autocomplete                                                                                                                                                                                                                           |
-| Transitous                           | Free                    | Meant for **non-commercial / open-source** apps. Send an identifying UA, link to https://transitous.org/sources/ (shown), and contact them above ~720 requests/day. **The repo currently has no LICENSE; an OSS license is needed to fit their terms (pending owner approval).** |
+| Provider                             | Cost                    | Terms that matter                                                                                                                                                                                                                                       |
+| ------------------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenFreeMap (tiles, style "liberty") | Free, no key, no limits | Attribution "OpenFreeMap © OpenMapTiles Data from OpenStreetMap" (shown)                                                                                                                                                                                |
+| GeoNames                             | Free                    | CC BY 4.0 attribution (shown)                                                                                                                                                                                                                           |
+| Nominatim (OSMF)                     | Free                    | ≤1 req/s, identify via UA, cache, no bulk/autocomplete                                                                                                                                                                                                  |
+| Transitous                           | Free                    | Meant for **non-commercial / open-source** apps. Send an identifying UA, link to https://transitous.org/sources/ (shown), and contact them above ~720 requests/day. The project is MIT-licensed (`LICENSE`) and non-commercial, which fits their terms. |
 
 At the default cap (500 uncached calls/day, each covering up to ~100 offices), with 7–30 day caching, expected use is a few dozen calls a day.
 
@@ -97,7 +97,7 @@ At the default cap (500 uncached calls/day, each covering up to ~100 offices), w
 
 The provider interface is in `src/lib/commute/service.ts` (`PROVIDER`: `batchSize`, `matrix(origin, dests, mode, departure)`).
 
-- **Self-hosted MOTIS or OpenTripPlanner** on the free GTFS feed (`gtfs.mot.gov.il`) plus an OSM extract. No ToS limits; needs a small VM (~2–4 GB RAM). This is the cleanest option if the app becomes commercial.
+- **Self-hosted MOTIS or OpenTripPlanner** on the free GTFS feed (`gtfs.mot.gov.il`) plus an OSM extract. No ToS limits; needs a small VM (~2–4 GB RAM). This is the cleanest option if usage outgrows Transitous.
 - **OpenRouteService:** free key, 2,000 matrix requests/day. Car only, no transit.
 - **Google Routes API (Compute Route Matrix):** traffic-aware car and transit, roughly $5–10 per 1,000 elements, and needs a key plus billing. Not wired.
 - **Moovit:** best Israeli transit data, but a commercial partnership API only.

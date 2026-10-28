@@ -4,7 +4,6 @@ import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { ApplicationStatus, AtsProvider } from "@prisma/client";
 import { signIn, signOut } from "@/auth";
@@ -12,7 +11,6 @@ import { guardedLLM } from "@/lib/ai";
 import { generateCvSuggestions } from "@/lib/ai/cv-suggestions";
 import type { CvSuggestion } from "@/lib/ai/types";
 import { track } from "@/lib/analytics";
-import { canUseAiReview, createCheckoutUrl } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { getDictionary, LOCALE_COOKIE } from "@/lib/i18n";
 import { aiLimitMessage } from "@/lib/i18n/ai";
@@ -125,15 +123,13 @@ export async function getCvSuggestions(
 ): Promise<{ error?: string; notice?: string; cached?: boolean; provider?: string; suggestions?: CvSuggestion[] }> {
   const user = await requireUser();
   const { locale, t } = await getDictionary();
-  const [job, resume, dbUser] = await Promise.all([
+  const [job, resume] = await Promise.all([
     db.job.findUnique({ where: { id: jobId } }),
     db.resume.findFirst({ where: { userId: user.id, isPrimary: true } }),
-    db.user.findUniqueOrThrow({ where: { id: user.id } }),
   ]);
   if (!job) return { error: "Job not found" };
   if (!resume) return { error: t.jobs.cvTipsNeedCv };
-  // TODO(billing): count usage per month in a table; currently only enforced by plan flag.
-  if (!canUseAiReview(dbUser.plan, 0)) return { error: t.pricing.billingDisabled };
+  // Same limits for everyone: the AI guard (per-user daily cap, app-wide caps, cache) applies.
   const provider = await guardedLLM("cv_tips", user.id);
   const res = await generateCvSuggestions({ resumeText: resume.text, job, locale }, provider);
   track("cv_suggestions_generated", { provider: res.provider, cached: !!provider.cached });
@@ -142,13 +138,6 @@ export async function getCvSuggestions(
     cached: !!provider.cached,
     ...(provider.limited ? { notice: aiLimitMessage(provider.limited, locale) } : {}),
   };
-}
-
-export async function startCheckout() {
-  const user = await requireUser();
-  track("upgrade_clicked");
-  const url = await createCheckoutUrl(user.id);
-  redirect(url ?? "/pricing?billing=disabled");
 }
 
 export async function adminSyncAll() {

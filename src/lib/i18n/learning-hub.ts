@@ -83,7 +83,7 @@ const he = {
   regenerate: "יצירת תוכן חדש",
   regenerating: "יוצר…",
   regenErrors: {
-    plan: "ניצלת את יצירות התוכן החודשיות בתוכנית החינמית. ב-Pro אין הגבלה.",
+    monthly_cap: "הגעת למכסת יצירות התוכן החודשית. אפשר לנסות שוב בחודש הבא.",
     stage_cap: "התוכן של השלב הזה כבר נוצר מחדש מספיק פעמים.",
     ai_off: "ה-AI לא מחובר בסביבה הזו.",
     limited: "שירות ה-AI עמוס כרגע, נסו שוב מאוחר יותר.",
@@ -237,7 +237,7 @@ const en: LearningHubStrings = {
   regenerate: "Generate new content",
   regenerating: "Generating…",
   regenErrors: {
-    plan: "You've used this month's content generations on the free plan. Pro is unlimited.",
+    monthly_cap: "You've reached this month's content generation limit. Try again next month.",
     stage_cap: "This stage has already been regenerated enough times.",
     ai_off: "AI isn't connected in this environment.",
     limited: "The AI service is busy right now — try again later.",

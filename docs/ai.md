@@ -45,7 +45,7 @@ When a limit is hit the feature shows its non-AI result plus a friendly note (He
 | Call                       | Requests | Tokens (approx.)                                 | Notes                                                                                       |
 | -------------------------- | -------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------- |
 | Stage content (first open) | 1        | ~0.5k in, ~1–2k out (≤ 4.5k)                     | Once per skill × stage × locale for the **whole app** — stored in `StageContent` and shared |
-| Regenerate                 | 1        | same                                             | ≤ 3 per stage, FREE plan 3 / month                                                          |
+| Regenerate                 | 1        | same                                             | ≤ 3 per stage, `AI_USER_MONTHLY_REGEN_LIMIT` (20) per user / month, same for everyone       |
 | Tutor turn                 | 1        | ~1–3k in (system + ≤ 16 history msgs), ≤ 700 out | Counted against `AI_USER_DAILY_LIMIT`; + 5 / minute burst limit                             |
 
 With 81 skills × 3 stages × 2 locales the whole catalogue is ~490 one-off generations, spread over time and
@@ -71,9 +71,11 @@ Preview deployments share the production database, so they share the same cache 
 - **Cost: $0** while on the Gemini free tier (requests over the limits get 429, not a bill).
 - **Data use:** on the free tier Google may use prompts and responses to improve its products
   (see the "Used to improve our products: Yes" row on the Gemini pricing page). Prompts include CV text and
-  profile data. Before selling the product commercially / onboarding real customers at scale, move to the paid
-  tier (attach billing to the AI Studio project — paid-tier data is not used for training), update the privacy
-  policy to name Google as an AI sub-processor, and revisit `AI_*` limits per plan (`src/lib/billing.ts`).
+  profile data. This is a non-commercial practice project with no paid plans, so the free tier is fine; just
+  don't put anything in a CV or chat you wouldn't want Google to see. If the app ever had real users, the
+  options would be moving the AI Studio project to the paid tier (paid-tier data is not used for training) and
+  naming Google as an AI sub-processor in the privacy policy.
+- **Limits are the same for everyone** (no plans): the `AI_*` env vars above.
 
 ## Tests
 
@@ -85,5 +87,4 @@ Preview deployments share the production database, so they share the same cache 
 - **Personalised study plan** for the skill-gap / `/learn` roadmap feature (in progress on another branch):
   once merged, add a `study_plan` call (feature id already reserved in `AiFeature`) that takes the computed
   gap list + roadmap nodes and returns a week-by-week plan, interview questions and a CV bullet via the same guard.
-- Count `cv_tips` against the plan's monthly allowance (`PLANS.aiReviewsPerMonth`) once billing is live.
 - Purge expired `AiCache` rows and old `AiUsage` rows in the daily cron.
