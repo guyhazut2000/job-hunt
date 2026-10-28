@@ -105,6 +105,14 @@ New Israeli startups are found from open data (TechMap, YC, Wikidata) — no Lin
 added as AUTO when a public ATS board is detected, as MANUAL with a careers link otherwise, or queued for review in
 `/admin`. Details, alternatives and costs: [`docs/startup-discovery.md`](docs/startup-discovery.md).
 
+### Hiring process
+
+Company and job pages show the company's hiring process: interview stages taken only from the company's own public
+pages (careers page, official blog, the job post). Every stage is grounded in a verbatim quote and links to its source,
+and prep links go to `/learn`. When nothing is found, the section says so ("לא נמצא מידע על תהליך הגיוס בחברה זו") and
+lists the sources checked. Signed-in users can add their own process ("from my experience") and mark their current stage.
+Details: [`docs/hiring-process.md`](docs/hiring-process.md).
+
 Adding an ATS = implement `AtsAdapter` (`fetchRaw`, `isInIsrael`, `normalize`) in `src/lib/ingestion/adapters/` and
 register it in `registry.ts`. Tests use JSON fixtures in `tests/fixtures/`.
 

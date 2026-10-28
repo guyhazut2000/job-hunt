@@ -4,7 +4,14 @@ import { AiLimitError, isRateLimitError, type AiLimitReason } from "./errors";
 import type { CompleteOptions, LLMMessage, LLMProvider } from "./types";
 
 export type AiFeature =
-  "cv_tips" | "cv_extract" | "outreach" | "study_plan" | "learn_content" | "learn_regen" | "tutor_chat";
+  | "cv_tips"
+  | "cv_extract"
+  | "outreach"
+  | "study_plan"
+  | "learn_content"
+  | "learn_regen"
+  | "tutor_chat"
+  | "hiring_process";
 export type AiOutcome = "ok" | "cached" | "error" | "rate_limited" | "limited";
 
 /** Persistence used by the guard; the Prisma implementation lives in ./store.ts, tests use an in-memory one. */

@@ -15,6 +15,7 @@ import { OutboundLink } from "@/components/OutboundLink";
 import { MatchMeter } from "@/components/MatchMeter";
 import { People } from "@/components/outreach/People";
 import { SalarySection } from "@/components/salary/SalarySection";
+import { HiringProcessSection } from "@/components/hiring/HiringProcessSection";
 import { SaveJobButton } from "@/components/SaveJobButton";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
@@ -258,6 +259,16 @@ export default async function JobPage({
               </a>
             </p>
           )}
+
+          <HiringProcessSection
+            companyId={job.companyId}
+            companyName={job.company.name}
+            jobId={job.id}
+            techStack={job.techStack}
+            userId={userId}
+            locale={locale}
+            application={application ? { id: application.id, currentStage: application.currentStage } : null}
+          />
 
           <div className="border-rule border-t-2 pt-6">
             <People company={job.company} job={job} userId={userId} t={t} />
