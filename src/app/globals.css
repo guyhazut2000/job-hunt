@@ -259,3 +259,15 @@
     display: none;
   }
 }
+
+/* Jobs map: commute origin marker (pulsing dot). */
+.jobs-map-origin {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #db2777;
+  border: 3px solid #fff;
+  box-shadow:
+    0 0 0 2px #db2777,
+    0 2px 6px rgb(0 0 0 / 0.35);
+}

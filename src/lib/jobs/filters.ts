@@ -2,9 +2,18 @@ import type { EmploymentType, JobLevel, Prisma, Seniority, WorkMode } from "@pri
 import { ROLE_CATEGORIES, SENIORITIES, WORK_MODES } from "../taxonomy";
 import { MAX_QUERY_LENGTH, parseSearchQuery } from "../search/query";
 import { EMPLOYMENT_TYPES, JOB_FUNCTIONS, JOB_LEVELS } from "./classify";
+import { MAX_COMMUTE_OPTIONS } from "../commute/filter";
+import {
+  type CommuteMode as Mode,
+  departureKey,
+  isMode,
+  parseDeparture,
+  parseLatLng,
+  roundOrigin,
+} from "../commute/keys";
 import { type CompanyMatches, searchWhere } from "./search";
 
-export const SORTS = ["relevance", "match", "newest", "updated", "company", "title"] as const;
+export const SORTS = ["relevance", "match", "newest", "updated", "company", "title", "commute"] as const;
 export type SortKey = (typeof SORTS)[number];
 
 export const POSTED_WINDOWS = { "1d": 1, "7d": 7, "30d": 30 } as const;
@@ -41,7 +50,23 @@ export interface JobFilters {
   /** Explicit sort from the URL; `undefined` means "the default for this user". */
   sort?: SortKey;
   page: number;
+  /** "map" shows the jobs map instead of the list. */
+  view?: "map";
+  /** Ad-hoc commute origin "lat,lng", already rounded to the ~200 m grid (never more precise). */
+  from?: string;
+  /** Saved place id used as the commute origin (ignored when `from` is set); "none" = no origin. */
+  origin?: string;
+  /** Commute mode to filter/sort by; `undefined` means the fastest of all modes. */
+  cmode?: Mode;
+  /** Max commute in minutes. */
+  maxc?: number;
+  /** Departure slot, e.g. "sun-thu-0830"; `undefined` means the default (next Sun–Thu 08:30). */
+  dep?: string;
 }
+
+/** Whether a commute origin is set in the filters (validity of a saved place id is checked by the page). */
+export const hasOrigin = (f: Pick<JobFilters, "from" | "origin">) =>
+  Boolean(f.from || (f.origin && f.origin !== "none"));
 
 export const PAGE_SIZE = 20;
 
@@ -65,6 +90,7 @@ export function parseFilters(params: Params): JobFilters {
   const posted = one(params.posted);
   const sort = one(params.sort);
   const minMatch = Number.parseInt(one(params.minMatch) ?? "", 10);
+  const maxc = Number.parseInt(one(params.maxc) ?? "", 10);
   // `location` is the pre-v2 single city param; fold it into `city`.
   const city = [...new Set([...all(params.city), ...all(params.location)].map((c) => c.slice(0, 60)))].slice(0, 20);
   return {
@@ -84,7 +110,29 @@ export function parseFilters(params: Params): JobFilters {
     hide: pick(params.hide, HIDE_OPTIONS),
     sort: sort && (SORTS as readonly string[]).includes(sort) ? (sort as SortKey) : undefined,
     page,
+    view: one(params.view) === "map" ? "map" : undefined,
+    from: parseFrom(text(params.from)),
+    origin: /^([a-z0-9]{8,40}|none)$/i.test(one(params.origin) ?? "") ? one(params.origin) : undefined,
+    cmode: isMode(one(params.cmode) ?? "") ? (one(params.cmode) as Mode) : undefined,
+    maxc: (MAX_COMMUTE_OPTIONS as readonly number[]).includes(maxc) ? maxc : undefined,
+    dep: parseDep(one(params.dep)),
   };
+}
+
+/** Validate and grid-round an origin; precise coordinates never round-trip through URLs or logs. */
+function parseFrom(v: string | undefined): string | undefined {
+  if (!v) return undefined;
+  const p = parseLatLng(v.replace(";", ","));
+  if (!p) return undefined;
+  const r = roundOrigin(p);
+  return `${r.lat.toFixed(3)},${r.lng.toFixed(3)}`;
+}
+
+function parseDep(v: string | undefined): string | undefined {
+  if (!v) return undefined;
+  const d = parseDeparture(v);
+  const key = departureKey(d);
+  return key === departureKey(parseDeparture(undefined)) ? undefined : key;
 }
 
 /** Whether the filters carry a usable free-text query (not just blanks / one-letter noise). */
@@ -101,6 +149,7 @@ export function effectiveSort(f: JobFilters, hasProfile: boolean): SortKey {
   const fallback: SortKey = searching ? "relevance" : hasProfile ? "match" : "newest";
   if (f.sort === "match" && !hasProfile) return searching ? "relevance" : "newest";
   if (f.sort === "relevance" && !searching) return hasProfile ? "match" : "newest";
+  if (f.sort === "commute" && !hasOrigin(f)) return fallback;
   return f.sort ?? fallback;
 }
 
@@ -155,6 +204,7 @@ export function sortToOrderBy(sort: SortKey): Prisma.JobOrderByWithRelationInput
       return [{ title: "asc" }, { id: "asc" }];
     case "relevance": // ranked in memory; the DB order is only the tiebreak
     case "match":
+    case "commute": // ordered in memory
     case "newest":
     default:
       return [{ postedAt: "desc" }, { id: "asc" }];
@@ -211,7 +261,8 @@ export function fitCompanies(
 /** Number of user-visible filters in use (for the filter button badge). Sort and page don't count. */
 export function activeFilterCount(f: JobFilters): number {
   return (
-    [f.q, f.role, f.seniority, f.tech, f.posted, f.minMatch, f.fit].filter((v) => v !== undefined && v !== "").length +
+    [f.q, f.role, f.seniority, f.tech, f.posted, f.minMatch, f.fit, f.maxc].filter((v) => v !== undefined && v !== "")
+      .length +
     f.fn.length +
     f.level.length +
     f.city.length +
@@ -242,7 +293,15 @@ export function withoutValue(f: JobFilters, key: keyof JobFilters, value?: strin
   return { ...f, [key]: undefined, page: 1 };
 }
 
-/** Clear every filter but keep the user's chosen sort. */
+/** Clear every filter but keep the user's chosen sort, view and commute setup (origin/mode/departure). */
 export function clearedFilters(f: JobFilters): JobFilters {
-  return { ...parseFilters({}), sort: f.sort };
+  return {
+    ...parseFilters({}),
+    sort: f.sort,
+    view: f.view,
+    from: f.from,
+    origin: f.origin,
+    cmode: f.cmode,
+    dep: f.dep,
+  };
 }

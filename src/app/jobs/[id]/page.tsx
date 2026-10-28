@@ -20,6 +20,7 @@ import { track } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
+import { JobCommute } from "@/components/map/JobCommute";
 import { linkedinStrings, type LinkedinStrings } from "@/lib/i18n/linkedin";
 import { linkedinLinkFor, needsLinkedinCheck } from "@/lib/linkedin/jobs";
 import { resolveLinkedinJob } from "@/lib/linkedin/resolve";
@@ -67,8 +68,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: job ? `${job.title} @ ${job.company.name}` : "Job" };
 }
 
-export default async function JobPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function JobPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
+  const fromParam = (await searchParams).from;
+  const from = typeof fromParam === "string" ? fromParam.slice(0, 40) : undefined;
   const [{ t, locale }, session, job] = await Promise.all([
     getDictionary(),
     auth(),
@@ -145,6 +154,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
                 {t.jobs.posted} {formatDate(job.postedAt, t.dateLocale, { year: "numeric" })}
               </span>
             </p>
+            <Suspense fallback={null}>
+              <JobCommute job={job} userId={userId} from={from} locale={locale} />
+            </Suspense>
             {job.techStack.length > 0 && (
               <ul className="flex flex-wrap gap-1.5" dir="ltr" aria-label={t.jobs.tech}>
                 {job.techStack.map((s) => (

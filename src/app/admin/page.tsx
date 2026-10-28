@@ -8,11 +8,13 @@ import {
   adminSyncAll,
 } from "@/app/actions";
 import { CompanyLinkedinForm } from "@/components/admin/CompanyLinkedinForm";
+import { CompanyOfficeForm } from "@/components/admin/CompanyOfficeForm";
 import { ManualCompanyForm } from "@/components/admin/ManualCompanyForm";
 import { PendingButton } from "@/components/admin/PendingButton";
 import { careersLink, isManualCompany, isSyncFailing, SYNC_FAILING_THRESHOLD } from "@/lib/companies/status";
 import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
+import { jobsMapStrings } from "@/lib/i18n/jobs-map";
 import { linkedinStrings } from "@/lib/i18n/linkedin";
 import { SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
 import { requireAdmin } from "@/lib/session";
@@ -33,7 +35,10 @@ export default async function AdminPage() {
       db.application.count(),
       db.ingestionRun.findMany({ orderBy: { startedAt: "desc" }, take: 15 }),
       sourceStats(),
-      db.company.findMany({ select: { id: true, name: true, linkedinUrl: true }, orderBy: { name: "asc" } }),
+      db.company.findMany({
+        select: { id: true, name: true, linkedinUrl: true, officeAddress: true },
+        orderBy: { name: "asc" },
+      }),
       manualCompanies(),
       db.company.findMany({
         where: { syncMode: "AUTO", atsProvider: { not: "MANUAL" }, atsBoardId: { not: null } },
@@ -106,6 +111,7 @@ export default async function AdminPage() {
           </button>
         </form>
         <CompanyLinkedinForm companies={companyList} s={linkedinStrings(locale)} />
+        <CompanyOfficeForm companies={companyList} s={jobsMapStrings(locale)} />
         <div className="card flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">{t.admin.runs}</h2>

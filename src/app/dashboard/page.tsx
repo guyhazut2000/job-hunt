@@ -1,4 +1,4 @@
-import { MailCheck, Plus } from "lucide-react";
+import { MailCheck, MapPinned, Plus } from "lucide-react";
 import Link from "next/link";
 import { addManualApplication } from "@/app/actions";
 import { ReviewQueue } from "@/components/email/ReviewQueue";
@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { getReviewItems } from "@/lib/email/review";
 import { getDictionary } from "@/lib/i18n";
 import { emailSyncStrings } from "@/lib/i18n/email-sync";
+import { jobsMapStrings } from "@/lib/i18n/jobs-map";
 import { requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export default async function DashboardPage() {
   const user = await requireUser();
   const { t, locale } = await getDictionary();
   const es = emailSyncStrings[locale];
+  const ms = jobsMapStrings(locale);
   const [apps, contacts, review] = await Promise.all([
     db.application.findMany({
       where: { userId: user.id },
@@ -91,6 +93,16 @@ export default async function DashboardPage() {
             {review.length}
           </span>
         )}
+      </Link>
+      <Link
+        href="/settings/places"
+        className="bg-card hover:bg-muted/60 flex min-h-12 items-center gap-3 rounded-lg border px-4 py-2 transition-colors"
+      >
+        <MapPinned className="text-primary size-5 shrink-0" aria-hidden />
+        <span className="flex min-w-0 flex-col">
+          <span className="font-semibold">{ms.placesTitle}</span>
+          <span className="text-muted-foreground truncate text-xs">{ms.setPlaceHint}</span>
+        </span>
       </Link>
 
       {review.length > 0 && (

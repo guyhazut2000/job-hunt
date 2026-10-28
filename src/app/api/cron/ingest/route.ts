@@ -1,6 +1,7 @@
 import type { AtsProvider } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
+import { geocodeJobs } from "@/lib/geo/backfill";
 import { ingestAllDetailed } from "@/lib/ingestion/run";
 import { resolvePendingLinkedinJobs } from "@/lib/linkedin/resolve";
 
@@ -43,6 +44,8 @@ async function handle(req: Request) {
     deferred: results.reduce((n, r) => n + (r.deferred ?? 0), 0),
     // Small capped batch of exact LinkedIn posting lookups (Brave); never fails the ingest.
     linkedin: await resolvePendingLinkedinJobs().catch(() => null),
+    // Jobs-map points for new / moved postings (offline gazetteer); never fails the ingest.
+    geocode: await geocodeJobs().catch(() => null),
   };
   return NextResponse.json({ summary, results });
 }
