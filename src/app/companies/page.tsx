@@ -187,16 +187,18 @@ export default async function CompaniesPage({
                             {meta && (
                               <TruncatedText text={meta} side="bottom" className="text-muted-foreground text-sm" />
                             )}
+                            {/* Under the name, not beside it: a side badge squeezed names until single words split. */}
+                            {manual && (
+                              <Badge
+                                variant="outline"
+                                title={t.companies.manualBadgeHint}
+                                className="border-primary/50 text-primary mt-1 self-start"
+                              >
+                                {t.companies.manualBadge}
+                              </Badge>
+                            )}
                           </span>
-                          {manual ? (
-                            <Badge
-                              variant="outline"
-                              title={t.companies.manualBadgeHint}
-                              className="border-primary/50 text-primary shrink-0"
-                            >
-                              {t.companies.manualBadge}
-                            </Badge>
-                          ) : (
+                          {!manual && (
                             <span className="flex shrink-0 flex-col items-end gap-1 text-end">
                               <span
                                 className={

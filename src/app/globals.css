@@ -144,8 +144,10 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    /* Long URLs, emails or unbroken tokens (job descriptions, titles, CV text) must wrap, never clip. */
-    overflow-wrap: anywhere;
+    /* Break inside a word only when that word alone can't fit its line. `anywhere` here made every
+       shrinking flex item (nav links, badges, buttons) split words letter-by-letter. Containers that
+       hold long URLs, emails or tokens (job descriptions, drafts, links) opt in with `wrap-anywhere`. */
+    overflow-wrap: break-word;
     /* faint newsprint grain */
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.16 0 0 0 0 0.1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
@@ -157,6 +159,7 @@
   pre,
   code {
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
   h1,
   h2,
