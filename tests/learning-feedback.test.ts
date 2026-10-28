@@ -139,3 +139,14 @@ describe("role roadmap", () => {
     expect(r.nextId).toBeNull();
   });
 });
+
+describe("track order", () => {
+  it("keeps the curated order when prerequisites allow it", () => {
+    const fs = TRACKS.find((t) => t.id === "fullstack")!;
+    const order = trackOrder(fs.skills);
+    expect(order[0]).toBe("git");
+    const pos = new Map(order.map((id, i) => [id, i]));
+    for (const id of order)
+      for (const p of GRAPH.byId.get(id)!.prerequisites) if (pos.has(p)) expect(pos.get(p)!).toBeLessThan(pos.get(id)!);
+  });
+});

@@ -327,9 +327,8 @@ export const TRACKS: { id: string; skills: string[] }[] = [
   { id: "embedded", skills: ["cpp", "linux", "rtos", "verilog", "systemverilog"] },
 ];
 
+/** Track skills in prerequisite order; among ready skills the curated track order wins. */
 export function trackOrder(skills: string[], g: Graph = GRAPH): string[] {
-  return topoSort(
-    skills.filter((s) => g.byId.has(s)),
-    g,
-  );
+  const ids = skills.filter((s) => g.byId.has(s));
+  return topoSort(ids, g, (id) => -ids.indexOf(id));
 }
