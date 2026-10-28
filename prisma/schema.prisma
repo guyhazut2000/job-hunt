@@ -432,6 +432,9 @@ model IngestionRun {
   updated     Int         @default(0)
   deactivated Int         @default(0)
   error       String?
+
+  /// "Last scan" indicator on /jobs (src/lib/ingestion/last-scan-server.ts).
+  @@index([finishedAt])
 }
 
 /// People search (docs/people-search.md): Brave web-search results for `site:linkedin.com/in` queries.

@@ -47,6 +47,11 @@ import { getCommuteTimes } from "@/lib/commute/service";
 import { companyGeoSelect } from "@/lib/geo/job-points";
 import { buildMarkers } from "@/lib/geo/map-markers";
 import { fillN, jobsMapStrings } from "@/lib/i18n/jobs-map";
+import { LastScanIndicator } from "@/components/LastScanIndicator";
+import { lastScanStrings } from "@/lib/i18n/last-scan";
+import { formatRelative, nextScheduledScan, scanStatus } from "@/lib/ingestion/last-scan";
+import { lastScanSafe } from "@/lib/ingestion/last-scan-server";
+import { formatDateTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Jobs" };
@@ -64,11 +69,14 @@ export default async function JobsPage({
   const parsed = parseFilters(params);
   const isMap = parsed.view === "map";
   // Commute origin: ad-hoc rounded point, a saved place, or (map view) the default saved place.
-  const [profile, origin, savedPlaces] = await Promise.all([
+  const [profile, origin, savedPlaces, lastScan] = await Promise.all([
     userId ? db.profile.findUnique({ where: { userId } }) : null,
     resolveOrigin(parsed, userId, isMap),
     listSavedPlaces(userId),
+    lastScanSafe(),
   ]);
+  const now = new Date();
+  const nextScan = nextScheduledScan(now);
   const filters: JobFilters = {
     ...parsed,
     from: origin?.source === "here" ? parsed.from : undefined,
@@ -332,16 +340,27 @@ export default async function JobsPage({
               {t.jobs.title}
             </h1>
           </div>
-          <p className="text-muted-foreground text-sm" aria-live="polite" data-testid="result-count">
-            <span className="text-foreground font-mono font-medium">{total.toLocaleString()}</span> {t.jobs.results}
-            {filters.q && (
-              <>
-                {" "}
-                <span dir="auto">{fillQ(ss.resultsFor, filters.q)}</span>
-              </>
-            )}{" "}
-            · {s.sorts[sort]}
-          </p>
+          <div className="flex flex-col items-start gap-0.5 sm:items-end">
+            <p className="text-muted-foreground text-sm" aria-live="polite" data-testid="result-count">
+              <span className="text-foreground font-mono font-medium">{total.toLocaleString()}</span> {t.jobs.results}
+              {filters.q && (
+                <>
+                  {" "}
+                  <span dir="auto">{fillQ(ss.resultsFor, filters.q)}</span>
+                </>
+              )}{" "}
+              · {s.sorts[sort]}
+            </p>
+            <LastScanIndicator
+              scan={lastScan}
+              s={lastScanStrings(locale)}
+              locale={t.dateLocale}
+              initialRelative={lastScan ? formatRelative(lastScan.finishedAt, t.dateLocale, now) : ""}
+              initialStatus={lastScan ? scanStatus(lastScan, now) : "stale"}
+              exactTime={lastScan ? formatDateTime(new Date(lastScan.finishedAt), t.dateLocale) : ""}
+              nextTime={nextScan ? formatDateTime(nextScan, t.dateLocale) : null}
+            />
+          </div>
         </header>
 
         <SearchBox s={ss.jobs} suggestions={suggestions} testId="jobs-search" />

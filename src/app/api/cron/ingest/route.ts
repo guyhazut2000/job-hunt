@@ -1,7 +1,9 @@
 import type { AtsProvider } from "@prisma/client";
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
 import { geocodeJobs } from "@/lib/geo/backfill";
+import { LAST_SCAN_TAG } from "@/lib/ingestion/last-scan";
 import { ingestAllDetailed } from "@/lib/ingestion/run";
 import { resolvePendingLinkedinJobs } from "@/lib/linkedin/resolve";
 
@@ -33,6 +35,12 @@ async function handle(req: Request) {
     : undefined;
   if (param && !providers?.length) return NextResponse.json({ error: "unknown provider" }, { status: 400 });
   const { results, skipped } = await ingestAllDetailed({ providers, timeBudgetMs: TIME_BUDGET_MS });
+  // Refresh the "last scan" indicator on /jobs right away instead of after its 5-minute cache.
+  try {
+    revalidateTag(LAST_SCAN_TAG);
+  } catch {
+    // outside a Next request context (scripts/tests) — nothing to revalidate
+  }
   const summary = {
     providers: providers ?? "all",
     companies: results.length,
