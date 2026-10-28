@@ -698,6 +698,8 @@ model SavedPlace {
 
 /// Travel-time cache: (rounded origin, destination point, mode, departure bucket) -> seconds.
 /// `seconds` null = no route found (cached too, so we do not ask again).
+/// mode: "car" | "transit" (matrix rows) or "transit-route" (one itinerary with legs in `route`).
+/// Legacy "bus" / "train" rows (pre combined transit) are no longer read and simply expire.
 model CommuteCache {
   id         String   @id @default(cuid())
   originKey  String
@@ -706,6 +708,8 @@ model CommuteCache {
   timeBucket String
   seconds    Int?
   transfers  Int?
+  /// "transit-route" rows: TransitRoute JSON (legs, transfers, walking, times); null = no itinerary.
+  route      Json?
   provider   String
   fetchedAt  DateTime @default(now())
   expiresAt  DateTime

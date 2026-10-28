@@ -17,7 +17,7 @@ const en = {
   savedPlaces: "Saved places",
   managePlaces: "Manage saved places",
   mode: "Travel by",
-  modes: { car: "Car", bus: "Bus", train: "Train" },
+  modes: { car: "Car", transit: "Public transport" },
   anyMode: "Fastest",
   departure: "Leaving",
   days: { "sun-thu": "Sun–Thu", fri: "Friday", sat: "Saturday" },
@@ -29,6 +29,15 @@ const en = {
   noRoute: "No route",
   estimate: "estimate",
   estimateNote: "Estimated from distance — live routing was unavailable.",
+  estimateNoRoute: "No timetable route found for this departure — estimated from distance.",
+  route: "Route",
+  legArrow: "→",
+  legs: { walk: "Walk", bus: "Bus", rail: "Train", light_rail: "Light rail", subway: "Metro", other: "Transit" },
+  walking: "{t} walking",
+  departArrive: "Leave {dep} · arrive {arr}",
+  routeLoading: "Finding a route…",
+  routeUnavailable: "Route details are unavailable right now.",
+  noItinerary: "No timetable route found for this departure — the time shown is an estimate.",
   trafficNote: "Car: free-flow time – typical traffic for the chosen hour.",
   transfers: "{n} transfers",
   transfer1: "1 transfer",
@@ -118,7 +127,7 @@ const he: JobsMapStrings = {
   savedPlaces: "מקומות שמורים",
   managePlaces: "ניהול מקומות שמורים",
   mode: "אמצעי תחבורה",
-  modes: { car: "רכב", bus: "אוטובוס", train: "רכבת" },
+  modes: { car: "רכב", transit: "תחבורה ציבורית" },
   anyMode: "הכי מהיר",
   departure: "יציאה",
   days: { "sun-thu": "א׳–ה׳", fri: "שישי", sat: "שבת" },
@@ -130,6 +139,15 @@ const he: JobsMapStrings = {
   noRoute: "אין מסלול",
   estimate: "הערכה",
   estimateNote: "הערכה לפי מרחק — חישוב המסלולים לא היה זמין.",
+  estimateNoRoute: "לא נמצא מסלול בלוח הזמנים לשעת היציאה — הערכה לפי מרחק.",
+  route: "מסלול",
+  legArrow: "←",
+  legs: { walk: "הליכה", bus: "אוטובוס", rail: "רכבת", light_rail: "רכבת קלה", subway: "מטרו", other: "תח״צ" },
+  walking: "הליכה {t}",
+  departArrive: "יציאה {dep} · הגעה {arr}",
+  routeLoading: "מחפש מסלול…",
+  routeUnavailable: "פרטי המסלול לא זמינים כרגע.",
+  noItinerary: "לא נמצא מסלול בלוח הזמנים לשעת היציאה — הזמן המוצג הוא הערכה.",
   trafficNote: "רכב: זמן ללא עומסים – עם עומס טיפוסי לשעה שנבחרה.",
   transfers: "{n} החלפות",
   transfer1: "החלפה אחת",
@@ -199,6 +217,17 @@ const he: JobsMapStrings = {
 
 export function jobsMapStrings(locale: Locale): JobsMapStrings {
   return locale === "he" ? he : en;
+}
+
+/** "אוטובוס 18 → רכבת" style summary of the transit legs (walks omitted). */
+export function legsSummary(
+  legs: { kind: keyof JobsMapStrings["legs"]; line?: string }[],
+  s: Pick<JobsMapStrings, "legs" | "legArrow">,
+): string {
+  return legs
+    .filter((l) => l.kind !== "walk")
+    .map((l) => (l.line ? `${s.legs[l.kind]} ${l.line}` : s.legs[l.kind]))
+    .join(` ${s.legArrow} `);
 }
 
 export const fillN = (s: string, vars: Record<string, string | number>) =>

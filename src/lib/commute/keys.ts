@@ -3,9 +3,20 @@
  * Pure functions, unit-tested in tests/commute.test.ts.
  */
 
-export const MODES = ["car", "bus", "train"] as const;
+/**
+ * "transit" = any public transport (bus, train, light rail, …) combined, with transfers and
+ * walking at both ends. It replaced the separate single-mode "bus" / "train" options, which
+ * couldn't combine e.g. a bus to the station and then a train, and so often found no route.
+ */
+export const MODES = ["car", "transit"] as const;
 export type CommuteMode = (typeof MODES)[number];
 export const isMode = (s: string | null | undefined): s is CommuteMode => MODES.includes(s as CommuteMode);
+
+/** URL `cmode` -> mode. Old links with `bus` / `train` map to the combined transit mode. */
+export function parseMode(s: string | null | undefined): CommuteMode | undefined {
+  if (s === "bus" || s === "train") return "transit";
+  return isMode(s) ? s : undefined;
+}
 
 /** Grid step for origins: 0.002° ≈ 220 m (lat) / 190 m (lng at 32°N). */
 export const ORIGIN_GRID = 0.002;

@@ -337,6 +337,25 @@
   box-shadow: 0 -12px 16px -12px color-mix(in oklch, var(--foreground) 28%, transparent);
 }
 
+/* Jobs map controls: comfortable 40px tap targets for zoom +/- (MapLibre default is 29px). */
+[data-testid="jobs-map"] .maplibregl-ctrl-top-left .maplibregl-ctrl {
+  margin: 10px 0 0 10px;
+}
+[data-testid="jobs-map"] .maplibregl-ctrl-group button {
+  width: 40px;
+  height: 40px;
+}
+[data-testid="jobs-map"] .maplibregl-ctrl-group button + button {
+  border-top-width: 1px;
+}
+/* Below lg the closed bottom sheet (~44px) covers the map's bottom edge: lift the attribution. */
+@media (width < 64rem) {
+  [data-testid="jobs-map"] .maplibregl-ctrl-bottom-right,
+  [data-testid="jobs-map"] .maplibregl-ctrl-bottom-left {
+    bottom: 48px;
+  }
+}
+
 /* Jobs map: commute origin marker (pulsing dot). */
 .jobs-map-origin {
   width: 18px;

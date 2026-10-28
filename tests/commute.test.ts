@@ -82,28 +82,29 @@ describe("nextDeparture (Israel time)", () => {
 });
 
 describe("estimate fallback", () => {
-  it("is slower by bus than by car and labelled as an estimate", () => {
+  it("is slower by public transport than by car and labelled as an estimate", () => {
     const o = { lat: 32.0731, lng: 34.7925 };
     const d = { lat: 32.1623, lng: 34.8065 };
     const car = estimateCommute(o, d, "car", DEFAULT_DEPARTURE);
-    const bus = estimateCommute(o, d, "bus", DEFAULT_DEPARTURE);
+    const bus = estimateCommute(o, d, "transit", DEFAULT_DEPARTURE);
     expect(car.source).toBe("estimate");
+    expect(car.estimateReason).toBe("unavailable");
+    expect(estimateCommute(o, d, "transit", DEFAULT_DEPARTURE, "no-route").estimateReason).toBe("no-route");
     expect(car.seconds!).toBeGreaterThan(5 * 60);
     expect(bus.seconds!).toBeGreaterThan(car.seconds!);
   });
 });
 
-const r = (car: number | null, bus: number | null, train?: number | null): CommuteResult => ({
+const r = (car: number | null, transit: number | null): CommuteResult => ({
   car: { seconds: car, source: "transitous" },
-  bus: { seconds: bus, source: "transitous" },
-  ...(train === undefined ? {} : { train: { seconds: train, source: "transitous" as const } }),
+  transit: { seconds: transit, source: "transitous" },
 });
 
 describe("commute filter & sort", () => {
   const times = new Map<string, CommuteResult>([
-    ["hub:herzliya", r(1200, 2400, 1800)],
-    ["hub:haifa", r(5400, 7200, 6000)],
-    ["hub:tel-aviv", r(600, 900, null)],
+    ["hub:herzliya", r(1200, 1800)],
+    ["hub:haifa", r(5400, 6000)],
+    ["hub:tel-aviv", r(600, null)],
   ]);
   const jobs = [
     { id: "a", places: ["hub:haifa"] },
@@ -114,13 +115,13 @@ describe("commute filter & sort", () => {
 
   it("uses a multi-city job's fastest place and the chosen mode", () => {
     expect(jobCommuteSeconds(["hub:herzliya", "hub:haifa"], times)).toBe(1200);
-    expect(jobCommuteSeconds(["hub:herzliya", "hub:haifa"], times, "bus")).toBe(2400);
-    expect(jobCommuteSeconds(["hub:tel-aviv"], times, "train")).toBeNull();
+    expect(jobCommuteSeconds(["hub:herzliya", "hub:haifa"], times, "transit")).toBe(1800);
+    expect(jobCommuteSeconds(["hub:tel-aviv"], times, "transit")).toBeNull();
     expect(jobCommuteSeconds([], times)).toBeNull();
   });
 
   it("drops jobs over the max (and jobs with no route) and sorts unknowns last", () => {
-    const secs = (j: (typeof jobs)[number]) => jobCommuteSeconds(j.places, times, "train");
+    const secs = (j: (typeof jobs)[number]) => jobCommuteSeconds(j.places, times, "transit");
     expect(filterByCommute(jobs, secs, 45).map((j) => j.id)).toEqual(["b"]);
     expect(filterByCommute(jobs, secs, null)).toHaveLength(4);
     const all = (j: (typeof jobs)[number]) => jobCommuteSeconds(j.places, times);
@@ -130,16 +131,25 @@ describe("commute filter & sort", () => {
   it("mergeBest keeps the fastest value per mode", () => {
     const m = mergeBest([r(1200, null), r(1500, 2000), undefined]);
     expect(m.car?.seconds).toBe(1200);
-    expect(m.bus?.seconds).toBe(2000);
+    expect(m.transit?.seconds).toBe(2000);
+  });
+
+  it("mergeBest prefers a routed value over a faster distance estimate", () => {
+    const est: CommuteResult = { transit: { seconds: 900, source: "estimate", estimateReason: "no-route" } };
+    expect(mergeBest([est, r(1200, 3000)]).transit).toEqual({ seconds: 3000, source: "transitous" });
+    expect(mergeBest([est, r(1200, null)]).transit?.source).toBe("estimate");
   });
 });
 
 describe("map filters", () => {
   it("parses map/origin params and rounds ad-hoc points", () => {
-    const f = parseFilters({ view: "map", from: "32.07312,34.79251", cmode: "bus", maxc: "45", dep: "fri-0900" });
+    const f = parseFilters({ view: "map", from: "32.07312,34.79251", cmode: "transit", maxc: "45", dep: "fri-0900" });
     expect(f.view).toBe("map");
     expect(f.from).toBe("32.074,34.792");
-    expect(f.cmode).toBe("bus");
+    expect(f.cmode).toBe("transit");
+    // Old links with the removed single-mode options map to combined public transport.
+    expect(parseFilters({ cmode: "bus" }).cmode).toBe("transit");
+    expect(parseFilters({ cmode: "train" }).cmode).toBe("transit");
     expect(f.maxc).toBe(45);
     expect(f.dep).toBe("fri-0900");
   });
