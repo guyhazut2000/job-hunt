@@ -23,13 +23,13 @@ export function PrefsForm({ prefs, s }: { prefs: EffectivePrefs; s: Notification
           {s.whatWhere}
         </h2>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[30rem] text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="text-muted-foreground border-b text-start text-xs">
                 <th scope="col" className="py-2 text-start font-semibold">
                   {s.kindCol}
                 </th>
-                <th scope="col" className="px-2 py-2 font-semibold">
+                <th scope="col" className="px-1 py-2 font-semibold whitespace-nowrap sm:px-2">
                   {s.inSite}
                 </th>
                 {EXTERNAL_CHANNELS.map((ch) => (
@@ -46,7 +46,7 @@ export function PrefsForm({ prefs, s }: { prefs: EffectivePrefs; s: Notification
                     <span className="block font-semibold">{s.kinds[kind]}</span>
                     <span className="text-muted-foreground block text-xs">{s.kindHints[kind]}</span>
                   </th>
-                  <td className="px-2 text-center">
+                  <td className="px-1 text-center sm:px-2">
                     <input
                       type="checkbox"
                       checked
@@ -56,7 +56,7 @@ export function PrefsForm({ prefs, s }: { prefs: EffectivePrefs; s: Notification
                     />
                   </td>
                   {EXTERNAL_CHANNELS.map((ch) => (
-                    <td key={ch} className="px-2 text-center">
+                    <td key={ch} className="px-1 text-center sm:px-2">
                       <input
                         type="checkbox"
                         name={`ch.${kind}.${ch}`}
