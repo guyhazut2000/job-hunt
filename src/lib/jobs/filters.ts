@@ -7,7 +7,7 @@ import { MAX_COMMUTE_OPTIONS } from "../commute/filter";
 import {
   type CommuteMode as Mode,
   departureKey,
-  isMode,
+  parseMode,
   parseDeparture,
   parseLatLng,
   roundOrigin,
@@ -118,7 +118,7 @@ export function parseFilters(params: Params): JobFilters {
     view: one(params.view) === "map" ? "map" : undefined,
     from: parseFrom(text(params.from)),
     origin: /^([a-z0-9]{8,40}|none)$/i.test(one(params.origin) ?? "") ? one(params.origin) : undefined,
-    cmode: isMode(one(params.cmode) ?? "") ? (one(params.cmode) as Mode) : undefined,
+    cmode: parseMode(one(params.cmode)),
     maxc: (MAX_COMMUTE_OPTIONS as readonly number[]).includes(maxc) ? maxc : undefined,
     dep: parseDep(one(params.dep)),
   };

@@ -12,15 +12,22 @@ export function haversineKm(a: LatLng, b: LatLng): number {
 }
 
 /**
- * Rough fallback when no routing provider answers: road distance ≈ 1.3 × straight line, average
- * door-to-door speeds of ~50 km/h by car, ~20 km/h by bus and ~30 km/h by train (incl. access and
- * waiting). Always labelled "estimate" in the UI.
+ * Rough fallback when routing can't answer: road distance ≈ 1.3 × straight line, average
+ * door-to-door speeds of ~50 km/h by car and ~22 km/h by public transport (bus + train mix,
+ * incl. walking, waiting and transfers). Always labelled "estimate" in the UI.
  */
-export function estimateCommute(origin: LatLng, dest: LatLng, mode: CommuteMode, dep: Departure): CommuteValue {
+export function estimateCommute(
+  origin: LatLng,
+  dest: LatLng,
+  mode: CommuteMode,
+  dep: Departure,
+  reason: NonNullable<CommuteValue["estimateReason"]> = "unavailable",
+): CommuteValue {
   const km = haversineKm(origin, dest) * 1.3;
-  const speeds: Record<CommuteMode, number> = { car: 50, bus: 20, train: 30 };
-  const fixed: Record<CommuteMode, number> = { car: 5, bus: 12, train: 20 };
+  const speeds: Record<CommuteMode, number> = { car: 50, transit: 22 };
+  const fixed: Record<CommuteMode, number> = { car: 5, transit: 15 };
   const seconds = Math.round((km / speeds[mode]) * 3600 + fixed[mode] * 60);
-  if (mode === "car") return { seconds, peakSeconds: Math.round(seconds * trafficFactor(dep)), source: "estimate" };
-  return { seconds, source: "estimate" };
+  const base: CommuteValue = { seconds, source: "estimate", estimateReason: reason };
+  if (mode === "car") base.peakSeconds = Math.round(seconds * trafficFactor(dep));
+  return base;
 }

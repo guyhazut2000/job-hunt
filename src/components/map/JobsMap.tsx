@@ -13,6 +13,7 @@ import { fillN, formatDuration, type JobsMapStrings } from "@/lib/i18n/jobs-map"
 import { cn } from "@/lib/utils";
 import { DomainBadge } from "../DomainBadge";
 import { CommuteChips } from "./CommuteChips";
+import { TransitRouteLazy } from "./TransitRouteLazy";
 import { roundedFrom } from "./CommuteBar";
 import { useQueryUpdate } from "./useQueryUpdate";
 
@@ -26,6 +27,8 @@ export interface JobsMapProps {
   s: JobsMapStrings;
   locale: "en" | "he";
   cmode?: string;
+  /** Departure slot from the URL (e.g. "fri-0900"); undefined = default. */
+  dep?: string;
   remote: number;
   unmapped: number;
   estimated: boolean;
@@ -41,6 +44,7 @@ export function JobsMap({
   s,
   locale,
   cmode,
+  dep,
   remote,
   unmapped,
   estimated,
@@ -347,7 +351,7 @@ export function JobsMap({
       </div>
       <ul className="min-h-0 flex-1 divide-y overflow-y-auto overscroll-contain">
         {panelMarkers.length === 0 && <li className="text-muted-foreground p-4 text-sm">{s.noMapped}</li>}
-        {panelMarkers.slice(0, 80).map((m) => (
+        {panelMarkers.slice(0, 80).map((m, i) => (
           <li key={m.id} className="flex flex-col gap-1.5 px-3 py-3">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -370,6 +374,14 @@ export function JobsMap({
               )}
             </div>
             {m.commute && <CommuteChips commute={m.commute} s={s} active={mode} size="sm" />}
+            {/* Leg breakdown (bus → train …) for the first few offices of a tapped marker / cluster. */}
+            {selected &&
+              origin &&
+              i < 3 &&
+              m.commute?.transit?.source === "transitous" &&
+              m.commute.transit.seconds != null && (
+                <TransitRouteLazy from={origin} to={m.dest} dep={dep} s={s} locale={locale} />
+              )}
             <ul className="flex flex-col gap-0.5">
               {m.jobs.slice(0, selected ? 12 : 4).map((j) => (
                 <li key={j.id} className="flex items-center justify-between gap-2 text-sm">
@@ -412,6 +424,7 @@ export function JobsMap({
         full ? "fixed inset-0 z-50 rounded-none border-0" : "h-[calc(100dvh-9rem)] min-h-[28rem] lg:h-[70vh]",
       )}
       data-testid="jobs-map"
+      data-sheet={sheetOpen ? "open" : "closed"}
     >
       <div className="relative min-w-0 flex-1">
         <div ref={containerRef} className="size-full" dir="ltr" role="region" aria-label={s.mapLabel} />
@@ -423,12 +436,13 @@ export function JobsMap({
             {s.mapError}
           </div>
         )}
-        <div className="absolute end-2 top-2 flex flex-col gap-2">
+        {/* Physical sides on purpose (map canvas is LTR): zoom +/- is top-left, fullscreen top-right. */}
+        <div className="absolute top-2.5 right-2.5 z-[2] flex flex-col gap-2" data-testid="map-controls-right">
           <Button
             type="button"
             variant="secondary"
             size="icon"
-            className="shadow"
+            className="size-10 shadow"
             onClick={() => setFull((v) => !v)}
             aria-label={full ? s.close : s.viewMap}
             aria-pressed={full}
@@ -438,7 +452,7 @@ export function JobsMap({
           </Button>
         </div>
         {picking && (
-          <div className="bg-foreground text-background absolute inset-x-2 top-2 me-12 flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm shadow">
+          <div className="bg-foreground text-background absolute top-2.5 right-16 left-16 z-[2] flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm shadow">
             <span className="inline-flex items-center gap-2">
               <Crosshair className="size-4" aria-hidden />
               {s.pickOnMapHint}
@@ -455,7 +469,10 @@ export function JobsMap({
             </button>
           </div>
         )}
-        <div className="pointer-events-none absolute start-2 bottom-8 hidden flex-col gap-1 rounded bg-white/85 px-2 py-1 text-xs text-black shadow lg:flex dark:bg-black/70 dark:text-white">
+        <div
+          className="pointer-events-none absolute top-[6.75rem] left-2.5 hidden flex-col gap-1 rounded bg-white/85 px-2 py-1 text-xs text-black shadow empty:hidden lg:flex dark:bg-black/70 dark:text-white"
+          data-testid="map-legend"
+        >
           {origin && (
             <span className="flex flex-wrap gap-x-2">
               <span style={{ color: COLORS.fast }}>● ≤30</span>

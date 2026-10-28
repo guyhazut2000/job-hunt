@@ -5,7 +5,10 @@ import { type CommuteMode, type Departure, type LatLng, MODES, destKey } from ".
 import { getCommuteTimes } from "./service";
 import type { CommuteResult } from "./types";
 
-/** Per-mode best value over several places (a multi-city job's commute is its closest office). */
+/**
+ * Per-mode best value over several places (a multi-city job's commute is its closest office).
+ * A routed value beats a distance estimate; otherwise the faster one wins.
+ */
 export function mergeBest(results: (CommuteResult | undefined)[]): CommuteResult {
   const out: CommuteResult = {};
   for (const mode of MODES) {
@@ -13,7 +16,10 @@ export function mergeBest(results: (CommuteResult | undefined)[]): CommuteResult
       const v = r?.[mode];
       if (!v) continue;
       const cur = out[mode];
-      if (!cur || (v.seconds != null && (cur.seconds == null || v.seconds < cur.seconds))) out[mode] = v;
+      const routed = (x: typeof v) => x.source === "transitous" && x.seconds != null;
+      if (!cur || (routed(v) && !routed(cur))) out[mode] = v;
+      else if (routed(v) === routed(cur) && v.seconds != null && (cur.seconds == null || v.seconds < cur.seconds))
+        out[mode] = v;
     }
   }
   return out;

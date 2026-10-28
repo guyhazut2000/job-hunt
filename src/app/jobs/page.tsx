@@ -516,6 +516,7 @@ export default async function JobsPage({
               s={ms}
               locale={locale}
               cmode={filters.cmode}
+              dep={filters.dep}
               remote={map.remote}
               unmapped={map.unmapped}
               estimated={estimated}

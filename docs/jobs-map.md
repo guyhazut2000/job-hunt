@@ -2,27 +2,27 @@
 
 `/jobs?view=map` shows every non-remote job that matches the current filters and `?q=` on a map,
 grouped by office and clustered. You can set an origin (your current location or a saved place),
-and the list, the map and each job page then show **car / bus / train** travel times. Those times
+and the list, the map and each job page then show **car / public transport** travel times. Public transport ("תחבורה ציבורית") is one combined mode: buses, trains and light rail with transfers and walking at both ends. Those times
 drive the `maxc` (max commute) filter and the `sort=commute` sort.
 
 Everything runs on free providers that need no API key. Guy doesn't have to set any env var.
 
 ## UI
 
-| Where              | What                                                                                                                                                                                                                                                                         |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/jobs`            | List / Map toggle (`view=map`). The commute bar sets origin, mode, departure and max commute.                                                                                                                                                                                |
-| Map                | Clustered markers per office. Click a cluster or marker to open a side panel (bottom sheet on mobile) with company, place, commute chips and jobs with match %. Remote jobs are excluded and counted in a note. Hybrid jobs are shown. Jobs with no known place are counted. |
-| `/jobs/[id]`       | Car/bus/train chips from your default saved place (or `?from=lat,lng`), plus a "show on map" link.                                                                                                                                                                           |
-| `/settings/places` | Up to 10 saved addresses (home, partner, …). One is the default.                                                                                                                                                                                                             |
-| `/admin`           | "Company office" form: set an exact office address (geocoded), which overrides the city centre.                                                                                                                                                                              |
+| Where              | What                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/jobs`            | List / Map toggle (`view=map`). The commute bar sets origin, mode, departure and max commute.                                                                                                                                                                                                                                                                                                                                                         |
+| Map                | Clustered markers per office. Click a cluster or marker to open a side panel (bottom sheet on mobile) with company, place, commute chips, the public-transport leg breakdown (first 3 offices) and jobs with match %. Zoom +/- sits top-left and fullscreen top-right (physical sides, 40px targets), the legend under the zoom control. Remote jobs are excluded and counted in a note. Hybrid jobs are shown. Jobs with no known place are counted. |
+| `/jobs/[id]`       | Car / public-transport chips from your default saved place (or `?from=lat,lng`), the leg breakdown (e.g. walk → bus 18 → train → walk, transfers, walking, leave/arrive), and a "show on map" link.                                                                                                                                                                                                                                                   |
+| `/settings/places` | Up to 10 saved addresses (home, partner, …). One is the default.                                                                                                                                                                                                                                                                                                                                                                                      |
+| `/admin`           | "Company office" form: set an exact office address (geocoded), which overrides the city centre.                                                                                                                                                                                                                                                                                                                                                       |
 
 ### URL params
 
 - `view=map`
 - `origin=<savedPlaceId|none>`
 - `from=<lat,lng>`: rounded to ~200 m in the browser
-- `cmode=car|bus|train`
+- `cmode=car|transit` (old `bus` / `train` links map to `transit`)
 - `maxc=15|30|45|60|90`: minutes, using the best mode or `cmode`
 - `dep=<sun-thu|fri|sat>-HHMM`: default `sun-thu-0830`
 - `sort=commute`
@@ -57,10 +57,14 @@ Everything runs on free providers that need no API key. Guy doesn't have to set 
 
 ## Routing (`src/lib/commute/`)
 
-- **Provider:** [Transitous](https://transitous.org) (MOTIS 2, `api.transitous.org/api/v1/one-to-many` and `/plan`).
-  - Israeli GTFS from the Ministry of Transport covers bus and train. Car routing uses the OSM street network.
+- **Provider:** [Transitous](https://transitous.org) (MOTIS 2). Israeli GTFS from the Ministry of Transport covers bus, train and light rail. Car routing uses the OSM street network.
+  - Car: `/api/v1/one-to-many?mode=CAR`.
+  - Public transport: `/api/experimental/one-to-many-intermodal` with `transitModes=TRANSIT` (all modes combined), `maxTransfers=4`, up to 25 min walking to the first stop and from the last (`maxPre/PostTransitTime=1500`), and a 5 h window (`maxTravelTime=300`). The duration counts from the departure time, so it includes waiting for the first trip.
+  - Leg breakdown: `/api/v5/plan` for one destination (earliest arrival, then fewer transfers), via `getTransitRoute` and `GET /api/commute/route?from&to&dep`. Only for destinations that already have a cached matrix row for that origin and bucket, so the public endpoint can't spend the budget on arbitrary points.
+- **Why not separate bus / train modes (before Oct 2026):** bus-only couldn't use a train and train-only had no bus feeder, and the 3 h window counted the wait, so about half the jobs showed "no route" by bus and ~80% by train.
 - **Batching:** one origin → many destinations per request (the destinations are company offices, de-duplicated).
 - **Cache:** `CommuteCache`, keyed by (origin rounded to ~200 m, destination point, mode, time bucket = day type + 30-minute slot).
+  - Modes: `car`, `transit` (matrix) and `transit-route` (itinerary JSON in `route`). Old `bus` / `train` rows are no longer read and expire on their own.
   - TTL: 30 days for car, 7 days for transit.
   - Bulk upserts.
 - **Limits:**
@@ -68,6 +72,7 @@ Everything runs on free providers that need no API key. Guy doesn't have to set 
   - Calls run in parallel batches with a 12 s timeout.
 - **Graceful degradation:**
   - Past the cap, on errors, or with `COMMUTE_PROVIDER=estimate`, distance-based estimates are used (`estimate.ts`, with peak factors). These are labelled "הערכה" / "estimate" in the UI.
+  - When the router finds no route (no service near the origin in the window), the job gets a distance estimate marked `≈` with a "no timetable route found" tooltip, never "unreachable". Routed values win over estimates when a multi-city job has both.
   - The page never fails because of routing.
 - **Car caveat:** Transitous car times are free-flow. The UI shows a range (`free-flow … × traffic factor` for the chosen departure; peak sun–thu 06:30–09:30 and 15:30–19:00 ×1.6, otherwise ×1.1–1.25). Treat it as a guide, not live traffic.
 - **Departure:** sun–thu / fri / sat at any 30-minute slot, 05:00–23:30, Israel time (DST-aware). The default is the next weekday at 08:30.
