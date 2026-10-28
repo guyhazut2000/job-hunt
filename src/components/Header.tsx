@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { getDictionary } from "@/lib/i18n";
 import { learningStrings } from "@/lib/i18n/learning";
+import { learningHubStrings } from "@/lib/i18n/learning-hub";
 import { Brand } from "./Brand";
 import { NavLinks, type NavLink } from "./NavLinks";
 
@@ -22,6 +23,7 @@ export async function Header() {
       ? [
           { href: "/dashboard", label: t.nav.dashboard, priority: "lg" as const },
           { href: "/profile", label: t.nav.profile, priority: "lg" as const },
+          { href: "/learn/me", label: learningHubStrings(locale).navMine, priority: "more" as const },
           { href: "/pricing", label: t.nav.pricing, priority: "more" as const },
         ]
       : [{ href: "/pricing", label: t.nav.pricing, priority: "lg" as const }]),
