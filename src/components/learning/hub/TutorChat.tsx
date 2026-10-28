@@ -160,7 +160,7 @@ export function TutorChat({
         aria-live="polite"
         aria-busy={busy}
         aria-label={t.tutorTitle}
-        className="flex max-h-[60vh] min-h-64 flex-col gap-3 overflow-y-auto overscroll-contain px-3 py-4 sm:px-4"
+        className="scroll-thin flex max-h-[60vh] min-h-64 flex-col gap-3 overflow-y-auto overscroll-contain px-3 py-4 sm:px-4"
       >
         {messages.length === 0 && (
           <div className="flex flex-col gap-3">

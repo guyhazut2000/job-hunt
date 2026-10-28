@@ -84,7 +84,7 @@ export function MobileNav({ user, labels, locale }: { user: { role: string } | n
             </SheetTrigger>
             <SheetContent
               side="bottom"
-              className="max-h-[88dvh] overflow-y-auto overscroll-contain rounded-t-xl pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+              className="scroll-thin max-h-[88dvh] overflow-y-auto overscroll-contain rounded-t-xl pb-[calc(env(safe-area-inset-bottom)+1rem)]"
             >
               <SheetHeader>
                 <SheetTitle className="font-heading text-lg">{labels.account}</SheetTitle>

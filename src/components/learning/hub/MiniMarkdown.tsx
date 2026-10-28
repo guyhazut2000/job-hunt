@@ -39,7 +39,7 @@ export function MiniMarkdown({ text }: { text: string }) {
             <pre
               key={bi}
               dir="ltr"
-              className="bg-foreground/[0.04] my-2 overflow-x-auto rounded-lg border p-3 font-mono text-[0.8rem] leading-relaxed"
+              className="bg-foreground/[0.04] scroll-thin my-2 overflow-x-auto rounded-lg border p-3 font-mono text-[0.8rem] leading-relaxed"
             >
               <code>{code}</code>
             </pre>

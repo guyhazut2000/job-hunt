@@ -88,7 +88,7 @@ export function LearnExplorer({
         <div
           role="group"
           aria-label={labels.filterLabel}
-          className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0"
+          className="scroll-chips -mx-4 flex gap-2 px-4 pb-1 sm:mx-0 sm:flex-wrap sm:[mask-image:none] sm:px-0"
         >
           <button type="button" aria-pressed={!cat} onClick={() => setCat(null)} className={chip(!cat)}>
             {labels.filterAll}

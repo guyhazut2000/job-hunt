@@ -86,7 +86,7 @@ export default async function CompaniesPage({
       <SearchBox s={ss.companies} resetParams={[]} testId="companies-search" className="-mt-2" />
 
       <nav aria-label={t.companies.filter} className="-mt-2">
-        <ul className="no-scrollbar flex gap-2 overflow-x-auto" data-company-filter>
+        <ul className="scroll-chips flex gap-2" data-company-filter>
           {filters.map((f) => {
             const active = f.key === filter;
             return (
