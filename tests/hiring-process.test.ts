@@ -529,6 +529,13 @@ describe("LLM pacer", () => {
     expect(got).toEqual([true, true, false]);
     expect(p.calls).toBe(2);
   });
+
+  it("refuses calls that would start after its deadline", async () => {
+    const p = new Pacer(5, 0);
+    p.deadline = Date.now() - 1;
+    expect(await p.take()).toBe(false);
+    expect(p.calls).toBe(0);
+  });
 });
 
 describe("i18n", () => {
