@@ -3,11 +3,13 @@
 import { useState, useTransition } from "react";
 import { Check, Lightbulb, MessageCircleQuestion, Target } from "lucide-react";
 import { savePractice } from "@/app/learn/hub-actions";
+import { AnswerFeedbackPanel, FeedbackButton, useAnswerFeedback } from "@/components/learning/hub/AnswerFeedbackPanel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fmt } from "@/lib/i18n/learning";
 import type { LearningHubStrings } from "@/lib/i18n/learning-hub";
 import type { Exercise } from "@/lib/learning/content";
+import type { StoredFeedback } from "@/lib/learning/feedback";
 import type { PracticeState } from "@/lib/learning/progress";
 import type { Stage } from "@/lib/learning/types";
 import { cn } from "@/lib/utils";
@@ -24,6 +26,7 @@ function ExerciseCard({
   skill,
   stage,
   initial,
+  prior,
   loggedIn,
   t,
   onAskTutor,
@@ -34,6 +37,7 @@ function ExerciseCard({
   skill: string;
   stage: Stage;
   initial?: { done: boolean; notes?: string };
+  prior?: StoredFeedback;
   loggedIn: boolean;
   t: LearningHubStrings;
   onAskTutor: (text: string) => void;
@@ -46,6 +50,7 @@ function ExerciseCard({
   const [hints, setHints] = useState(0);
   const [status, setStatus] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const fb = useAnswerFeedback({ skill, stage, kind: "exercise", itemId: ex.id, initial: prior, t });
 
   const persist = (nextDone: boolean, nextNotes?: string) =>
     start(async () => {
@@ -203,6 +208,12 @@ function ExerciseCard({
                 {t.saveWork}
               </Button>
             )}
+            <FeedbackButton
+              pending={fb.pending}
+              hasResult={!!fb.result}
+              t={t}
+              onClick={() => fb.check(notes, (r) => setSavedNotes(r.answer))}
+            />
             <Button
               type="button"
               variant="ghost"
@@ -216,6 +227,14 @@ function ExerciseCard({
               {status}
             </span>
           </div>
+          {fb.error && (
+            <p role="alert" className="text-destructive text-sm">
+              {fb.error}
+            </p>
+          )}
+          {fb.result && (
+            <AnswerFeedbackPanel result={fb.result} t={t} onFollowUp={(q) => onAskTutor(`${ex.title}\n\n${q}`)} />
+          )}
         </div>
       )}
     </article>
@@ -227,6 +246,7 @@ export function PracticeList({
   skill,
   stage,
   practice,
+  feedback = {},
   loggedIn,
   t,
   onAskTutor,
@@ -235,6 +255,7 @@ export function PracticeList({
   skill: string;
   stage: Stage;
   practice: PracticeState;
+  feedback?: Record<string, StoredFeedback>;
   loggedIn: boolean;
   t: LearningHubStrings;
   onAskTutor: (text: string) => void;
@@ -255,6 +276,7 @@ export function PracticeList({
           skill={skill}
           stage={stage}
           initial={practice[ex.id]}
+          prior={feedback[ex.id]}
           loggedIn={loggedIn}
           t={t}
           onAskTutor={onAskTutor}

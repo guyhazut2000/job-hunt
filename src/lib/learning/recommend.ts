@@ -49,7 +49,7 @@ export interface RecommendInput {
 export const ROLE_TRACKS: Record<string, string[]> = {
   backend: ["backend"],
   frontend: ["frontend"],
-  fullstack: ["frontend", "backend"],
+  fullstack: ["fullstack", "frontend", "backend"],
   devops: ["devops"],
   security: ["devops"],
   data: ["data"],

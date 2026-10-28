@@ -10,6 +10,7 @@ export type AiFeature =
   | "study_plan"
   | "learn_content"
   | "learn_regen"
+  | "learn_feedback"
   | "tutor_chat"
   | "hiring_process"
   | "chat";

@@ -318,14 +318,17 @@ export const TRACKS: { id: string; skills: string[] }[] = [
     skills: ["git", "sql", "postgresql", "python", "fastapi", "nodejs", "typescript", "redis", "docker", "kafka"],
   },
   { id: "frontend", skills: ["html-css", "javascript", "typescript", "react", "nextjs", "tailwind", "playwright"] },
+  {
+    id: "fullstack",
+    skills: ["git", "html-css", "javascript", "typescript", "react", "nextjs", "nodejs", "sql", "postgresql", "docker"],
+  },
   { id: "data", skills: ["sql", "python", "pandas", "spark", "airflow", "dbt", "snowflake"] },
   { id: "ml", skills: ["python", "pandas", "scikit-learn", "pytorch", "llm", "langchain"] },
   { id: "embedded", skills: ["cpp", "linux", "rtos", "verilog", "systemverilog"] },
 ];
 
+/** Track skills in prerequisite order; among ready skills the curated track order wins. */
 export function trackOrder(skills: string[], g: Graph = GRAPH): string[] {
-  return topoSort(
-    skills.filter((s) => g.byId.has(s)),
-    g,
-  );
+  const ids = skills.filter((s) => g.byId.has(s));
+  return topoSort(ids, g, (id) => -ids.indexOf(id));
 }

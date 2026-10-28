@@ -119,6 +119,7 @@ model User {
   chatThreads     ChatThread[]
   learningPrefs   LearningPrefs?
   hiringProcesses HiringProcess[]
+  answerFeedback  AnswerFeedback[]
 }
 
 model Profile {
@@ -1010,4 +1011,28 @@ model ChatMessage {
   createdAt DateTime   @default(now())
 
   @@index([threadId, createdAt])
+}
+
+/// AI (or offline) feedback on the user's own answer to a practice exercise or a Q&A question.
+/// One row per user × skill × stage × item; re-checking overwrites it. See docs/learning.md.
+model AnswerFeedback {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill     String
+  stage     String
+  /// "exercise" | "question"
+  kind      String
+  itemId    String
+  answer    String
+  /// Validated with answerFeedbackSchema (src/lib/learning/feedback.ts).
+  result    Json
+  /// "ai" | "offline" | "limited"
+  source    String
+  model     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, skill, stage, itemId])
+  @@index([userId, updatedAt])
 }

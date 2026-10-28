@@ -6,7 +6,16 @@ import { guardedLLM } from "@/lib/ai";
 import { aiConfig } from "@/lib/ai/config";
 import { db } from "@/lib/db";
 import { getLocale } from "@/lib/i18n";
+import type { AiLimitReason } from "@/lib/ai/errors";
 import { canUseLearningAi } from "@/lib/learning/ai";
+import {
+  ANSWER_MAX,
+  ANSWER_MIN,
+  FEEDBACK_KINDS,
+  type AnswerFeedback,
+  type FeedbackSource,
+} from "@/lib/learning/feedback";
+import { findFeedbackItem, gradeAnswer } from "@/lib/learning/feedback-server";
 import { GRAPH } from "@/lib/learning/graph";
 import { generateStageContent, REGEN_PER_STAGE, regenUsedThisMonth } from "@/lib/learning/hub";
 import { allStagesDone, nextReview, parsePractice } from "@/lib/learning/progress";
@@ -205,4 +214,61 @@ export async function regenerateStage(raw: { skill: string; stage: string }): Pr
   });
   revalidateLearning(node.id);
   return { ok: true };
+}
+
+const feedbackInput = z.object({
+  ...skillStage,
+  kind: z.enum(FEEDBACK_KINDS),
+  itemId: z.string().min(1).max(40),
+  answer: z.string().trim().min(ANSWER_MIN).max(ANSWER_MAX),
+});
+
+export type FeedbackResult =
+  | { ok: true; feedback: AnswerFeedback; source: FeedbackSource; reason?: AiLimitReason }
+  | { ok: false; error: "invalid" | "not_found" | "too_short" };
+
+/**
+ * Feedback on the user's own answer to one exercise or question of a stage. Goes through the
+ * shared AI guard (DB cache + per-user/global free-tier limits); falls back to an offline
+ * key-term check when the AI is off or limited. The latest result per item is stored.
+ */
+export async function reviewAnswer(raw: z.input<typeof feedbackInput>): Promise<FeedbackResult> {
+  const user = await requireUser();
+  const p = feedbackInput.safeParse(raw);
+  if (!p.success) {
+    const short = typeof raw?.answer === "string" && raw.answer.trim().length < ANSWER_MIN;
+    return { ok: false, error: short ? "too_short" : "invalid" };
+  }
+  const node = validNode(p.data.skill);
+  if (!node) return { ok: false, error: "invalid" };
+  const { skill, stage, kind, itemId, answer } = p.data;
+  const locale = await getLocale();
+  const item = await findFeedbackItem(node, stage, locale, kind, itemId);
+  if (!item) return { ok: false, error: "not_found" };
+
+  const r = await gradeAnswer(user.id, node, stage, item, answer, locale);
+  const data = {
+    kind,
+    answer,
+    result: r.feedback as unknown as Prisma.InputJsonValue,
+    source: r.source,
+    model: r.model,
+  };
+  await db.answerFeedback.upsert({
+    where: { userId_skill_stage_itemId: { userId: user.id, skill, stage, itemId } },
+    create: { userId: user.id, skill, stage, itemId, ...data },
+    update: data,
+  });
+  if (kind === "exercise") {
+    // The answer is the exercise's "my work" notes: keep them in sync.
+    const row = await db.stageProgress.findUnique({ where: { userId_skill_stage: { userId: user.id, skill, stage } } });
+    const practice = parsePractice(row?.practice);
+    practice[itemId] = { done: practice[itemId]?.done ?? false, notes: answer };
+    const entries = Object.entries(practice).slice(-30);
+    await touchStage(user.id, skill, stage, { practice: Object.fromEntries(entries) as Prisma.InputJsonValue });
+  } else {
+    await touchStage(user.id, skill, stage);
+  }
+  await ensureLearning(user.id, skill);
+  return { ok: true, feedback: r.feedback, source: r.source, ...(r.reason ? { reason: r.reason } : {}) };
 }

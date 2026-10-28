@@ -7,6 +7,7 @@ import type { LearningHubStrings } from "@/lib/i18n/learning-hub";
 import type { StageContentData } from "@/lib/learning/content";
 import type { PracticeState } from "@/lib/learning/progress";
 import { WORKSPACE_TABS, type Stage, type WorkspaceTab } from "@/lib/learning/types";
+import type { StoredFeedback } from "@/lib/learning/feedback";
 import { PracticeList } from "./PracticeList";
 import { QuestionDeck, type PriorRating } from "./QuestionDeck";
 import { TutorChat, type TutorMessage } from "./TutorChat";
@@ -18,6 +19,7 @@ export function StageWorkspace({
   content,
   practice,
   priors,
+  feedback,
   tutor,
   loggedIn,
   initialTab,
@@ -28,6 +30,7 @@ export function StageWorkspace({
   content: StageContentData;
   practice: PracticeState;
   priors: Record<string, PriorRating>;
+  feedback: Record<string, StoredFeedback>;
   tutor: { threadId: string | null; messages: TutorMessage[]; remaining: number | null; offline: boolean } | null;
   loggedIn: boolean;
   initialTab: WorkspaceTab;
@@ -69,6 +72,7 @@ export function StageWorkspace({
           skill={skill}
           stage={stage}
           practice={practice}
+          feedback={feedback}
           loggedIn={loggedIn}
           t={t}
           onAskTutor={(text) => {
@@ -83,6 +87,7 @@ export function StageWorkspace({
           skill={skill}
           stage={stage}
           priors={priors}
+          feedback={feedback}
           loggedIn={loggedIn}
           t={t}
         />
