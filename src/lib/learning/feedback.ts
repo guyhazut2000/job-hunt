@@ -30,6 +30,12 @@ export const answerFeedbackSchema = z.object({
 });
 export type AnswerFeedback = z.infer<typeof answerFeedbackSchema>;
 export type FeedbackSource = "ai" | "offline" | "limited";
+/** Latest stored feedback for one item, as passed to the stage page. */
+export interface StoredFeedback {
+  answer: string;
+  feedback: AnswerFeedback;
+  source: FeedbackSource;
+}
 
 export interface FeedbackItem {
   kind: FeedbackKind;

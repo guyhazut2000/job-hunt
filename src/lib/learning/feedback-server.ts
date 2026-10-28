@@ -15,6 +15,7 @@ import {
   type FeedbackItem,
   type FeedbackKind,
   type FeedbackSource,
+  type StoredFeedback,
 } from "./feedback";
 import { fallbackContent } from "./hub";
 import type { SkillNode, Stage } from "./types";
@@ -76,7 +77,7 @@ export async function gradeAnswer(
 /** Stored feedback for one stage, keyed by item id (invalid rows are skipped). */
 export async function stageFeedback(userId: string, skill: string, stage: Stage) {
   const rows = await db.answerFeedback.findMany({ where: { userId, skill, stage } });
-  const out: Record<string, { answer: string; feedback: AnswerFeedback; source: FeedbackSource }> = {};
+  const out: Record<string, StoredFeedback> = {};
   for (const r of rows) {
     const fb = normalizeFeedback(r.result);
     if (fb) out[r.itemId] = { answer: r.answer, feedback: fb, source: r.source as FeedbackSource };

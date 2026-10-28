@@ -20,6 +20,7 @@ import { fmt, learningStrings } from "@/lib/i18n/learning";
 import { learningHubStrings, type LearningHubStrings } from "@/lib/i18n/learning-hub";
 import { GRAPH } from "@/lib/learning/graph";
 import { loadStageContent, REGEN_PER_STAGE, tutorIsLive } from "@/lib/learning/hub";
+import { stageFeedback } from "@/lib/learning/feedback-server";
 import { isStage, parsePractice, type Rating } from "@/lib/learning/progress";
 import { STAGES, type SkillNode, type Stage } from "@/lib/learning/types";
 
@@ -54,7 +55,7 @@ async function Workspace({
   t: LearningHubStrings;
 }) {
   const loaded = await loadStageContent(node, stage, locale, userId);
-  const [row, reviews, thread, used] = userId
+  const [row, reviews, thread, used, feedback] = userId
     ? await Promise.all([
         db.stageProgress.findUnique({ where: { userId_skill_stage: { userId, skill: node.id, stage } } }),
         db.questionReview.findMany({
@@ -70,8 +71,9 @@ async function Workspace({
           },
         }),
         tutorIsLive() ? prismaAiStore.countCalls(new Date(Date.now() - 86_400_000), userId) : Promise.resolve(null),
+        stageFeedback(userId, node.id, stage),
       ])
-    : [null, [], null, null];
+    : [null, [], null, null, {}];
   const priors = Object.fromEntries(
     reviews.map((r) => [r.questionId, { rating: r.rating as Rating, dueAt: r.dueAt.toISOString() }]),
   );
@@ -99,6 +101,7 @@ async function Workspace({
         content={loaded.content}
         practice={parsePractice(row?.practice)}
         priors={priors}
+        feedback={feedback}
         tutor={
           userId
             ? {
