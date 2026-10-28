@@ -110,7 +110,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
               </p>
             )}
             {failing && company.lastSyncError && (
-              <p className="text-muted-foreground font-mono text-xs break-words" dir="ltr">
+              <p className="text-muted-foreground font-mono text-xs wrap-anywhere" dir="ltr">
                 {t.companies.lastError}: {company.lastSyncError}
               </p>
             )}

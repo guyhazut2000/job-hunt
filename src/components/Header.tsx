@@ -6,32 +6,35 @@ import { Button } from "@/components/ui/button";
 import { getDictionary } from "@/lib/i18n";
 import { learningStrings } from "@/lib/i18n/learning";
 import { Brand } from "./Brand";
-import { NavLinks } from "./NavLinks";
+import { NavLinks, type NavLink } from "./NavLinks";
 
 export async function Header() {
   const [{ t, locale }, session] = await Promise.all([getDictionary(), auth()]);
   const user = session?.user;
-  const links = [
+  // Labels never wrap (a word split across lines reads as a typo); whatever doesn't fit at a
+  // breakpoint collapses into the "More" menu instead. Signed-in users have more links, so the
+  // secondary ones live in "More" at every width.
+  const links: NavLink[] = [
     { href: "/jobs", label: t.nav.jobs },
     { href: "/companies", label: t.nav.companies },
     { href: "/learn", label: learningStrings(locale).nav },
     ...(user
       ? [
-          { href: "/dashboard", label: t.nav.dashboard },
-          { href: "/profile", label: t.nav.profile },
+          { href: "/dashboard", label: t.nav.dashboard, priority: "lg" as const },
+          { href: "/profile", label: t.nav.profile, priority: "lg" as const },
+          { href: "/pricing", label: t.nav.pricing, priority: "more" as const },
         ]
-      : []),
-    { href: "/pricing", label: t.nav.pricing },
-    ...(user?.role === "ADMIN" ? [{ href: "/admin", label: t.nav.admin }] : []),
+      : [{ href: "/pricing", label: t.nav.pricing, priority: "lg" as const }]),
+    ...(user?.role === "ADMIN" ? [{ href: "/admin", label: t.nav.admin, priority: "more" as const }] : []),
   ];
   return (
     <header className="bg-background/92 rule-double sticky top-0 z-40 pt-[env(safe-area-inset-top)] backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 md:px-6">
-        <Brand tagline={t.ui.kicker} />
-        <nav aria-label="main" className="ms-4 hidden flex-1 md:block">
-          <NavLinks links={links} />
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 md:px-6 lg:gap-4">
+        <Brand tagline={user ? undefined : t.ui.kicker} />
+        <nav aria-label="main" className="hidden min-w-0 flex-1 md:ms-2 md:block lg:ms-4">
+          <NavLinks links={links} moreLabel={t.ui.more} />
         </nav>
-        <div className="ms-auto flex items-center gap-1.5">
+        <div className="ms-auto flex shrink-0 items-center gap-1.5">
           <form action={setLocale}>
             <input type="hidden" name="locale" value={locale === "he" ? "en" : "he"} />
             <Button variant="ghost" size="sm" type="submit" lang={locale === "he" ? "en" : "he"}>

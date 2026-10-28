@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function Brand({ tagline }: { tagline?: string }) {
   return (
-    <Link href="/" className="group flex min-h-11 items-center gap-2.5" aria-label="job-hunt">
+    <Link href="/" className="group flex min-h-11 shrink-0 items-center gap-2.5" aria-label="job-hunt">
       <span
         aria-hidden
         className="bg-foreground text-background grid size-8 place-items-center rounded-[3px] font-mono text-[0.8rem] font-medium tracking-tighter transition-transform group-hover:-rotate-6"
@@ -10,10 +10,10 @@ export function Brand({ tagline }: { tagline?: string }) {
         jh<span className="text-primary">.</span>
       </span>
       <span className="flex flex-col leading-none">
-        <span className="font-heading text-xl font-black tracking-tight" dir="ltr">
+        <span className="font-heading text-xl font-black tracking-tight whitespace-nowrap" dir="ltr">
           job-hunt
         </span>
-        {tagline && <span className="kicker mt-1 hidden lg:block">{tagline}</span>}
+        {tagline && <span className="kicker mt-1 hidden whitespace-nowrap xl:block">{tagline}</span>}
       </span>
     </Link>
   );

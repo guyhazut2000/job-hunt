@@ -172,7 +172,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             <CollapsibleText
               moreLabel={t.ui.showMore}
               lessLabel={t.ui.showLess}
-              className="text-foreground/90 max-w-[68ch] text-[1.02rem] leading-relaxed whitespace-pre-line"
+              className="text-foreground/90 max-w-[68ch] text-[1.02rem] leading-relaxed wrap-anywhere whitespace-pre-line"
             >
               <div dir="auto">{job.description}</div>
             </CollapsibleText>
