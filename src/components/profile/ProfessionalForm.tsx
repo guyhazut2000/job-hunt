@@ -1,5 +1,6 @@
 "use client";
 
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useActionState, useId, useMemo, useState } from "react";
 import { saveProfessional, type ActionState } from "@/app/profile/actions";
@@ -230,9 +231,12 @@ export function ProfessionalForm({
           />
         </div>
         <div>
-          <label className="label" htmlFor={`${id}-summary`}>
-            {t.summary}
-          </label>
+          <div className="flex items-end justify-between gap-2">
+            <label className="label" htmlFor={`${id}-summary`}>
+              {t.summary}
+            </label>
+            <VoiceInputButton targetId={`${id}-summary`} size="sm" testId="summary-voice" />
+          </div>
           <textarea
             id={`${id}-summary`}
             dir="auto"
@@ -350,9 +354,12 @@ export function ProfessionalForm({
                   </label>
                 </div>
                 <div className="mt-3">
-                  <label className="label" htmlFor={`${p}-desc`}>
-                    {t.description}
-                  </label>
+                  <div className="flex items-end justify-between gap-2">
+                    <label className="label" htmlFor={`${p}-desc`}>
+                      {t.description}
+                    </label>
+                    <VoiceInputButton targetId={`${p}-desc`} size="sm" testId="experience-voice" />
+                  </div>
                   <textarea
                     id={`${p}-desc`}
                     dir="auto"

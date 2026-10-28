@@ -1,5 +1,6 @@
 "use client";
 
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useActionState, useEffect, useRef } from "react";
 import { Loader2, Send } from "lucide-react";
 import { suggestCompany, type SuggestState } from "@/app/actions";
@@ -24,7 +25,10 @@ export function SuggestCompanyForm({ s }: { s: SuggestCompanyStrings }) {
       <form ref={ref} action={action} className="flex flex-col gap-3">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="suggest-name">{s.name}</Label>
+            <div className="flex items-end justify-between gap-2">
+              <Label htmlFor="suggest-name">{s.name}</Label>
+              <VoiceInputButton targetId="suggest-name" size="sm" testId="suggest-voice" />
+            </div>
             <Input
               id="suggest-name"
               name="name"

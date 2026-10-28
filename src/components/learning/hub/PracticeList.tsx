@@ -1,5 +1,6 @@
 "use client";
 
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useState, useTransition } from "react";
 import { Check, Lightbulb, MessageCircleQuestion, Target } from "lucide-react";
 import { savePractice } from "@/app/learn/hub-actions";
@@ -164,9 +165,12 @@ function ExerciseCard({
 
       {loggedIn && (
         <div className="flex flex-col gap-2 border-t pt-4">
-          <label htmlFor={`${ex.id}-notes`} className="text-sm font-semibold">
-            {t.myWork}
-          </label>
+          <div className="flex items-end justify-between gap-2">
+            <label htmlFor={`${ex.id}-notes`} className="text-sm font-semibold">
+              {t.myWork}
+            </label>
+            <VoiceInputButton targetId={`${ex.id}-notes`} size="sm" testId="practice-voice" />
+          </div>
           <Textarea
             id={`${ex.id}-notes`}
             dir="auto"

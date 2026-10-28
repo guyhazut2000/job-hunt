@@ -1,5 +1,6 @@
 "use client";
 
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useState, useTransition } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { rateQuestion } from "@/app/learn/hub-actions";
@@ -90,9 +91,12 @@ function QuestionCard({
       </div>
       {loggedIn && (
         <div className="flex flex-col gap-2">
-          <label htmlFor={`${q.id}-mine`} className="text-muted-foreground text-xs font-semibold">
-            {t.fbAnswerLabel}
-          </label>
+          <div className="flex items-end justify-between gap-2">
+            <label htmlFor={`${q.id}-mine`} className="text-muted-foreground text-xs font-semibold">
+              {t.fbAnswerLabel}
+            </label>
+            <VoiceInputButton targetId={`${q.id}-mine`} size="sm" testId="qa-voice" />
+          </div>
           <Textarea
             id={`${q.id}-mine`}
             dir="auto"
