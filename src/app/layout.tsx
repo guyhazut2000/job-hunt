@@ -3,6 +3,7 @@ import { Assistant, Frank_Ruhl_Libre, IBM_Plex_Mono } from "next/font/google";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { MobileNav } from "@/components/MobileNav";
+import { ChatFab } from "@/components/chat/ChatFab";
 import { DirectionProvider } from "@/components/ui/direction";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getDictionary, isRtl } from "@/lib/i18n";
@@ -58,6 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {children}
             </main>
             <Footer />
+            {user && <ChatFab locale={locale} />}
             <MobileNav
               locale={locale}
               user={user ? { role: user.role } : null}

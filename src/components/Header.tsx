@@ -7,6 +7,7 @@ import { getDictionary } from "@/lib/i18n";
 import { documentStrings } from "@/lib/i18n/documents";
 import { learningStrings } from "@/lib/i18n/learning";
 import { learningHubStrings } from "@/lib/i18n/learning-hub";
+import { chatStrings } from "@/lib/i18n/chat";
 import { Brand } from "./Brand";
 import { NavLinks, type NavLink } from "./NavLinks";
 
@@ -26,6 +27,7 @@ export async function Header() {
           { href: "/profile", label: t.nav.profile, priority: "lg" as const },
           { href: "/documents", label: documentStrings(locale).nav, priority: "more" as const },
           { href: "/learn/me", label: learningHubStrings(locale).navMine, priority: "more" as const },
+          { href: "/chat", label: chatStrings(locale).short, priority: "more" as const },
         ]
       : []),
     ...(user?.role === "ADMIN" ? [{ href: "/admin", label: t.nav.admin, priority: "more" as const }] : []),
