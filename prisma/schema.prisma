@@ -12,6 +12,8 @@ enum Role {
   ADMIN
 }
 
+/// DEPRECATED: pricing was removed (non-commercial practice project). Kept only because migrations
+/// are additive-only; nothing reads or writes it.
 enum Plan {
   FREE
   PRO
@@ -75,6 +77,7 @@ enum AtsProvider {
   SMARTRECRUITERS
   WORKDAY
   RECRUITEE
+  WORDPRESS
 }
 
 enum ApplicationStatus {
@@ -92,6 +95,7 @@ model User {
   name            String?
   passwordHash    String
   role            Role               @default(USER)
+  /// DEPRECATED: unused since pricing was removed; kept for additive-only migrations.
   plan            Plan               @default(FREE)
   locale          String             @default("he")
   createdAt       DateTime           @default(now())
@@ -99,6 +103,7 @@ model User {
   profile         Profile?
   resumes         Resume[]
   applications    Application[]
+  /// DEPRECATED: unused since pricing was removed.
   subscription    Subscription?
   contacts        Contact[]
   emailSync       EmailSyncSettings?
@@ -403,6 +408,8 @@ model Application {
   @@index([userId, status])
 }
 
+/// DEPRECATED: billing was removed (non-commercial practice project). Table kept, unused, because
+/// migrations are additive-only. Do not build on it.
 model Subscription {
   id                   String    @id @default(cuid())
   userId               String    @unique

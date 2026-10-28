@@ -13,7 +13,6 @@ import {
   withoutValue,
 } from "@/lib/jobs/filters";
 import { splitLocations } from "@/lib/jobs/facets";
-import { canUseAiReview } from "@/lib/billing";
 
 describe("job filters: parsing", () => {
   it("drops invalid values from untrusted params", () => {
@@ -206,14 +205,6 @@ describe("location facets", () => {
       ["Haifa", 1],
       ["Herzliya", 1],
     ]);
-  });
-});
-
-describe("billing", () => {
-  it("limits free AI reviews", () => {
-    expect(canUseAiReview("FREE", 2)).toBe(true);
-    expect(canUseAiReview("FREE", 3)).toBe(false);
-    expect(canUseAiReview("PRO", 999)).toBe(true);
   });
 });
 

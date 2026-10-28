@@ -4,7 +4,6 @@ import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { ApplicationStatus, AtsProvider } from "@prisma/client";
 import { signIn, signOut } from "@/auth";
@@ -12,7 +11,6 @@ import { guardedLLM } from "@/lib/ai";
 import { generateCvSuggestions } from "@/lib/ai/cv-suggestions";
 import type { CvSuggestion } from "@/lib/ai/types";
 import { track } from "@/lib/analytics";
-import { canUseAiReview, createCheckoutUrl } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { getDictionary, LOCALE_COOKIE } from "@/lib/i18n";
 import { aiLimitMessage } from "@/lib/i18n/ai";
@@ -22,6 +20,8 @@ import { safeHttpUrl } from "@/lib/companies/status";
 import { addCandidateAsManual, ingestDiscovered, runDiscovery } from "@/lib/discovery/run";
 import { requireAdmin, requireUser } from "@/lib/session";
 import { slugify } from "@/lib/taxonomy";
+import { baseDomain } from "@/lib/discovery/domain";
+import { parseSuggestion, SUGGEST_DAILY_LIMIT, suggestedBy, USER_PRIORITY, USER_SOURCE } from "@/lib/discovery/suggest";
 
 export type FormState = { error?: string; ok?: string } | undefined;
 
@@ -125,15 +125,13 @@ export async function getCvSuggestions(
 ): Promise<{ error?: string; notice?: string; cached?: boolean; provider?: string; suggestions?: CvSuggestion[] }> {
   const user = await requireUser();
   const { locale, t } = await getDictionary();
-  const [job, resume, dbUser] = await Promise.all([
+  const [job, resume] = await Promise.all([
     db.job.findUnique({ where: { id: jobId } }),
     db.resume.findFirst({ where: { userId: user.id, isPrimary: true } }),
-    db.user.findUniqueOrThrow({ where: { id: user.id } }),
   ]);
   if (!job) return { error: "Job not found" };
   if (!resume) return { error: t.jobs.cvTipsNeedCv };
-  // TODO(billing): count usage per month in a table; currently only enforced by plan flag.
-  if (!canUseAiReview(dbUser.plan, 0)) return { error: t.pricing.billingDisabled };
+  // Same limits for everyone: the AI guard (per-user daily cap, app-wide caps, cache) applies.
   const provider = await guardedLLM("cv_tips", user.id);
   const res = await generateCvSuggestions({ resumeText: resume.text, job, locale }, provider);
   track("cv_suggestions_generated", { provider: res.provider, cached: !!provider.cached });
@@ -142,13 +140,6 @@ export async function getCvSuggestions(
     cached: !!provider.cached,
     ...(provider.limited ? { notice: aiLimitMessage(provider.limited, locale) } : {}),
   };
-}
-
-export async function startCheckout() {
-  const user = await requireUser();
-  track("upgrade_clicked");
-  const url = await createCheckoutUrl(user.id);
-  redirect(url ?? "/pricing?billing=disabled");
 }
 
 export async function adminSyncAll() {
@@ -280,4 +271,49 @@ export async function adminRejectCandidate(formData: FormData) {
   const id = String(formData.get("candidateId") ?? "");
   await db.startupCandidate.updateMany({ where: { id, status: "PENDING" }, data: { status: "REJECTED" } });
   revalidatePath("/admin");
+}
+
+export type SuggestState = { ok?: true; error?: "invalid" | "exists" | "queued" | "limit" } | undefined;
+
+/**
+ * A signed-in user suggests a missing company (name + its own site). It lands in the discovery queue as
+ * a USER candidate; the next discovery run detects its ATS (AUTO / review) like any other candidate.
+ */
+export async function suggestCompany(_: SuggestState, formData: FormData): Promise<SuggestState> {
+  const user = await requireUser();
+  const s = parseSuggestion(formData.get("name"), formData.get("url"));
+  if (!s) return { error: "invalid" };
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recent = await db.startupCandidate.count({
+    where: { source: USER_SOURCE, sourceUrl: suggestedBy(user.id), createdAt: { gte: since } },
+  });
+  if (recent >= SUGGEST_DAILY_LIMIT) return { error: "limit" };
+  const base = baseDomain(s.domain);
+  const listed = await db.company.findFirst({
+    where: {
+      OR: [
+        { slug: slugify(s.name) },
+        { website: { contains: base, mode: "insensitive" } },
+        { careersUrl: { contains: base, mode: "insensitive" } },
+      ],
+    },
+    select: { id: true },
+  });
+  if (listed) return { error: "exists" };
+  if (await db.startupCandidate.findUnique({ where: { domain: s.domain }, select: { id: true } })) {
+    return { error: "queued" };
+  }
+  await db.startupCandidate.create({
+    data: {
+      domain: s.domain,
+      name: s.name,
+      website: s.website,
+      source: USER_SOURCE,
+      sourceUrl: suggestedBy(user.id),
+      priority: USER_PRIORITY,
+    },
+  });
+  track("company_suggested");
+  revalidatePath("/admin");
+  return { ok: true };
 }

@@ -105,8 +105,8 @@ tomorrow; didn't know → due now.
 
 Content source, in order: cached `StageContent` row → Gemini on first open (zod-validated, then stored and shared)
 → curated static content (`src/lib/learning/content-static.json`, 16 skills × 3 stages × he/en; drafted with
-Gemini and reviewed) → generic content built from the roadmap topics. Regenerate: max 3 per stage row, and a
-plan-gated monthly action (`LEARNING_AI_LIMITS`, FREE 3 / month, PRO unlimited).
+Gemini and reviewed) → generic content built from the roadmap topics. Regenerate: max 3 per stage row, and
+`AI_USER_MONTHLY_REGEN_LIMIT` (default 20) per user per month — the same limit for everyone.
 
 ## Limits
 

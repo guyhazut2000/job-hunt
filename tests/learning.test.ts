@@ -209,12 +209,12 @@ describe("impact", () => {
 });
 
 describe("v2 AI hooks (deterministic parts)", () => {
-  it("packs a gap plan into weeks and gates by plan", async () => {
+  it("packs a gap plan into weeks and applies one monthly AI limit for everyone", async () => {
     const { heuristicStudyPlan, canUseLearningAi } = await import("@/lib/learning/ai");
     const plan = planGaps(candidate([]), devopsJob);
     const weeks = heuristicStudyPlan(plan, 10);
     expect(weeks.flatMap((w) => w.skillIds)).toEqual(plan.steps.map((s) => s.node.id));
-    expect(canUseLearningAi("FREE", 3)).toBe(false);
-    expect(canUseLearningAi("PRO", 999)).toBe(true);
+    expect(canUseLearningAi(19, 20)).toBe(true);
+    expect(canUseLearningAi(20, 20)).toBe(false);
   });
 });

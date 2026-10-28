@@ -12,6 +12,8 @@ export interface AiConfig {
   globalPerMinute: number;
   /** How long an identical prompt is served from the DB cache. */
   cacheTtlHours: number;
+  /** Learning-stage content regenerations one user may trigger per calendar month (same for everyone). */
+  userMonthlyRegenLimit: number;
 }
 
 function int(v: string | undefined, def: number): number {
@@ -27,5 +29,6 @@ export function aiConfig(env: Record<string, string | undefined> = process.env):
     globalDailyCap: int(env.AI_GLOBAL_DAILY_CAP, 400),
     globalPerMinute: int(env.AI_GLOBAL_PER_MINUTE, 8),
     cacheTtlHours: int(env.AI_CACHE_TTL_HOURS, 24 * 30),
+    userMonthlyRegenLimit: int(env.AI_USER_MONTHLY_REGEN_LIMIT, 20),
   };
 }

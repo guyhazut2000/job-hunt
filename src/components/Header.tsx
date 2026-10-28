@@ -26,9 +26,8 @@ export async function Header() {
           { href: "/profile", label: t.nav.profile, priority: "lg" as const },
           { href: "/documents", label: documentStrings(locale).nav, priority: "more" as const },
           { href: "/learn/me", label: learningHubStrings(locale).navMine, priority: "more" as const },
-          { href: "/pricing", label: t.nav.pricing, priority: "more" as const },
         ]
-      : [{ href: "/pricing", label: t.nav.pricing, priority: "lg" as const }]),
+      : []),
     ...(user?.role === "ADMIN" ? [{ href: "/admin", label: t.nav.admin, priority: "more" as const }] : []),
   ];
   return (

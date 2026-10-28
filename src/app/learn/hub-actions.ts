@@ -3,6 +3,7 @@
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { guardedLLM } from "@/lib/ai";
+import { aiConfig } from "@/lib/ai/config";
 import { db } from "@/lib/db";
 import { getLocale } from "@/lib/i18n";
 import { canUseLearningAi } from "@/lib/learning/ai";
@@ -176,9 +177,9 @@ export async function rateQuestion(raw: z.input<typeof rateInput>): Promise<HubR
 
 export type RegenResult =
   | { ok: true }
-  | { ok: false; error: "invalid" | "plan" | "stage_cap" | "ai_off" | "limited" | "failed"; reason?: string };
+  | { ok: false; error: "invalid" | "monthly_cap" | "stage_cap" | "ai_off" | "limited" | "failed"; reason?: string };
 
-/** Regenerate the shared content of one stage. Plan-gated (FREE 3/month, PRO unlimited) and capped per stage. */
+/** Regenerate the shared content of one stage. Limited per user per month (same limit for everyone) and capped per stage. */
 export async function regenerateStage(raw: { skill: string; stage: string }): Promise<RegenResult> {
   const user = await requireUser();
   const p = z.object(skillStage).safeParse(raw);
@@ -189,8 +190,8 @@ export async function regenerateStage(raw: { skill: string; stage: string }): Pr
   const where = { skill_stage_locale: { skill: node.id, stage, locale } };
   const row = await db.stageContent.findUnique({ where });
   if ((row?.regenCount ?? 0) >= REGEN_PER_STAGE) return { ok: false, error: "stage_cap" };
-  const dbUser = await db.user.findUnique({ where: { id: user.id }, select: { plan: true } });
-  if (!canUseLearningAi(dbUser?.plan ?? "FREE", await regenUsedThisMonth(user.id))) return { ok: false, error: "plan" };
+  if (!canUseLearningAi(await regenUsedThisMonth(user.id), aiConfig().userMonthlyRegenLimit))
+    return { ok: false, error: "monthly_cap" };
   const llm = await guardedLLM("learn_regen", user.id);
   if (llm.name === "mock") return { ok: false, error: "ai_off" };
   const gen = await generateStageContent(llm, node, stage, locale, (row?.regenCount ?? 0) + 1);

@@ -3,22 +3,22 @@
  *
  * Every hook must:
  *  - go through `guardedLLM("study_plan", userId)` (src/lib/ai) so the AiCache + per-user/global
- *    free-tier limits apply, and respect the plan gate below;
+ *    free-tier limits apply (one set of limits for everyone);
  *  - use structured output (zod) and fall back to the deterministic result in this file when the
  *    provider is mock, limited, or returns invalid JSON;
  *  - answer in the user's locale (Hebrew by default), technical terms in English.
  */
-import type { Plan } from "@prisma/client";
 import type { Locale } from "@/lib/i18n";
 import type { GapPlan } from "./graph";
 import type { SkillNode } from "./types";
 
-/** Monthly AI learning generations per plan (null = unlimited, still subject to the AI_* guard). */
-export const LEARNING_AI_LIMITS: Record<Plan, number | null> = { FREE: 3, PRO: null };
-
-export function canUseLearningAi(plan: Plan, usedThisMonth: number): boolean {
-  const limit = LEARNING_AI_LIMITS[plan];
-  return limit === null || usedThisMonth < limit;
+/**
+ * Whether a user may trigger another AI learning generation this month. The limit is the same for
+ * everyone (AI_USER_MONTHLY_REGEN_LIMIT, see src/lib/ai/config.ts) and protects the free Gemini quota;
+ * the AI_* guard's daily/global caps still apply on top.
+ */
+export function canUseLearningAi(usedThisMonth: number, monthlyLimit: number): boolean {
+  return usedThisMonth < monthlyLimit;
 }
 
 export interface StudyWeek {
