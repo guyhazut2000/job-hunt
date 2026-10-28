@@ -122,10 +122,14 @@ async function persistOfficial(
   ]);
 }
 
+/** Transient LLM errors (e.g. timeouts) tolerated per run before it stops calling the model. */
+export const MAX_TRANSIENT_FAILURES = 3;
+
 export class Pacer {
   private last = 0;
   private chain: Promise<void> = Promise.resolve();
   calls = 0;
+  failures = 0;
   constructor(
     private readonly max: number,
     private readonly gapMs = LLM_GAP_MS,
@@ -153,7 +157,12 @@ async function extractPaced(name: string, pages: SourcePage[], llm: LLMProvider,
   // Out of LLM budget: leave the company for a later run instead of storing a heuristic guess.
   if (!(await pacer.take())) return { ...(await extractHiringProcess(name, [], null)), method: "llm_failed" };
   const ex = await extractHiringProcess(name, pages, llm);
-  if (ex.method === "llm_failed") pacer.calls = Number.POSITIVE_INFINITY; // quota/limit hit → stop calling for this run
+  if (ex.method === "llm_failed") {
+    // Quota/limit hit, or repeated transient errors (timeouts) → stop calling for this run.
+    // A single transient failure only defers that company to a later run.
+    pacer.failures++;
+    if (ex.limitHit || pacer.failures >= MAX_TRANSIENT_FAILURES) pacer.calls = Number.POSITIVE_INFINITY;
+  }
   return ex;
 }
 

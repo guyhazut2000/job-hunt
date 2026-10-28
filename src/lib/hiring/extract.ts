@@ -11,6 +11,7 @@
  * process page is accepted at low confidence), the result is "none".
  */
 import { z } from "zod";
+import { AiLimitError } from "@/lib/ai/errors";
 import type { LLMProvider } from "@/lib/ai/types";
 import { detectKind, isStageKind, STAGE_KINDS, type StageKind } from "./kinds";
 
@@ -46,6 +47,8 @@ export interface Extraction {
   reason?: ExtractionFailure | null;
   /** Stages the model proposed before grounding (diagnostics). */
   proposed?: number;
+  /** llm_failed because of a quota / rate limit (AiLimitError), not a transient error such as a timeout. */
+  limitHit?: boolean;
 }
 
 /** Why an extraction found nothing. */
@@ -425,7 +428,7 @@ export async function extractHiringProcess(
         console.warn("[hiring] llm extraction failed:", e instanceof Error ? e.message.slice(0, 200) : "error");
       }
       // Callers treat this as "not checked yet" (no row is stored) so a quota hit never downgrades a company.
-      return { ...NONE("llm_failed", "llm_failed") };
+      return { ...NONE("llm_failed", "llm_failed"), limitHit: e instanceof AiLimitError };
     }
   } else {
     const h = heuristicExtract(usable);
