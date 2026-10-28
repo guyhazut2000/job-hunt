@@ -566,6 +566,12 @@ describe("chat links and placement", () => {
       { type: "link", text: "/companies/acme", href: "/companies/acme" },
       { type: "text", text: "." },
     ]);
+    expect(inlineTokens("* **[Senior Backend ב-Port](/jobs/cj1)** – 73%")).toEqual([
+      { type: "text", text: "* " },
+      { type: "link", text: "Senior Backend ב-Port", href: "/jobs/cj1" },
+      { type: "text", text: " – 73%" },
+    ]);
+    expect(inlineTokens("**[x](https://evil.com)**")).toEqual([{ type: "bold", text: "x" }]);
     expect(inlineTokens("see https://x.com/jobs/1 and **bold**")).toEqual([
       { type: "text", text: "see https://x.com/jobs/1 and " },
       { type: "bold", text: "bold" },
