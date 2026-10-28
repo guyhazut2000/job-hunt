@@ -42,4 +42,4 @@
 | Match score | Deterministic + explainable, LLM optional | Black box          |
 | AI provider | Pluggable (mock / OpenAI-compatible)      | Fixed              |
 | Auto-apply  | Not yet (deliberate)                      | Yes                |
-| Pricing     | Free + Pro (₪49/mo placeholder)           | Varies             |
+| Pricing     | None (non-commercial practice project)    | Varies             |

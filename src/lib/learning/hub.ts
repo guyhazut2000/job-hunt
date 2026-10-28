@@ -22,7 +22,7 @@ import { STAGES, type SkillNode, type Stage } from "./types";
 
 /** Server-side data for the learning hub (dashboard + stage workspace). */
 
-/** Regenerations allowed per shared (skill, stage, locale) row, on top of the per-plan monthly limit. */
+/** Regenerations allowed per shared (skill, stage, locale) row, on top of the per-user monthly limit. */
 export const REGEN_PER_STAGE = 3;
 const CONTENT_MAX_TOKENS = 3500;
 
@@ -110,7 +110,7 @@ export function monthStart(now = new Date()): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 }
 
-/** Successful content regenerations by this user this calendar month (the plan-gated action). */
+/** Successful content regenerations by this user this calendar month (the monthly-limited action). */
 export function regenUsedThisMonth(userId: string): Promise<number> {
   return db.aiUsage.count({
     where: { userId, feature: "learn_regen", outcome: "ok", createdAt: { gte: monthStart() } },

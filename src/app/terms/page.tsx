@@ -15,7 +15,7 @@ export default async function TermsPage() {
             הגיוס.
           </p>
           <p>ציוני התאמה והצעות AI הם המלצות בלבד ואינם מבטיחים תוצאה.</p>
-          <p>מנוי בתשלום (כאשר יופעל) מתחדש חודשית וניתן לביטול בכל עת בהתאם לחוק הגנת הצרכן.</p>
+          <p>זהו פרויקט אישי ללא מטרות רווח. השימוש בשירות אינו כרוך בתשלום.</p>
         </>
       ) : (
         <>
@@ -25,10 +25,7 @@ export default async function TermsPage() {
             company&apos;s own site; we are not party to the hiring process.
           </p>
           <p>Match scores and AI suggestions are recommendations only and guarantee no outcome.</p>
-          <p>
-            Paid subscriptions (once enabled) renew monthly and can be cancelled at any time in line with consumer
-            protection law.
-          </p>
+          <p>This is a non-commercial personal project. Using the service is free of charge.</p>
         </>
       )}
     </article>
