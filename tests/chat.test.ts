@@ -417,6 +417,18 @@ describe("chat handler", () => {
     expect(JSON.stringify(calls[1].prompt)).toContain("Untrusted data");
   });
 
+  it("live: when the model ends with no text after a tool call, appends the summary of the tool result", async () => {
+    const { model } = toolModel("");
+    const empty = { ...jobsOut(), jobs: [], shown: 0, total: 0 } as ChatToolOutput;
+    const { d, threads } = deps({ model }, empty);
+    const out = await readStream(await handleChatTurn(req("משרות Backend בחיפה עד 40 דקות ברכבת"), d));
+    await tick();
+    expect(out.text).toBe(offlineText(empty, "he", { offline: false }));
+    expect(out.text.length).toBeGreaterThan(10);
+    expect(out.text).not.toContain("לא מחובר");
+    expect(JSON.stringify(threads[0].messages[1].parts)).toContain(out.text.slice(0, 20));
+  });
+
   it("prompt-injection text in tool data reaches the model only inside the untrusted wrapper", async () => {
     const out = jobsOut(1);
     out.jobs[0].title = INJECTION;

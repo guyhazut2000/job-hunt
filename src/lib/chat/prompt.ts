@@ -6,7 +6,7 @@ export function chatSystemPrompt(opts: { locale: Locale; now?: Date; hasProfile:
   const today = (opts.now ?? new Date()).toISOString().slice(0, 10);
   const lang =
     locale === "he"
-      ? "Reply in Hebrew (unless the user writes in English). Keep job titles, company names and technologies in their original language."
+      ? 'Reply in Hebrew (unless the user writes in English). Keep job titles, company names and technologies in their original language. Use gender-neutral Hebrew (e.g. "אפשר לנסות", "כדאי", infinitives or plural) instead of guessing the user\'s gender.'
       : "Reply in English (unless the user writes in Hebrew).";
   return [
     `You are the job-hunt assistant inside an Israeli tech job-search app. Today is ${today}. ${lang}`,
