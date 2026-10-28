@@ -83,7 +83,6 @@ const he = {
   impactLine: "לימוד {skill} יעלה את ההתאמה שלך ב-{n} משרות פתוחות (בממוצע +{avg} נק׳)",
   impactNone: "{skill} כבר בפרופיל שלך, או שאין כרגע משרות שזה ישפר.",
   topJobs: "משרות שמבקשות {skill}",
-  aiSoon: "בקרוב: תוכנית אישית, שאלות ראיון ושורה לקורות חיים מבוססות AI",
   // v2 UI (redesign)
   heroLead: "בחרו טכנולוגיה, ראו מה צריך לדעת לפניה, ולמדו אותה בשלבים קצרים עם חומרים חינמיים.",
   searchLabel: "חיפוש טכנולוגיה",
@@ -211,7 +210,6 @@ const en: typeof he = {
   impactLine: "Learning {skill} raises your match on {n} open jobs (avg +{avg} pts)",
   impactNone: "{skill} is already on your profile, or no open job would improve right now.",
   topJobs: "Jobs asking for {skill}",
-  aiSoon: "Coming soon: AI personal plan, interview questions and a CV bullet",
   heroLead: "Pick a technology, see what to know first, and learn it in short stages with free materials.",
   searchLabel: "Search technologies",
   searchPlaceholder: "Search, e.g. Docker or Python",

@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowLeft, Check, Clock, GraduationCap, ListOrdered, TrendingUp } from "lucide-react";
+import { ArrowLeft, Check, Clock, Dumbbell, GraduationCap, ListOrdered, TrendingUp } from "lucide-react";
 import type { Profile } from "@prisma/client";
 import { Percent } from "@/components/Percent";
 import { fmt, learningStrings } from "@/lib/i18n/learning";
+import { learningHubStrings } from "@/lib/i18n/learning-hub";
 import type { Locale } from "@/lib/i18n";
 import { GRAPH, planGaps, resolveSkill, scoreWithout } from "@/lib/learning/graph";
 import { demandMap, getProgress } from "@/lib/learning/server";
@@ -47,6 +48,8 @@ export async function GapPlan({
   const lang = locale === "he" ? "he-IL" : "en-US";
 
   const gain = Math.max(0, plan.after - plan.current);
+  const hub = learningHubStrings(locale);
+  const firstTodo = plan.steps.find((st) => statusOf.get(st.node.id) !== "DONE");
 
   return (
     <section aria-labelledby="close-gaps" className="bg-card flex flex-col gap-5 rounded-xl border p-4 sm:p-6">
@@ -194,6 +197,15 @@ export async function GapPlan({
               );
             })}
           </ol>
+          {firstTodo && (
+            <Link
+              href={`/learn/${firstTodo.node.id}/fundamentals`}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition-colors sm:w-fit"
+            >
+              <Dumbbell className="size-4" aria-hidden />
+              {hub.startPractice}: <bdi dir="ltr">{firstTodo.node.label}</bdi>
+            </Link>
+          )}
         </div>
       )}
 
@@ -207,10 +219,10 @@ export async function GapPlan({
           <span />
         )}
         <Link
-          href="/learn"
+          href="/learn/me"
           className="text-primary inline-flex min-h-11 items-center gap-1 font-semibold hover:underline"
         >
-          {s.title}
+          {hub.navMine}
           <ArrowLeft className="size-4 ltr:rotate-180" aria-hidden />
         </Link>
       </div>

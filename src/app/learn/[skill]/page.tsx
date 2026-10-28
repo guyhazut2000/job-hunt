@@ -10,6 +10,7 @@ import {
   ChevronDown,
   CircleDashed,
   Clock,
+  Dumbbell,
   ExternalLink,
   GraduationCap,
   Hammer,
@@ -25,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
 import { fmt, learningStrings } from "@/lib/i18n/learning";
+import { learningHubStrings } from "@/lib/i18n/learning-hub";
 import { crossJobImpact, GRAPH, knownSkillIds, prerequisitePath, scoreWithout, withSkills } from "@/lib/learning/graph";
 import { demandMap, getProgress } from "@/lib/learning/server";
 import { STAGES, type Resource } from "@/lib/learning/types";
@@ -50,9 +52,10 @@ export default async function SkillPage({ params }: Params) {
 
   const [{ locale }, session] = await Promise.all([getDictionary(), auth()]);
   const s = learningStrings(locale);
+  const hub = learningHubStrings(locale);
   const userId = session?.user?.id;
   const names = [node.label, ...node.aliases];
-  const [demand, progress, profile, jobs] = await Promise.all([
+  const [demand, progress, profile, jobs, stageProgress] = await Promise.all([
     demandMap(),
     getProgress(userId),
     userId ? db.profile.findUnique({ where: { userId } }) : null,
@@ -63,8 +66,13 @@ export default async function SkillPage({ params }: Params) {
       orderBy: { postedAt: "desc" },
       take: 400,
     }),
+    userId
+      ? db.stageProgress.findMany({ where: { userId, skill: node.id }, select: { stage: true, status: true } })
+      : Promise.resolve([]),
   ]);
   const statusOf = new Map(progress.map((p) => [p.skill, p.status]));
+  const stageStatus = new Map(stageProgress.map((r) => [r.stage, r.status]));
+  const practiceStage = STAGES.find((st) => stageStatus.get(st) !== "DONE") ?? STAGES[0];
   const mine = progress.find((p) => p.skill === node.id);
   const doneIds = progress.filter((p) => p.status === "DONE").map((p) => p.skill);
   const candidate = hasScorableProfile(profile) ? toCandidate(profile) : null;
@@ -202,6 +210,17 @@ export default async function SkillPage({ params }: Params) {
             </Button>
           )}
         </div>
+        <Button
+          asChild
+          size="lg"
+          variant={userId ? "default" : "outline"}
+          className="min-h-12 w-full rounded-full sm:w-fit"
+        >
+          <Link href={`/learn/${node.id}/${practiceStage}`}>
+            <Dumbbell className="size-4" aria-hidden />
+            {hub.practiceCta}
+          </Link>
+        </Button>
       </header>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-10">
@@ -267,6 +286,7 @@ export default async function SkillPage({ params }: Params) {
             <ol className="flex flex-col">
               {STAGES.map((st, i) => {
                 const topics = node.stages[st];
+                const stageDone = status === "DONE" || stageStatus.get(st) === "DONE";
                 return (
                   <li key={st} className="relative flex gap-4 pb-4 last:pb-0">
                     {i < STAGES.length - 1 && (
@@ -276,12 +296,10 @@ export default async function SkillPage({ params }: Params) {
                       aria-hidden
                       className={cn(
                         "z-10 grid size-10 shrink-0 place-items-center rounded-full border-2 font-mono text-sm font-semibold",
-                        status === "DONE"
-                          ? "border-fit bg-fit-soft text-fit"
-                          : "border-primary/40 bg-card text-primary",
+                        stageDone ? "border-fit bg-fit-soft text-fit" : "border-primary/40 bg-card text-primary",
                       )}
                     >
-                      {status === "DONE" ? <Check className="size-4" /> : i + 1}
+                      {stageDone ? <Check className="size-4" /> : i + 1}
                     </span>
                     <details open={i === 0} className="group bg-card min-w-0 flex-1 rounded-xl border">
                       <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3 [&::-webkit-details-marker]:hidden">
@@ -305,6 +323,16 @@ export default async function SkillPage({ params }: Params) {
                           </li>
                         ))}
                       </ul>
+                      <div className="border-t px-4 py-3">
+                        <Link
+                          href={`/learn/${node.id}/${st}`}
+                          className="text-primary inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold hover:underline"
+                        >
+                          <Dumbbell className="size-4" aria-hidden />
+                          {hub.startPracticeStage}
+                          <ArrowLeft className="size-4 ltr:rotate-180" aria-hidden />
+                        </Link>
+                      </div>
                     </details>
                   </li>
                 );
@@ -460,7 +488,16 @@ export default async function SkillPage({ params }: Params) {
               </p>
             )}
           </div>
-          <p className="text-muted-foreground text-xs leading-relaxed">{s.aiSoon}</p>
+          <Link
+            href={`/learn/${node.id}/${practiceStage}`}
+            className="bg-accent/60 hover:bg-accent flex flex-col gap-1 rounded-xl border p-4 transition-colors"
+          >
+            <span className="inline-flex items-center gap-2 font-bold">
+              <Dumbbell className="size-4" aria-hidden />
+              {hub.practiceCta}
+            </span>
+            <span className="text-foreground/75 text-xs leading-relaxed">{hub.tutorLead}</span>
+          </Link>
         </aside>
       </div>
     </div>
