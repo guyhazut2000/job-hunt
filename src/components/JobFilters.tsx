@@ -52,12 +52,8 @@ export function JobFilterForm({
     <CleanGetForm action="/jobs" className="flex flex-col gap-1" role="search" data-testid={`filters-${idPrefix}`}>
       {filters.sort && <input type="hidden" name="sort" value={filters.sort} />}
       {filters.seniority && <input type="hidden" name="seniority" value={filters.seniority} />}
-      <div className="pb-3">
-        <label className="label" htmlFor={id("q")}>
-          {t.jobs.search}
-        </label>
-        <input id={id("q")} name="q" type="search" defaultValue={filters.q} className="input" enterKeyHint="search" />
-      </div>
+      {/* The free-text query has its own search bar above the results; keep it when filters are applied. */}
+      {filters.q && <input type="hidden" name="q" value={filters.q} />}
 
       <Section title={s.sections.posted} count={filters.posted ? 1 : 0} open>
         <div className="flex flex-wrap gap-1.5">

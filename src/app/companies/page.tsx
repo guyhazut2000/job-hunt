@@ -17,6 +17,10 @@ import { getDictionary } from "@/lib/i18n";
 import { linkedinStrings } from "@/lib/i18n/linkedin";
 import { BackToTop } from "@/components/BackToTop";
 import { cn } from "@/lib/utils";
+import { companyMatchesTerms } from "@/lib/companies/search";
+import { highlightTerms, MAX_QUERY_LENGTH, parseSearchQuery } from "@/lib/search/query";
+import { fillQ, searchStrings } from "@/lib/i18n/search";
+import { SearchBox } from "@/components/SearchBox";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Companies" };
@@ -29,11 +33,24 @@ export default async function CompaniesPage({
   const [{ t, locale }, sp] = await Promise.all([getDictionary(), searchParams]);
   const li = linkedinStrings(locale);
   const filter = parseCompanyFilter(sp.sync);
-  const all = await db.company.findMany({
+  const ss = searchStrings(locale);
+  const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.trim().slice(0, MAX_QUERY_LENGTH) || undefined;
+  const terms = parseSearchQuery(q);
+  const marks = highlightTerms(terms);
+  const everything = await db.company.findMany({
     include: { _count: { select: { jobs: { where: { isActive: true } } } } },
     orderBy: { name: "asc" },
   });
-  const hiring = all.filter((c) => c._count.jobs > 0).length;
+  const hiring = everything.filter((c) => c._count.jobs > 0).length;
+  // The search narrows every tab (counts included); A/B/C groups left empty simply disappear.
+  const all = everything.filter((c) => companyMatchesTerms(c, terms));
+  const tabHref = (key: CompanyFilter) => {
+    const p = new URLSearchParams();
+    if (key !== "all") p.set("sync", key);
+    if (q) p.set("q", q);
+    const qs = p.toString();
+    return qs ? `/companies?${qs}` : "/companies";
+  };
   const counts: Record<CompanyFilter, number> = {
     all: all.length,
     auto: all.filter((c) => matchesFilter(c, "auto")).length,
@@ -66,6 +83,8 @@ export default async function CompaniesPage({
         </p>
       </header>
 
+      <SearchBox s={ss.companies} resetParams={[]} testId="companies-search" className="-mt-2" />
+
       <nav aria-label={t.companies.filter} className="-mt-2">
         <ul className="no-scrollbar flex gap-2 overflow-x-auto" data-company-filter>
           {filters.map((f) => {
@@ -73,7 +92,7 @@ export default async function CompaniesPage({
             return (
               <li key={f.key} className="shrink-0">
                 <Link
-                  href={f.key === "all" ? "/companies" : `/companies?sync=${f.key}`}
+                  href={tabHref(f.key)}
                   aria-current={active ? "page" : undefined}
                   scroll={false}
                   className={cn(
@@ -94,7 +113,32 @@ export default async function CompaniesPage({
         </ul>
       </nav>
 
-      {groups.length === 0 && <p className="text-muted-foreground">{t.companies.noMatches}</p>}
+      {q && (
+        <p className="text-muted-foreground -mt-2 text-sm" aria-live="polite" data-testid="companies-count">
+          <span className="text-foreground font-mono font-medium">{companies.length}</span> {ss.companiesFound}{" "}
+          <span dir="auto">{fillQ(ss.resultsFor, q)}</span>
+        </p>
+      )}
+
+      {groups.length === 0 &&
+        (q ? (
+          <div
+            className="bg-card text-muted-foreground flex flex-col items-center gap-3 rounded-lg border p-8 text-center"
+            data-testid="companies-empty"
+          >
+            <p className="text-foreground text-lg font-bold break-words" dir="auto">
+              {fillQ(ss.noCompaniesFor, q)}
+            </p>
+            <Link
+              href={filter === "all" ? "/companies" : `/companies?sync=${filter}`}
+              className="text-primary inline-flex min-h-11 items-center font-semibold underline-offset-4 hover:underline"
+            >
+              {ss.clearSearch}
+            </Link>
+          </div>
+        ) : (
+          <p className="text-muted-foreground">{t.companies.noMatches}</p>
+        ))}
 
       {groups.length > 1 && (
         <nav
@@ -181,11 +225,17 @@ export default async function CompaniesPage({
                           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                             <TruncatedText
                               text={c.name}
+                              highlight={marks}
                               lines={2}
                               className="font-heading group-hover:text-primary text-lg leading-tight font-bold"
                             />
                             {meta && (
-                              <TruncatedText text={meta} side="bottom" className="text-muted-foreground text-sm" />
+                              <TruncatedText
+                                text={meta}
+                                highlight={marks}
+                                side="bottom"
+                                className="text-muted-foreground text-sm"
+                              />
                             )}
                           </span>
                           {manual ? (
