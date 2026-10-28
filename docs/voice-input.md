@@ -9,18 +9,18 @@ free and needs no server, API key or quota. No audio is sent to our server or to
 
 ## Where it appears
 
-| Place | Field |
-| --- | --- |
+| Place                               | Field                                |
+| ----------------------------------- | ------------------------------------ |
 | `/chat` and the floating chat sheet | message input (compact in the sheet) |
-| Learning stage → Practice | "My solution / notes" |
-| Learning stage → Q&A | "My answer" boxes |
-| Learning stage → AI tutor | tutor chat input |
-| Learning hub | study-log note |
-| `/jobs` and `/companies` search | search box (hidden when unsupported) |
-| Profile | summary, experience description |
-| Documents | document notes |
-| Outreach | contact notes |
-| Companies | suggest-a-company name |
+| Learning stage → Practice           | "My solution / notes"                |
+| Learning stage → Q&A                | "My answer" boxes                    |
+| Learning stage → AI tutor           | tutor chat input                     |
+| Learning hub                        | study-log note                       |
+| `/jobs` and `/companies` search     | search box (hidden when unsupported) |
+| Profile                             | summary, experience description      |
+| Documents                           | document notes                       |
+| Outreach                            | contact notes                        |
+| Companies                           | suggest-a-company name               |
 
 ## Behaviour
 
