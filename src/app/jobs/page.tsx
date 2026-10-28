@@ -31,6 +31,7 @@ import {
   type JobFilters,
 } from "@/lib/jobs/filters";
 import { splitLocations } from "@/lib/jobs/facets";
+import { DOMAIN_LABELS, type JobDomain } from "@/lib/jobs/domains";
 import { matchCompanies, rankJob } from "@/lib/jobs/search";
 import { highlightTerms, parseSearchQuery } from "@/lib/search/query";
 import { fillQ, searchStrings } from "@/lib/i18n/search";
@@ -83,8 +84,9 @@ export default async function JobsPage({
 
   // Facet counts are over all open roles (cheap: a handful of grouped queries on ~600 rows).
   const active = { isActive: true } as const;
-  const [fnG, levelG, typeG, modeG, companyG, locRows, techRows] = await Promise.all([
+  const [fnG, domainG, levelG, typeG, modeG, companyG, locRows, techRows] = await Promise.all([
     db.job.groupBy({ by: ["jobFunction"], where: active, _count: true }),
+    db.job.groupBy({ by: ["domain"], where: active, _count: true }),
     db.job.groupBy({ by: ["level"], where: active, _count: true }),
     db.job.groupBy({ by: ["employmentType"], where: active, _count: true }),
     db.job.groupBy({ by: ["workMode"], where: active, _count: true }),
@@ -127,6 +129,7 @@ export default async function JobsPage({
   const companyCount = count(companyG, "companyId");
   const facets: Facets = {
     fn: count(fnG, "jobFunction"),
+    domain: count(domainG, "domain"),
     level: count(levelG, "level"),
     type: count(typeG, "employmentType"),
     workMode: count(modeG, "workMode"),
@@ -233,6 +236,7 @@ export default async function JobsPage({
         id: true,
         title: true,
         workMode: true,
+        domain: true,
         geoPlaces: true,
         geoPrecision: true,
         company: { select: { ...companyGeoSelect, name: true, slug: true } },
@@ -273,6 +277,7 @@ export default async function JobsPage({
   if (filters.minMatch) chip("minMatch", fill(s.minMatchChip, filters.minMatch));
   if (filters.fit) chip("fit", s.fitChip);
   for (const h of filters.hide) chip("hide", s.hideChip[h], h);
+  for (const v of filters.domain) chip("domain", DOMAIN_LABELS[locale][v as JobDomain] ?? v, v);
   for (const v of filters.fn) chip("fn", s.functions[v as keyof typeof s.functions] ?? v, v);
   if (filters.role) chip("role", t.roles[filters.role]);
   if (filters.seniority) chip("seniority", t.seniority[filters.seniority]);

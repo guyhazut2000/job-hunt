@@ -2,6 +2,7 @@ import type { EmploymentType, JobLevel, Prisma, Seniority, WorkMode } from "@pri
 import { ROLE_CATEGORIES, SENIORITIES, WORK_MODES } from "../taxonomy";
 import { MAX_QUERY_LENGTH, parseSearchQuery } from "../search/query";
 import { EMPLOYMENT_TYPES, JOB_FUNCTIONS, JOB_LEVELS } from "./classify";
+import { JOB_DOMAINS } from "./domains";
 import { MAX_COMMUTE_OPTIONS } from "../commute/filter";
 import {
   type CommuteMode as Mode,
@@ -35,7 +36,10 @@ export interface JobFilters {
   role?: string;
   /** Legacy matcher seniority; kept so old links keep working. The UI uses `level`. */
   seniority?: Seniority;
+  /** Broad job function (PR #8). Superseded in the UI by `domain`; still parsed so old links work. */
   fn: string[];
+  /** Professional domain (תחום), see `./domains`. */
+  domain: string[];
   level: JobLevel[];
   city: string[];
   workMode: WorkMode[];
@@ -98,6 +102,7 @@ export function parseFilters(params: Params): JobFilters {
     role: role && (ROLE_CATEGORIES as readonly string[]).includes(role) ? role : undefined,
     seniority: seniority && SENIORITIES.includes(seniority) ? seniority : undefined,
     fn: pick(params.fn, JOB_FUNCTIONS),
+    domain: pick(params.domain, JOB_DOMAINS, 30),
     level: pick(params.level, JOB_LEVELS),
     city,
     workMode: pick(params.workMode, WORK_MODES),
@@ -172,6 +177,7 @@ export function filtersToWhere(f: JobFilters, ctx: WhereContext = {}): Prisma.Jo
   if (f.role) where.roleCategory = f.role;
   if (f.seniority) where.seniority = f.seniority;
   if (f.fn.length) where.jobFunction = { in: f.fn };
+  if (f.domain.length) where.domain = { in: f.domain };
   if (f.level.length) where.level = { in: f.level };
   if (f.workMode.length) where.workMode = { in: f.workMode };
   if (f.type.length) where.employmentType = { in: f.type };
@@ -264,6 +270,7 @@ export function activeFilterCount(f: JobFilters): number {
     [f.q, f.role, f.seniority, f.tech, f.posted, f.minMatch, f.fit, f.maxc].filter((v) => v !== undefined && v !== "")
       .length +
     f.fn.length +
+    f.domain.length +
     f.level.length +
     f.city.length +
     f.workMode.length +

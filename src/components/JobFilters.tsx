@@ -2,7 +2,9 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { fill, type JobSearchStrings } from "@/lib/i18n/job-search";
-import { EMPLOYMENT_TYPES, JOB_FUNCTIONS, JOB_LEVELS } from "@/lib/jobs/classify";
+import { localeOf } from "@/lib/i18n/salary";
+import { EMPLOYMENT_TYPES, JOB_LEVELS } from "@/lib/jobs/classify";
+import { DOMAIN_LABELS, JOB_DOMAINS } from "@/lib/jobs/domains";
 import {
   COMPANY_FIT_THRESHOLD,
   MIN_MATCH_OPTIONS,
@@ -20,6 +22,7 @@ const TECH_OPTIONS = [...new Set(Object.values(TECH_KEYWORDS))].sort();
 /** Counts over all open roles, used to label options and hide empty ones. */
 export interface Facets {
   fn: Record<string, number>;
+  domain: Record<string, number>;
   level: Record<string, number>;
   type: Record<string, number>;
   workMode: Record<string, number>;
@@ -111,12 +114,18 @@ export function JobFilterForm({
         </Section>
       )}
 
-      <Section title={s.sections.fn} count={filters.fn.length + (filters.role ? 1 : 0)} open>
+      <Section title={s.sections.fn} count={filters.domain.length + filters.fn.length + (filters.role ? 1 : 0)} open>
+        {/* Domain (תחום) supersedes the broad job function; old `fn` links still filter (chip removes them). */}
+        {filters.fn.map((v) => (
+          <input key={v} type="hidden" name="fn" value={v} />
+        ))}
         <CheckList
           s={s}
-          name="fn"
-          items={keep(JOB_FUNCTIONS, facets.fn, filters.fn).map((v) => [v, s.functions[v], facets.fn[v] ?? 0])}
-          selected={filters.fn}
+          name="domain"
+          items={keep(JOB_DOMAINS, facets.domain, filters.domain)
+            .map((v): FacetItem => [v, DOMAIN_LABELS[localeOf(t)][v], facets.domain[v] ?? 0])
+            .sort((a, b) => (a[0] === "other" ? 1 : b[0] === "other" ? -1 : b[2] - a[2]))}
+          selected={filters.domain}
         />
         <div className="pt-3">
           <label className="label" htmlFor={id("role")}>

@@ -11,6 +11,7 @@ import { isMode } from "@/lib/commute/keys";
 import type { MapMarker } from "@/lib/geo/map-markers";
 import { fillN, formatDuration, type JobsMapStrings } from "@/lib/i18n/jobs-map";
 import { cn } from "@/lib/utils";
+import { DomainBadge } from "../DomainBadge";
 import { CommuteChips } from "./CommuteChips";
 import { roundedFrom } from "./CommuteBar";
 import { useQueryUpdate } from "./useQueryUpdate";
@@ -379,7 +380,8 @@ export function JobsMap({
                   >
                     {j.title}
                   </Link>
-                  <span className="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs">
+                  <span className="text-muted-foreground flex min-w-0 shrink items-center gap-1.5 text-xs">
+                    {j.domain && <DomainBadge domain={j.domain} locale={locale} size="sm" className="max-w-[9rem]" />}
                     {j.workMode === "HYBRID" && <span>{workModeLabels.HYBRID}</span>}
                     {j.score !== undefined && (
                       <span className="text-fit font-mono font-bold" title={fillN(s.match, { n: j.score })}>

@@ -74,6 +74,7 @@ describe("deriveJobFields", () => {
   it("returns all derived fields together", () => {
     expect(deriveJobFields("Senior Data Engineer", { commitment: "Full-time" })).toEqual({
       jobFunction: "data",
+      domain: "data-eng",
       level: "SENIOR",
       employmentType: "FULL_TIME",
     });

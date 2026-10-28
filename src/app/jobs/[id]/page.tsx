@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { BackToTop } from "@/components/BackToTop";
 import { CollapsibleText } from "@/components/CollapsibleText";
 import { CvTips } from "@/components/CvTips";
+import { DomainBadge } from "@/components/DomainBadge";
 import { LinkedinCompanyButton } from "@/components/LinkedinCompanyLink";
 import { LinkedinJobButton, type LinkedinLink } from "@/components/LinkedinJobLink";
 import { OutboundLink } from "@/components/OutboundLink";
@@ -143,6 +144,9 @@ export default async function JobPage({
               {job.company.name}
             </Link>
             <h1 className="text-title font-black">{job.title}</h1>
+            <div className="flex min-w-0">
+              <DomainBadge domain={job.domain} locale={locale} />
+            </div>
             <p className="text-foreground/80 flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="inline-flex items-center gap-1">
                 <MapPin className="size-4" aria-hidden />

@@ -37,6 +37,8 @@ export function buildJob(input: {
   const posted = input.postedAt ? new Date(input.postedAt) : new Date();
   const postedAt = Number.isNaN(posted.getTime()) ? new Date() : posted;
   const updated = input.updatedAt ? new Date(input.updatedAt) : null;
+  const techStack = extractTech(`${title}\n${description}`);
+  const department = input.department?.trim().slice(0, 120) || null;
   return {
     externalId: String(input.externalId),
     source: input.source,
@@ -45,14 +47,14 @@ export function buildJob(input: {
     seniority: inferSeniority(title),
     location,
     workMode,
-    techStack: extractTech(`${title}\n${description}`),
+    techStack,
     description,
     applyUrl: input.applyUrl,
     postedAt,
-    ...deriveJobFields(title, { commitment: input.commitmentHint }),
+    ...deriveJobFields(title, { commitment: input.commitmentHint }, { department, techStack, description }),
     // ATSs without an update timestamp fall back to the posting date, so "recently updated" never sorts on nulls.
     sourceUpdatedAt: updated && !Number.isNaN(updated.getTime()) ? updated : postedAt,
-    department: input.department?.trim().slice(0, 120) || null,
+    department,
     ...payColumns(cleanPay(input.pay)),
   };
 }

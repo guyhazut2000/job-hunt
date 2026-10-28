@@ -25,6 +25,8 @@ export interface NormalizedJob {
   applyUrl: string;
   postedAt: Date;
   jobFunction: string;
+  /** Professional domain (see `src/lib/jobs/domains.ts`). */
+  domain: string;
   level: JobLevel;
   employmentType: EmploymentType;
   sourceUpdatedAt: Date;
