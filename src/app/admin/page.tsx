@@ -68,7 +68,7 @@ export default async function AdminPage() {
         <h2 id="sources-heading" className="font-semibold">
           {t.admin.sources}
         </h2>
-        <div className="-mx-4 overflow-x-auto px-4">
+        <div className="scroll-thin -mx-4 overflow-x-auto px-4">
           <table className="w-full min-w-[30rem] text-start text-sm">
             <thead className="text-muted-foreground text-xs">
               <tr>
@@ -121,7 +121,7 @@ export default async function AdminPage() {
               </button>
             </form>
           </div>
-          <div className="-mx-4 overflow-x-auto px-4">
+          <div className="scroll-thin -mx-4 overflow-x-auto px-4">
             <table className="w-full min-w-[32rem] text-start font-mono text-xs">
               <thead className="text-muted-foreground">
                 <tr>
@@ -202,7 +202,7 @@ export default async function AdminPage() {
             {t.admin.showingFirst.replace("{n}", String(manualList.rows.length))}
           </p>
         )}
-        <div className="relative -mx-4 overflow-x-auto px-4">
+        <div className="scroll-thin relative -mx-4 overflow-x-auto px-4">
           <table className="w-full min-w-[40rem] text-start text-sm">
             <thead className="text-muted-foreground text-xs">
               <tr>

@@ -321,7 +321,7 @@ function MessageText({ text, dir, lang }: { text: string; dir: "rtl" | "ltr"; la
     <p
       dir={dir}
       lang={lang}
-      className="bg-muted/40 max-h-[50dvh] overflow-y-auto overscroll-contain rounded-md border p-3 text-sm leading-relaxed wrap-anywhere whitespace-pre-wrap"
+      className="bg-muted/40 scroll-thin max-h-[50dvh] overflow-y-auto overscroll-contain rounded-md border p-3 text-sm leading-relaxed wrap-anywhere whitespace-pre-wrap"
     >
       {text}
     </p>

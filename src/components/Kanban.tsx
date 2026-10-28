@@ -67,7 +67,7 @@ export function Kanban({
   return (
     <div className="flex flex-col gap-3">
       {/* status index — doubles as a column jumper on small screens */}
-      <div className="-mx-4 overflow-x-auto px-4 xl:hidden">
+      <div className="scroll-thin -mx-4 overflow-x-auto px-4 xl:hidden">
         <ul className="flex w-max gap-1.5">
           {COLUMNS.map((c) => (
             <li key={c}>
@@ -87,7 +87,7 @@ export function Kanban({
 
       <div
         ref={board}
-        className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-3 xl:mx-0 xl:grid xl:grid-cols-6 xl:overflow-visible xl:px-0"
+        className="scroll-thin -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-3 xl:mx-0 xl:grid xl:grid-cols-6 xl:overflow-visible xl:px-0"
       >
         {COLUMNS.map((col) => (
           <section
