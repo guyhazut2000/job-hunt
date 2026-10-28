@@ -14,6 +14,7 @@ const en = {
     updated: "Recently updated",
     company: "Company A–Z",
     title: "Job title A–Z",
+    commute: "Shortest commute",
   } satisfies Record<SortKey, string>,
   matchSortHint: "Sign in and fill your profile to sort by match",
   sections: {
@@ -104,6 +105,7 @@ const he: JobSearchStrings = {
     updated: "עודכנו לאחרונה",
     company: "שם החברה (A–Z)",
     title: "שם המשרה (A–Z)",
+    commute: "זמן הגעה קצר",
   },
   matchSortHint: "התחברו ומלאו פרופיל כדי למיין לפי התאמה",
   sections: {

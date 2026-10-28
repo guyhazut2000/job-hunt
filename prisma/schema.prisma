@@ -105,6 +105,7 @@ model User {
   emailAccounts   EmailAccount[]
   emailCandidates EmailCandidate[]
   skillProgress   SkillProgress[]
+  savedPlaces     SavedPlace[]
 }
 
 model Profile {
@@ -208,6 +209,13 @@ model Company {
   /// How the company got here: "curated", "manual-seed", "admin", "discovery:YC", "discovery:WIKIDATA"…
   addedVia          String?
   startupCandidates StartupCandidate[]
+
+  /// Optional office override for the jobs map (docs/jobs-map.md), set by an admin. When `officeCity`
+  /// is set it replaces only that city's pin; null applies to all of the company's jobs.
+  officeAddress String?
+  officeLat     Float?
+  officeLng     Float?
+  officeCity    String?
 
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Company_name_trgm_idx")
 }
@@ -337,6 +345,16 @@ model Job {
   linkedinUrl       String?
   /// Last Brave lookup for linkedinUrl (found or not). Null = never checked.
   linkedinCheckedAt DateTime?
+  /// Jobs map (src/lib/geo): primary point (approximate, city/tech-hub level) and every place key the
+  /// location mentions (hub:* / gn:* / co:<companyId>). Null = not geocodable (e.g. "Israel" + foreign HQ).
+  geoLat            Float?
+  geoLng            Float?
+  geoPlaces         String[]       @default([])
+  /// office | hub | city | hq
+  geoPrecision      String?
+  /// What the geo was computed from (location + company HQ/office), so changes trigger a re-geocode.
+  geoSource         String?
+  geocodedAt        DateTime?
 
   @@unique([source, externalId])
   @@index([roleCategory, seniority])
@@ -345,6 +363,7 @@ model Job {
   @@index([isActive, level])
   @@index([isActive, sourceUpdatedAt])
   @@index([companyId, isActive])
+  @@index([isActive, geoLat])
   // Free-text search (ILIKE '%term%') — trigram GIN indexes, pg_trgm.
   @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "Job_title_trgm_idx")
   @@index([description(ops: raw("gin_trgm_ops"))], type: Gin, map: "Job_description_trgm_idx")
@@ -652,4 +671,61 @@ model SkillProgress {
 
   @@unique([userId, skill])
   @@index([skill])
+}
+
+/// Jobs map: a user's saved commute origins ("Home", "University"). Exact coordinates stay here only;
+/// commute lookups and caches use a ~200 m rounded point (src/lib/commute/keys.ts).
+model SavedPlace {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  address   String
+  lat       Float
+  lng       Float
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+/// Travel-time cache: (rounded origin, destination point, mode, departure bucket) -> seconds.
+/// `seconds` null = no route found (cached too, so we do not ask again).
+model CommuteCache {
+  id         String   @id @default(cuid())
+  originKey  String
+  destKey    String
+  mode       String
+  timeBucket String
+  seconds    Int?
+  transfers  Int?
+  provider   String
+  fetchedAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  @@unique([originKey, destKey, mode, timeBucket])
+  @@index([expiresAt])
+}
+
+/// One row per outbound routing/geocoding request, for daily caps and provider etiquette.
+model GeoProviderCall {
+  id        String   @id @default(cuid())
+  provider  String
+  kind      String
+  ok        Boolean
+  createdAt DateTime @default(now())
+
+  @@index([provider, createdAt])
+}
+
+/// Address geocoding cache (Nominatim results for saved places / office overrides).
+model GeocodeCache {
+  id        String   @id @default(cuid())
+  query     String   @unique
+  lat       Float?
+  lng       Float?
+  label     String?
+  provider  String
+  createdAt DateTime @default(now())
 }

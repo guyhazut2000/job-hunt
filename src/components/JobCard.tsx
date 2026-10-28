@@ -12,18 +12,27 @@ import { LinkedinJobInlineLink } from "./LinkedinJobLink";
 import { MatchMeter } from "./MatchMeter";
 import { TruncatedText } from "./TruncatedText";
 import { cn } from "@/lib/utils";
+import type { CommuteMode } from "@/lib/commute/keys";
+import type { CommuteResult } from "@/lib/commute/types";
+import { jobsMapStrings } from "@/lib/i18n/jobs-map";
+import { CommuteChips } from "./map/CommuteChips";
 
 export function JobCard({
   job,
   t,
   score,
   highlight,
+  commute,
+  commuteMode,
 }: {
   job: Job & { company: Company };
   t: Dictionary;
   score?: number;
   /** Search terms to mark in the title and company name. */
   highlight?: string[];
+  /** Travel times from the chosen origin (shown when a commute origin is set). */
+  commute?: CommuteResult;
+  commuteMode?: CommuteMode;
 }) {
   return (
     <article className="group hover:bg-muted/60 relative grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 px-4 py-5 transition-colors sm:px-5">
@@ -69,6 +78,15 @@ export function JobCard({
             </span>
           ))}
         </p>
+        {commute && (
+          <CommuteChips
+            commute={commute}
+            s={jobsMapStrings(localeOf(t))}
+            active={commuteMode}
+            size="sm"
+            className="relative z-[1]"
+          />
+        )}
         <SalaryChip estimate={estimateSalary({ job, company: job.company })} s={salaryStrings(localeOf(t))} />
         {job.techStack.length > 0 && (
           <ul className="flex flex-wrap gap-1 pt-1" dir="ltr" aria-label={t.jobs.tech}>

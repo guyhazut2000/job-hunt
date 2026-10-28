@@ -1,5 +1,5 @@
 /** Israeli city canonicalization (English + Hebrew spellings seen on ATS boards). */
-const CITIES: [label: string, re: RegExp][] = [
+export const CITIES: [label: string, re: RegExp][] = [
   ["Tel Aviv", /tel[\s-]?aviv|תל[\s-]?אביב|\btlv\b/i],
   ["Herzliya", /herz[e]?l?iy?ah?|הרצליה/i],
   ["Ramat Gan", /ramat[\s-]?gan|רמת[\s-]?גן/i],
@@ -41,7 +41,7 @@ const CITIES: [label: string, re: RegExp][] = [
   ["Misgav", /\bmisgav\b|משגב/i],
 ];
 
-const COUNTRY = /israel|ישראל|\bisr\b/i;
+export const COUNTRY = /israel|ישראל|\bisr\b/i;
 
 /** True when a free-text ATS location refers to Israel (any Israeli city, or "Israel" / "Remote - Israel"). */
 export function isIsraelLocation(location: string | null | undefined): boolean {
