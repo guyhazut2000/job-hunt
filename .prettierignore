@@ -2,3 +2,5 @@ node_modules
 .next
 package-lock.json
 prisma/migrations
+public/vendor
+src/lib/geo/il-places.json

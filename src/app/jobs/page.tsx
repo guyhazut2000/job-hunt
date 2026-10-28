@@ -35,6 +35,17 @@ import { matchCompanies, rankJob } from "@/lib/jobs/search";
 import { highlightTerms, parseSearchQuery } from "@/lib/search/query";
 import { fillQ, searchStrings } from "@/lib/i18n/search";
 import { SearchBox, type SearchSuggestion } from "@/components/SearchBox";
+import { List, Map as MapIcon } from "lucide-react";
+import { CommuteBar } from "@/components/map/CommuteBar";
+import { JobsMap } from "@/components/map/JobsMap";
+import { filterByCommute, sortByCommute } from "@/lib/commute/filter";
+import { commuteForJobs, commuteSeconds, type JobCommute } from "@/lib/commute/jobs";
+import { destKey, parseDeparture } from "@/lib/commute/keys";
+import { listSavedPlaces, resolveOrigin } from "@/lib/commute/origin";
+import { getCommuteTimes } from "@/lib/commute/service";
+import { companyGeoSelect } from "@/lib/geo/job-points";
+import { buildMarkers } from "@/lib/geo/map-markers";
+import { fillN, jobsMapStrings } from "@/lib/i18n/jobs-map";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Jobs" };
@@ -48,8 +59,22 @@ export default async function JobsPage({
   const s = jobSearchStrings(locale);
   const ss = searchStrings(locale);
   const userId = session?.user?.id;
-  const filters = parseFilters(params);
-  const profile = userId ? await db.profile.findUnique({ where: { userId } }) : null;
+  const ms = jobsMapStrings(locale);
+  const parsed = parseFilters(params);
+  const isMap = parsed.view === "map";
+  // Commute origin: ad-hoc rounded point, a saved place, or (map view) the default saved place.
+  const [profile, origin, savedPlaces] = await Promise.all([
+    userId ? db.profile.findUnique({ where: { userId } }) : null,
+    resolveOrigin(parsed, userId, isMap),
+    listSavedPlaces(userId),
+  ]);
+  const filters: JobFilters = {
+    ...parsed,
+    from: origin?.source === "here" ? parsed.from : undefined,
+    origin: origin?.placeId ?? (parsed.origin === "none" ? "none" : undefined),
+    cmode: origin ? parsed.cmode : undefined,
+    maxc: origin ? parsed.maxc : undefined,
+  };
   const candidate = hasScorableProfile(profile) ? toCandidate(profile) : null;
   const hasProfile = !!candidate;
   const sort = effectiveSort(filters, hasProfile);
@@ -75,7 +100,27 @@ export default async function JobsPage({
   });
   // Company names/domains are resolved to ids up front so the text search stays index-friendly.
   const companyMatches = terms.length ? matchCompanies(terms, companyRows) : undefined;
-  const where = filtersToWhere(filters, { userId, companyMatches });
+  const baseWhere = filtersToWhere(filters, { userId, companyMatches });
+  const departure = parseDeparture(filters.dep);
+  const commuteOpts = origin ? { origin: origin.point, departure } : null;
+
+  // Commute filter / sort: one cached, batched matrix over every matching job's places.
+  let commuteOrder: string[] | null = null;
+  let estimated = false;
+  if (commuteOpts && (sort === "commute" || filters.maxc)) {
+    const light = await db.job.findMany({
+      where: baseWhere,
+      select: { id: true, geoPlaces: true, geoPrecision: true, company: { select: companyGeoSelect } },
+    });
+    const { byJob, batch } = await commuteForJobs(light, commuteOpts);
+    estimated ||= batch.estimated;
+    const sec = (j: { id: string }) => commuteSeconds(byJob.get(j.id), filters.cmode);
+    let list = filterByCommute(light, sec, filters.maxc ?? null);
+    if (sort === "commute") list = sortByCommute(list, sec);
+    commuteOrder = list.map((j) => j.id);
+  }
+  const where = filters.maxc && commuteOrder ? { AND: [baseWhere, { id: { in: commuteOrder } }] } : baseWhere;
+  const commuteRank = new Map((commuteOrder ?? []).map((id, i) => [id, i]));
   const marks = highlightTerms(terms);
   const count = <K extends string>(rows: ({ _count: number } & Record<K, string>)[], k: K) =>
     Object.fromEntries(rows.map((r) => [r[k], r._count]));
@@ -119,9 +164,22 @@ export default async function JobsPage({
       .map((x) => (terms.length ? { ...x, rank: rankJob(x.job, terms) } : x))
       .filter((x) => filters.minMatch === undefined || x.score >= filters.minMatch)
       .filter((x) => !filters.fit || fitIds.has(x.job.companyId))
-      .sort(compareJobs(sort));
+      .sort(
+        sort === "commute"
+          ? (a, b) => (commuteRank.get(a.job.id) ?? Infinity) - (commuteRank.get(b.job.id) ?? Infinity)
+          : compareJobs(sort),
+      );
     total = matching.length;
     rows = matching.slice((filters.page - 1) * PAGE_SIZE, filters.page * PAGE_SIZE);
+  } else if (sort === "commute" && commuteOrder) {
+    total = commuteOrder.length;
+    const ids = commuteOrder.slice((filters.page - 1) * PAGE_SIZE, filters.page * PAGE_SIZE);
+    const full = await db.job.findMany({ where: { id: { in: ids } }, include: { company: true } });
+    const byId = new Map(full.map((j) => [j.id, j]));
+    rows = ids
+      .map((id) => byId.get(id))
+      .filter((j): j is Job & { company: Company } => !!j)
+      .map((job) => ({ job, score: candidate ? scoreMatch(candidate, job).score : undefined }));
   } else if (sort === "relevance") {
     // Rank every match on light columns (no descriptions), then load only the visible page.
     const light = await db.job.findMany({
@@ -154,19 +212,55 @@ export default async function JobsPage({
     rows = jobs.map((job) => ({ job, score: candidate ? scoreMatch(candidate, job).score : undefined }));
   }
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Commute chips on the visible cards (list view; mostly cache hits after the filter above).
+  let rowCommute: Map<string, JobCommute> | null = null;
+  if (commuteOpts && !isMap && rows.length) {
+    const r = await commuteForJobs(
+      rows.map((x) => x.job),
+      commuteOpts,
+    );
+    rowCommute = r.byJob;
+    estimated ||= r.batch.estimated;
+  }
+
+  // Map view: company×place markers for every matching job, with commute per marker.
+  let map: ReturnType<typeof buildMarkers> | null = null;
+  if (isMap) {
+    const mapRows = await db.job.findMany({
+      where,
+      select: {
+        id: true,
+        title: true,
+        workMode: true,
+        geoPlaces: true,
+        geoPrecision: true,
+        company: { select: { ...companyGeoSelect, name: true, slug: true } },
+      },
+      orderBy: [{ postedAt: "desc" }, { id: "asc" }],
+      take: 3000,
+    });
+    const scores = new Map(scoredAll.map((x) => [x.job.id, x.score]));
+    map = buildMarkers(mapRows, locale, candidate ? scores : undefined);
+    if (commuteOpts && map.markers.length) {
+      const batch = await getCommuteTimes({ ...commuteOpts, dests: map.markers.map((m) => m.dest) });
+      estimated ||= batch.estimated;
+      for (const m of map.markers) m.commute = batch.times.get(destKey(m.dest));
+    }
+  }
   const welcome = params.welcome === "1";
   const nFilters = activeFilterCount(filters);
 
   // Strip of the best matches, only when the list itself isn't already match-ordered.
   const top =
-    candidate && sort !== "match" && filters.page === 1 && nFilters === 0
+    candidate && !isMap && sort !== "match" && filters.page === 1 && nFilters === 0
       ? [...scoredAll]
           .sort((a, b) => b.score - a.score)
           .slice(0, 3)
           .filter((x) => x.score >= 40)
       : [];
   const fitStrip =
-    candidate && filters.page === 1 && !filters.fit && filters.company.length === 0
+    candidate && !isMap && filters.page === 1 && !filters.fit && filters.company.length === 0
       ? fits.slice(0, 8).map((f) => ({ ...f, company: companyRows.find((c) => c.id === f.companyId)! }))
       : [];
 
@@ -188,13 +282,15 @@ export default async function JobsPage({
   for (const v of filters.company) chip("company", companyRows.find((c) => c.slug === v)?.name ?? v, v);
   for (const v of filters.type) chip("type", s.types[v], v);
   if (filters.tech) chip("tech", filters.tech);
+  if (filters.maxc)
+    chip("maxc", `${filters.cmode ? ms.modes[filters.cmode] : ms.commute} ${fillN(ms.upTo, { n: filters.maxc })}`);
   const clearHref = href(clearedFilters(filters));
 
   const sortOptions = SORTS.filter((k) => k !== "relevance" || terms.length > 0).map((k) => ({
     key: k,
     label: s.sorts[k],
     href: href({ ...filters, sort: k, page: 1 }),
-    disabled: k === "match" && !hasProfile,
+    disabled: (k === "match" && !hasProfile) || (k === "commute" && !origin),
   }));
 
   const formProps = { t, s, filters, facets, hasProfile, signedIn: !!userId, clearHref };
@@ -256,7 +352,46 @@ export default async function JobsPage({
             options={sortOptions}
             hint={hasProfile ? undefined : s.matchSortHint}
           />
+          <nav
+            className="bg-muted ms-auto inline-flex rounded-md p-0.5"
+            aria-label={ms.viewLabel}
+            data-testid="view-toggle"
+          >
+            {(
+              [
+                ["list", List, ms.viewList],
+                ["map", MapIcon, ms.viewMap],
+              ] as const
+            ).map(([v, Icon, label]) => (
+              <Link
+                key={v}
+                href={href({ ...filters, view: v === "map" ? "map" : undefined, page: 1 })}
+                aria-current={(v === "map") === isMap ? "page" : undefined}
+                className={
+                  (v === "map") === isMap
+                    ? "bg-background inline-flex min-h-9 items-center gap-1.5 rounded px-3 text-sm font-bold shadow-sm"
+                    : "text-muted-foreground hover:text-foreground inline-flex min-h-9 items-center gap-1.5 rounded px-3 text-sm font-semibold"
+                }
+                data-testid={`view-${v}`}
+              >
+                <Icon className="size-4" aria-hidden />
+                {label}
+              </Link>
+            ))}
+          </nav>
         </div>
+
+        <CommuteBar
+          s={ms}
+          savedPlaces={savedPlaces.map((p) => ({ id: p.id, label: p.label }))}
+          origin={origin ? { source: origin.source, placeId: origin.placeId } : null}
+          cmode={filters.cmode}
+          maxc={filters.maxc}
+          dep={filters.dep}
+          view={isMap ? "map" : "list"}
+          signedIn={!!userId}
+        />
+        {filters.maxc && <p className="text-muted-foreground -mt-2 text-xs">{ms.commuteFilterDropped}</p>}
 
         {chips.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5" data-testid="active-chips">
@@ -360,7 +495,35 @@ export default async function JobsPage({
 
         {top.length > 0 && <h2 className="kicker pt-2">{s.sorts[sort]}</h2>}
 
-        {rows.length === 0 ? (
+        {map ? (
+          <>
+            <JobsMap
+              markers={map.markers}
+              origin={
+                origin
+                  ? {
+                      lat: origin.point.lat,
+                      lng: origin.point.lng,
+                      label: origin.label ?? ms.customPoint,
+                    }
+                  : null
+              }
+              s={ms}
+              locale={locale}
+              cmode={filters.cmode}
+              remote={map.remote}
+              unmapped={map.unmapped}
+              estimated={estimated}
+              workModeLabels={t.workMode}
+            />
+            <p className="text-muted-foreground text-[11px] lg:hidden">
+              © OpenFreeMap · OpenStreetMap · GeoNames ·{" "}
+              <a href="https://transitous.org/sources/" target="_blank" rel="noopener" className="underline">
+                {ms.attributionTransit} ({ms.sources})
+              </a>
+            </p>
+          </>
+        ) : rows.length === 0 ? (
           <div
             className="bg-card text-muted-foreground flex flex-col items-center gap-3 rounded-lg border p-8 text-center"
             data-testid="jobs-empty"
@@ -391,12 +554,20 @@ export default async function JobsPage({
         ) : (
           <JobList>
             {rows.map(({ job, score }) => (
-              <JobCard key={job.id} job={job} t={t} score={score} highlight={marks} />
+              <JobCard
+                key={job.id}
+                job={job}
+                t={t}
+                score={score}
+                highlight={marks}
+                commute={rowCommute?.get(job.id)?.commute}
+                commuteMode={filters.cmode}
+              />
             ))}
           </JobList>
         )}
 
-        {pages > 1 && (
+        {!isMap && pages > 1 && (
           <nav className="flex items-center justify-between gap-3 pt-2" aria-label={t.ui.page}>
             {filters.page > 1 ? (
               <Button asChild variant="outline">
