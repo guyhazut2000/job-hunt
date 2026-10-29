@@ -155,3 +155,56 @@ describe("domain metadata", () => {
     ).toBe("mobile");
   });
 });
+
+describe("inferJobDomain — hardware is not over-assigned", () => {
+  it.each([
+    // software / firmware work at chip companies
+    ["Software Verification Engineer", "qa"],
+    ["Software Verification Manager, SDK", "qa"],
+    ["Network Solution Verification Engineer", "qa"],
+    ["Senior Firmware PHY Verification Engineer", "embedded"],
+    ["Senior Firmware Architect, Management Power and Thermal", "embedded"],
+    ["Senior Software Engineer, Chip Design", "software"],
+    ["Electron Optics Devices Software Engineer", "software"],
+    // look-alike keywords
+    ["Senior CAD/BIM Drafter & Modeler - Civil 3D", "design"],
+    ["Director, Medical Excellence, Electrophysiology", "other"],
+    ["HPC Operations Engineer", "cloud"],
+    ["Manufacturing Supervisor", "business-ops"],
+    ["טכנאי/ת מחשבים", "it"],
+    ["טכנאי/ת תקשורת ותשתיות רשת", "it"],
+    // ambiguous engineering titles with no hardware evidence
+    ["Integration Engineer", "other"],
+    ["Technical Product Engineer (Cortex)", "other"],
+    ["Product Engineering - Future Opportunities", "other"],
+  ])("%s → %s", (title, expected) => {
+    expect(d(title)).toBe(expected);
+  });
+
+  it("keeps real hardware titles", () => {
+    for (const t of [
+      "Verification Engineer",
+      "Senior Chip Design Engineer",
+      "Physical Design Engineer",
+      "Senior Signal Integrity Engineer",
+      "Mechanical Engineer",
+      "Radar System Engineer",
+      "IC Product Engineer",
+      "CAD/Emulation Engineer",
+      "Electro Optics Systems Engineer",
+      "Production Technician",
+    ])
+      expect(d(t), t).toBe("hardware");
+  });
+
+  it("needs hardware evidence for System / Integration / Product Engineer", () => {
+    expect(d("System Engineer", { description: "Own the integration of RF boards and sensors into the radar." })).toBe(
+      "hardware",
+    );
+    expect(d("Integration Engineer", { department: "Hardware" })).toBe("hardware");
+    expect(
+      d("Integration Engineer", { description: "Build REST API integrations with Salesforce and HubSpot." }),
+    ).not.toBe("hardware");
+    expect(d("Senior Product Engineer", { techStack: ["React", "TypeScript", "Node.js"] })).not.toBe("hardware");
+  });
+});

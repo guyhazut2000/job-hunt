@@ -32,7 +32,24 @@ const norm = (s: string) =>
 const NOT_A_ROLE =
   /general application|open application|talent (network|pool|community)|didn'?t see|spontaneous|career (at|opportunit)|surprise us|no match\?|explore new opportunities|would love to join|didn'?t find|looking for something else|keep in touch|קורות חיים כללי|משרה כללית/;
 
-type Rule = [JobDomain, RegExp, RegExp?];
+type Rule = [JobDomain, RegExp, RegExp?, "needs-hardware-evidence"?];
+
+/**
+ * Titles that are software work even inside a chip / devices company ("ATE Software Engineer",
+ * "Senior Software Engineer, Chip Design"): never routed to hardware by a title keyword.
+ */
+const SOFTWARE_OR_FIRMWARE_TITLE =
+  /\bsoftware (engineer|developer|architect|team|tech lead|lead)|\bsw (engineer|developer|architect)\b|firmware|קושחה|תוכנה/;
+
+/** Non-electronics "CAD" (construction / civil drafting) and similar look-alikes. */
+const NOT_HARDWARE_CAD = /\bbim\b|civil|drafter|drafting|autocad|revit|architectural|construction/;
+
+/**
+ * Hardware evidence for ambiguous titles ("System Engineer", "Integration Engineer", "Product Engineer"):
+ * those are hardware only when the department, skills or description say so.
+ */
+const HARDWARE_EVIDENCE =
+  /hardware|\bhw\b|\bic\b|\basic\b|fpga|vlsi|silicon|semiconductor|wafer|\bchips?\b|chipset|\bpcb\b|\bboards?\b|electronic|electrical|electro[\s-]?(optic|mechan)|mechanical|optic|laser|\brf\b|antenna|radar|lidar|sensor|oscilloscope|solder|manufactur|assembly line|production line|wireless|satellite|avionic|aircraft|\buav\b|drone|missile|camera|medical device|equipment|test instruments|power supply|\bphy\b|serdes|signal integrity|thermal|matlab|simulink|cadence|labview|vhdl|verilog|systemverilog|\bdoors\b|mil-std|ניסויי|חומרה|אלקטרוני|מכני|שבב|ייצור/;
 
 /** Business-facing roles that would otherwise be caught by tech keywords ("Product Marketing Manager", "Solutions Architect"). */
 const BUSINESS_TITLE_RULES: Rule[] = [
@@ -48,7 +65,7 @@ const BUSINESS_TITLE_RULES: Rule[] = [
   ["sales", /product marketing|\bpmm\b|developer (relations|advocate|marketing|evangelist)|\bdevrel\b/],
   [
     "business-ops",
-    /procurement|purchasing|\bbuyer\b|sourcing (manager|specialist)|logistic|warehouse|supply chain|\bplanner\b|material (planner|manager)|import|export|shipper|chief operating officer|\bcoo\b|production (associate|employee|worker|operator)s?|\boperator\b|assembler|shift supervisor|store manager|קניין|רכש|מחסנ|לוגיסטיק|מלקט|תפעול|מרכיב|יצור|ייצור|כרסם|חרט|מלחימ|משמרת|גיוס|משאבי אנוש|כספים|חשבונ|בנקאי/,
+    /procurement|purchasing|\bbuyer\b|sourcing (manager|specialist)|logistic|warehouse|supply chain|\bplanner\b|material (planner|manager)|import|export|shipper|chief operating officer|\bcoo\b|production (associate|employee|worker|operator)s?|\boperator\b|assembler|shift supervisor|(manufacturing|production) (supervisor|manager)|store manager|קניין|רכש|מחסנ|לוגיסטיק|מלקט|תפעול|מרכיב|יצור|ייצור|כרסם|חרט|מלחימ|משמרת|גיוס|משאבי אנוש|כספים|חשבונ|בנקאי/,
   ],
   ["analytics", /product analyst|product (data )?analytics|product insights/],
   [
@@ -74,12 +91,18 @@ const BUSINESS_TITLE_RULES: Rule[] = [
 /** Technical domains. Ordered: the first match wins, so specific beats generic. */
 const TECH_TITLE_RULES: Rule[] = [
   [
+    "qa",
+    // "Software Verification Engineer", "Network Solution Verification Manager": software testing, not silicon.
+    /(software|\bsw|solutions?|system test|sdk|application|e2e|end[\s-]to[\s-]end) verification/,
+  ],
+  [
     "security",
     /security|cyber|appsec|penetration|pentest|red team|blue team|threat|malware|vulnerab|incident respon|\bsoc (analyst|manager|team|tier)|\bgrc\b|\bciso\b|secops|detection (engineer|research)|reverse engineer|\bdfir\b|forensic|fraud|סייבר|אבטחת מידע|אבטחה/,
   ],
   [
     "hardware",
     /design verification|\bdv\b|(chip|asic|soc|rtl|fpga|hardware|silicon|ip) (design )?verification|verification (engineer|lead|manager|team|architect)|post[\s-]?silicon|pre[\s-]?silicon|hardware (validation|test)|אימות (חומרה|שבבים)/,
+    /firmware|קושחה/,
   ],
   [
     "qa",
@@ -108,6 +131,7 @@ const TECH_TITLE_RULES: Rule[] = [
   [
     "hardware",
     /\basic\b|fpga|vlsi|\bchip\b|sub-chip|silicon|physical design|\brtl\b|\bdft\b|\bsta\b|analog|serdes|\bsoc\b (architect|design)|emulation|logic design|synthesis|\bcad\b|\bate\b|package (design|integration)|thermal|opto|motion (control|&)|cable design|\bhw\b|failure analysis|sensor|device physics|power and performance|industrial engineer|\bv&v\b|חומרה|שבב/,
+    new RegExp(`${SOFTWARE_OR_FIRMWARE_TITLE.source}|${NOT_HARDWARE_CAD.source}`),
   ],
   [
     "data-science",
@@ -124,16 +148,24 @@ const TECH_TITLE_RULES: Rule[] = [
   ],
   [
     "hardware",
-    /hardware|\basic\b|fpga|vlsi|\bchip\b|silicon|physical design|\brtl\b|analog|digital design|electrical|electronic|electro|board design|\bpcb\b|signal integrity|power (engineer|integrity|management|design)|\bdft\b|\bsta\b|layout (engineer|designer)|circuit|\brf\b|optic|photonic|mechanical|mechatronic|\bnpi\b|packaging|micro[\s-]?architect|\bcpu\b|\bgpu\b (architect|design)|\bsoc\b (architect|design)|חומרה|אלקטרוני|שבב|מכני|הנדסאי/,
+    /hardware|\basic\b|fpga|vlsi|\bchip\b|silicon|physical design|\brtl\b|analog|digital design|electrical|electronic|electro[\s-]?(optic|mechan|magnetic)|board design|\bpcb\b|signal integrity|power (engineer|integrity|management|design)|\bdft\b|\bsta\b|layout (engineer|designer)|circuit|\brf\b|optic|photonic|mechanical|mechatronic|\bnpi\b|packaging|micro[\s-]?architect|\bcpu\b|\bgpu\b (architect|design)|\bsoc\b (architect|design)|חומרה|אלקטרוני|שבב|מכני|הנדסאי/,
+    SOFTWARE_OR_FIRMWARE_TITLE,
   ],
   [
     "hardware",
-    /system(s)? (engineer|integrat\w*|architect|validation)|integration engineer|integrator|manufacturing|process engineer|product engineer|\bic\b|physicist|lab (technician|engineer)|technician|טכנאי|magnetic|radar|\beo\b|wireless|rdma|\bhpc\b|high-performance|interconnect|optics?\b/,
+    /manufacturing|\bic\b|physicist|lab (technician|engineer)|technician|טכנאי|magnetic|radar|\beo\b|wireless|rdma|interconnect|optics?\b/,
+    /software|\bsw\b|\bit\b|cloud|network|security|azure|aws|gcp|computer|מחשב|תקשורת|רשת|supervisor/,
+  ],
+  [
+    // Ambiguous engineering titles: hardware only with hardware evidence in department / skills / description.
+    "hardware",
+    /system(s)? (engineer|integrat\w*|architect|validation)|integration engineer|integrator|process engineer|product engineer|high-performance/,
     /software|\bsw\b|\bit\b|cloud|network|security|azure|aws|gcp/,
+    "needs-hardware-evidence",
   ],
   [
     "it",
-    /\bit\b|\bmis\b|help ?desk|sysadmin|system admin|systems admin|information systems|desktop support|endpoint|office 365|microsoft 365|workplace (technology|engineer)|מערכות מידע|מחשוב|איש סיסטם|אשת סיסטם/,
+    /\bit\b|\bmis\b|help ?desk|sysadmin|system admin|systems admin|information systems|desktop support|endpoint|office 365|microsoft 365|workplace (technology|engineer)|מערכות מידע|מחשוב|איש סיסטם|אשת סיסטם|טכנאי.{0,6}(ציוד )?(מחשב|תקשורת)|computer technician/,
   ],
   [
     "cloud",
@@ -193,8 +225,12 @@ const FUNCTION_TO_DOMAIN: Record<JobFunction, JobDomain | null> = {
   other: null,
 };
 
-function firstMatch(rules: Rule[], text: string): JobDomain | null {
-  for (const [domain, re, unless] of rules) if (re.test(text) && !(unless && unless.test(text))) return domain;
+function firstMatch(rules: Rule[], text: string, evidence = ""): JobDomain | null {
+  for (const [domain, re, unless, needs] of rules) {
+    if (!re.test(text) || (unless && unless.test(text))) continue;
+    if (needs === "needs-hardware-evidence" && !HARDWARE_EVIDENCE.test(evidence)) continue;
+    return domain;
+  }
   return null;
 }
 
@@ -295,7 +331,8 @@ export function inferJobDomain(input: DomainInput): JobDomain {
   // 1. Title. Business-facing rules first, unless the title is clearly a software role.
   const business = firstMatch(BUSINESS_TITLE_RULES, t);
   if (business && !(strongSoftware && (business === "sales" || business === "support"))) return business;
-  const tech = firstMatch(TECH_TITLE_RULES, t);
+  const evidence = `${t} ${dept} ${techStack.join(" ")} ${description}`.toLowerCase();
+  const tech = firstMatch(TECH_TITLE_RULES, t, evidence);
   if (tech) return tech;
   if (business) return business;
 
