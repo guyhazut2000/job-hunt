@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Check, LayoutDashboard, Route, Sparkles, TrendingUp, UserRound } from "lucide-react";
+import { ArrowLeft, Check, LayoutDashboard, Lightbulb, Route, Sparkles, TrendingUp, UserRound } from "lucide-react";
 import { auth } from "@/auth";
 import { LearnExplorer, type ExplorerSkill } from "@/components/learning/LearnExplorer";
 import { ProgressRing, SkillCard, SkillMonogram, type LearnStatus } from "@/components/learning/SkillVisuals";
@@ -13,6 +13,7 @@ import { demandMap, getProgress } from "@/lib/learning/server";
 import { LEARN_CATEGORIES } from "@/lib/learning/types";
 import { hasScorableProfile, toCandidate } from "@/lib/profile/score";
 import { cn } from "@/lib/utils";
+import { conceptStrings } from "@/lib/i18n/concepts";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Learn" };
@@ -26,6 +27,7 @@ export default async function LearnPage() {
   const s = learningStrings(locale);
   const userId = session?.user?.id;
   const hub = learningHubStrings(locale);
+  const cs = conceptStrings(locale);
   const [demand, progress, profile] = await Promise.all([
     demandMap(),
     getProgress(userId),
@@ -167,6 +169,20 @@ export default async function LearnPage() {
               <span className="flex min-w-0 flex-col">
                 <span className="font-bold">{hub.navMine}</span>
                 <span className="text-primary-foreground/85 text-sm">{hub.dashLead}</span>
+              </span>
+            </span>
+            <ArrowLeft className="size-5 shrink-0 ltr:rotate-180" aria-hidden />
+          </Link>
+          <Link
+            href="/learn/concepts"
+            data-testid="concepts-entry"
+            className="group bg-card hover:bg-secondary/60 flex min-h-16 items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 transition-colors sm:px-6"
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <Lightbulb className="text-primary size-6 shrink-0" aria-hidden />
+              <span className="flex min-w-0 flex-col">
+                <span className="font-bold">{cs.entryTitle}</span>
+                <span className="text-foreground/75 text-sm">{cs.entryLead}</span>
               </span>
             </span>
             <ArrowLeft className="size-5 shrink-0 ltr:rotate-180" aria-hidden />
