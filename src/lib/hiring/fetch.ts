@@ -59,6 +59,32 @@ export interface FetchDeps {
   /** Cache of robots.txt bodies per origin (null = none / unreachable). */
   robotsCache?: Map<string, string | null>;
   minIntervalMs?: number;
+  /**
+   * Consecutive network failures (timeouts / resets) per host, shared across a run. Some sites silently
+   * tarpit non-browser clients (e.g. www.hpe.com hangs every request until the timeout); once a host has
+   * failed `HOST_FAILURE_LIMIT` times in a row we stop sending it requests instead of waiting out every
+   * timeout. We never try to get around such a wall (no browser user agent, no proxies).
+   */
+  hostFailures?: Map<string, number>;
+}
+
+/** After this many consecutive network failures a host is skipped for the rest of the run. */
+export const HOST_FAILURE_LIMIT = 2;
+
+function noteHost(deps: FetchDeps, host: string, failed: boolean) {
+  const m = deps.hostFailures;
+  if (!m) return;
+  if (failed) m.set(host, (m.get(host) ?? 0) + 1);
+  else m.delete(host);
+}
+
+/** True when the host has stopped answering during this run (see `FetchDeps.hostFailures`). */
+export function isHostDown(deps: FetchDeps, url: string): boolean {
+  try {
+    return (deps.hostFailures?.get(new URL(url).host) ?? 0) >= HOST_FAILURE_LIMIT;
+  } catch {
+    return false;
+  }
 }
 
 async function robotsFor(origin: string, deps: FetchDeps): Promise<string | null> {
@@ -71,8 +97,10 @@ async function robotsFor(origin: string, deps: FetchDeps): Promise<string | null
       signal: AbortSignal.timeout(8_000),
     });
     body = res.ok ? (await res.text()).slice(0, 200_000) : null;
+    noteHost(deps, new URL(origin).host, false);
   } catch {
     body = null;
+    noteHost(deps, new URL(origin).host, true);
   }
   cache?.set(origin, body);
   return body;
@@ -114,12 +142,17 @@ export async function politeGet(
 > {
   if (isBlockedUrl(url)) return { ok: false, url, reason: "blocked" };
   const u = new URL(url);
+  if (isHostDown(deps, url)) return { ok: false, url, reason: "error" };
   const robots = await robotsFor(u.origin, deps);
   if (!isAllowedByRobots(robots, u.pathname + u.search)) return { ok: false, url, reason: "robots" };
-  for (let attempt = 0; attempt < 2; attempt++) {
+  if (isHostDown(deps, url)) return { ok: false, url, reason: "error" };
+  // A host that already failed once this run gets a single attempt (no retry).
+  const attempts = (deps.hostFailures?.get(u.host) ?? 0) > 0 ? 1 : 2;
+  for (let attempt = 0; attempt < attempts; attempt++) {
     await paceHost(u.host, deps.minIntervalMs ?? 1_000);
     try {
       const res = await getOnce(url, accept, deps);
+      noteHost(deps, u.host, false);
       const finalUrl = res.url || url;
       if (isBlockedUrl(finalUrl)) return { ok: false, url, reason: "blocked" };
       if (!res.ok) {
@@ -136,7 +169,10 @@ export async function politeGet(
       }
       return { ok: true, url: finalUrl, body };
     } catch {
-      if (attempt === 1) return { ok: false, url, reason: "error" };
+      if (attempt === attempts - 1) {
+        noteHost(deps, u.host, true);
+        return { ok: false, url, reason: "error" };
+      }
     }
   }
   return { ok: false, url, reason: "error" };

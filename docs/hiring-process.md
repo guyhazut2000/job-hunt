@@ -83,6 +83,12 @@ The migration `20261028180000_hiring_process` is additive only: two new tables, 
    bypassed**. Pages with almost no text are JS-rendered; text embedded in `__NEXT_DATA__` / JSON-LD is used
    when present, otherwise the page is recorded as `js_rendered`. It never fetches LinkedIn, Glassdoor, Indeed,
    Comparably, Blind, Reddit, Quora, social networks, Medium or search engines, or login / apply pages.
+   **Unresponsive hosts:** some sites silently drop non-browser clients — every request hangs until the timeout
+   (e.g. `www.hpe.com`: HTTP/2 stream resets / HTTP/1.1 hangs, so the 12 URLs used to take ~4 minutes and pushed
+   the batch past its time box every run). After 2 consecutive network failures on a host (robots.txt counts)
+   the remaining requests to that host are skipped and a host that already failed once gets no retry; each
+   company also has a 60 s discovery budget. The company is then recorded as `unreachable` instead of being
+   deferred forever. This is treated like a bot wall: no browser user agent, proxies or other workarounds.
 3. **Job descriptions**: up to 3 of the company's active job descriptions that contain a real process section
    (≥2 stage-like lines, not just accommodation / "AI in recruitment" boilerplate, de-duplicated) are added as
    extra sources to the **same** Gemini call.
