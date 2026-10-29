@@ -5,16 +5,20 @@ that employers use to publish openings on their own careers sites. No login, no 
 pages, no LinkedIn. The curated list lives in `src/lib/ingestion/sources.ts`; each provider has an
 adapter in `src/lib/ingestion/adapters/` that normalizes postings into the same `NormalizedJob`.
 
-| Provider        | Endpoint                                                                             | boardId            | Notes                                                 |
-| --------------- | ------------------------------------------------------------------------------------ | ------------------ | ----------------------------------------------------- |
-| Greenhouse      | `boards-api.greenhouse.io/v1/boards/<token>/jobs?content=true&pay_transparency=true` | board token        | `pay_input_ranges` → stated pay (annual, cents)       |
-| Lever           | `api[.eu].lever.co/v0/postings/<site>?mode=json`                                     | site, `eu:` prefix | `salaryRange` → stated pay                            |
-| Comeet          | `www.comeet.co/careers-api/2.0/company/<uid>/positions?token=<token>&details=true`   | `uid:token`        | see token policy below                                |
-| Ashby           | `api.ashbyhq.com/posting-api/job-board/<org>?includeCompensation=true`               | job-board name     | salary tiers → stated pay                             |
-| Workable        | `apply.workable.com/api/v1/widget/accounts/<account>?details=true`                   | account            | public careers widget API                             |
-| SmartRecruiters | `api.smartrecruiters.com/v1/companies/<id>/postings?country=il` + `/postings/<id>`   | company identifier | detail fetched only for new postings                  |
-| Recruitee       | `<company>.recruitee.com/api/offers/`                                                | subdomain          | `salary` → stated pay                                 |
-| Workday         | `<tenant>.<wdN>.myworkdayjobs.com/wday/cxs/<tenant>/<site>/jobs` (POST)              | `tenant/wdN/site`  | Israel facet, paginated; detail only for new postings |
+| Provider          | Endpoint                                                                                | boardId            | Notes                                                     |
+| ----------------- | --------------------------------------------------------------------------------------- | ------------------ | --------------------------------------------------------- |
+| Greenhouse        | `boards-api.greenhouse.io/v1/boards/<token>/jobs?content=true&pay_transparency=true`    | board token        | `pay_input_ranges` → stated pay (annual, cents)           |
+| Lever             | `api[.eu].lever.co/v0/postings/<site>?mode=json`                                        | site, `eu:` prefix | `salaryRange` → stated pay                                |
+| Comeet            | `www.comeet.co/careers-api/2.0/company/<uid>/positions?token=<token>&details=true`      | `uid:token`        | see token policy below                                    |
+| Ashby             | `api.ashbyhq.com/posting-api/job-board/<org>?includeCompensation=true`                  | job-board name     | salary tiers → stated pay                                 |
+| Workable          | `apply.workable.com/api/v1/widget/accounts/<account>?details=true`                      | account            | public careers widget API                                 |
+| SmartRecruiters   | `api.smartrecruiters.com/v1/companies/<id>/postings?country=il` + `/postings/<id>`      | company identifier | detail fetched only for new postings                      |
+| Recruitee         | `<company>.recruitee.com/api/offers/`                                                   | subdomain          | `salary` → stated pay                                     |
+| Workday           | `<tenant>.<wdN>.myworkdayjobs.com/wday/cxs/<tenant>/<site>/jobs` (POST)                 | `tenant/wdN/site`  | Israel facet, paginated; detail only for new postings     |
+| Eightfold         | `<host>/api/pcsx/search?domain=<domain>&location=Israel` + `/api/pcsx/position_details` | `host/domain`      | Amdocs, Qualcomm, Microsoft; detail only for new postings |
+| Oracle Recruiting | `<host>/hcmRestApi/resources/latest/recruitingCEJobRequisitions` (Israel facet id)      | `host/siteNumber`  | Verint, Dell, Oracle; detail only for new postings        |
+| iCIMS (Jibe)      | `<host>/api/jobs?location=Israel&page=N&limit=100`                                      | host               | Booking.com; keeps `country_code` IL                      |
+| amazon.jobs       | `www.amazon.jobs/en/search.json?normalized_country_code[]=ISR`                          | ISO-3 country      | Amazon; 1 request/s                                       |
 
 ## Being a good citizen
 
@@ -29,6 +33,39 @@ each run has a 230 s budget, works stalest-company-first, and defers whatever do
 next run. Boards of one provider run one at a time, except Workday, where every tenant is its own
 host and four tenants run side by side (each still paced per host). For Workday and SmartRecruiters the list call only refreshes known postings; the
 description is fetched for at most 60 new postings per company per run.
+
+## Bot-protected careers sites
+
+Some large employers' HTML careers pages answer automated requests with a bot wall (403/captcha).
+We never bypass that: no captcha solving, no IP rotation, no browser impersonation, no login, and
+never LinkedIn/Glassdoor/Blind/Indeed. Instead we look for the **public job-search API the careers
+site itself calls** in the visitor's browser, and use it only when:
+
+- the tenant is linked from the company's own careers page (or the tenant name and posting content
+  clearly match the company), and it has Israeli postings;
+- robots.txt allows it (Eightfold allows `/api/pcsx`; Oracle Recruiting serves no robots.txt;
+  amazon.jobs disallows only `/internal`; Jibe sites allow all);
+- requests stay paced and carry the identifiable User-Agent.
+
+Moved to automatic sync this way: Amdocs, Qualcomm, Microsoft (Eightfold), Verint, Dell, Oracle
+(Oracle Recruiting), Booking.com (iCIMS/Jibe), Amazon (amazon.jobs), Cisco and Broadcom (Workday).
+Oracle sites are filtered by the exact `Israel` location facet id (no facet → nothing ingested).
+`findBoards` recognises Oracle candidate-experience links and `data-apibaseurl` + `siteNumber` pairs.
+
+Still manual (no public API found, the API is behind the same bot wall, or there are 0 Israeli
+postings): Check Point, Elbit Systems, Varonis, Tower Semiconductor, monday.com, Intuit, Synopsys,
+SanDisk, Unity, Akamai, Dynatrace, Rapid7, Apple, Meta, Zoom (0 IL on Workday), Teva, Sapiens,
+Lightricks, HiBob, Nova, Hippo, Snyk, Vayyar, AMD (0 IL), Arm, Teradyne (CSB, no adapter yet),
+UVision, SAP (SuccessFactors) and the `BOT_PROTECTED` established employers.
+
+## Manual check
+
+Manual companies (`isManualCompany`: sync mode or provider `MANUAL`, or no board) are listed under
+`/companies?sync=manual` with their careers link and a banner. Every Sunday (`/api/cron/manual-check`,
+06:45 UTC; delivered by the next hourly delivery run) each active user gets one `DIGEST`
+notification (bell, plus push/Telegram per their preferences and quiet hours) naming up to 8 manual
+companies — the ones they applied to first — deduplicated per ISO week (`manual-check:<week>`).
+The module lives in `src/lib/companies/manual-check.ts` and only calls `notify()`.
 
 ## Workday: Israel facet
 

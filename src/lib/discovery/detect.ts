@@ -39,6 +39,15 @@ export function findBoards(html: string): BoardRef[] {
   each(/\b([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?([A-Za-z0-9_-]+)/g, (m) => {
     if (!/^(wday|en|job|jobs)$/i.test(m[3])) add("WORKDAY", `${m[1]}/${m[2]}/${m[3]}`);
   });
+  // Oracle Recruiting Cloud: a link to the candidate-experience site by its site number.
+  each(
+    /\b([a-z0-9-]+(?:\.[a-z0-9-]+)*\.oraclecloud\.com)\/hcmUI\/CandidateExperience\/[a-z-]+\/sites\/(CX(?:_\d+)?)\b/gi,
+    (m) => add("ORACLE_HCM", `${m[1].toLowerCase()}/${m[2]}`),
+  );
+  // …or a vanity host whose page names its API host (data-apibaseurl) and site number.
+  const apiBase = html.match(/data-apibaseurl="https:\/\/([a-z0-9.-]+)(?::443)?\/?"/i)?.[1];
+  const siteNumber = html.match(/siteNumber=(CX(?:_\d+)?)\b/)?.[1];
+  if (apiBase && siteNumber) add("ORACLE_HCM", `${apiBase.toLowerCase()}/${siteNumber}`);
   return out;
 }
 

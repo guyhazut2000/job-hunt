@@ -181,15 +181,6 @@ export const ESTABLISHED_MANUAL: EstablishedCompany[] = [
   e("tech", "ebay", "eBay", "https://www.ebayinc.com", "https://careers.ebayinc.com/", "E-commerce", "Netanya"),
   e(
     "tech",
-    "oracle-israel",
-    "Oracle Israel",
-    "https://www.oracle.com",
-    "https://careers.oracle.com/en/sites/jobsearch",
-    "Enterprise software & cloud",
-    "Petah Tikva",
-  ),
-  e(
-    "tech",
     "outbrain",
     "Outbrain (Teads)",
     "https://www.teads.com",
@@ -659,6 +650,17 @@ export const ESTABLISHED_MANUAL: EstablishedCompany[] = [
 
 /** Established employers whose own careers page embeds a public ATS board (synced automatically). */
 export const ESTABLISHED_SOURCES: (JobSource & { hub: Hub })[] = [
+  {
+    hub: "tech",
+    slug: "oracle-israel",
+    name: "Oracle Israel",
+    provider: "ORACLE_HCM",
+    boardId: "eeho.fa.us2.oraclecloud.com/CX_45001",
+    website: "https://www.oracle.com",
+    industry: "Enterprise software & cloud",
+    hqLocation: "Petah Tikva",
+    careersUrl: "https://careers.oracle.com/en/sites/jobsearch",
+  },
   {
     hub: "integrator",
     slug: "one-technologies",

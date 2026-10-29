@@ -1,0 +1,76 @@
+{
+  "jobs": [
+    {
+      "data": {
+        "slug": "26946",
+        "req_id": "26946",
+        "title": "Senior Machine Learning Engineer I - GenAI Applications Teams",
+        "description": "About Us: At Booking.com, data drives our decisions. Technology is at our core. And innovation is everywhere. But our company is more than datasets, lines of code or A/B tests. We\u2019re the thrill of the first night in a new place. The excitement of the next morning. The friends you encounter. The journeys you take. The sights you see. And the memories you make. Through our products, partners and people, we make it easier for everyone to experience the world. About the team: This opening is for the GenAI Applications Teams within the Data & AI Marketplace department. The GenAI Applications teams are responsible for designing and delivering agentic, ML-powered solutions for some of our most impactful products, including booking search experiences, trip planning, and customer service. The teams build AI-driven applications and conversational agents, such as chatbots and intelligent assistants that significantly enhance the end-to-end customer experience. Role Description: As a Senior Machine Learning Engineer, you will work closely with top notch engineers and data scientists to design, develop, evaluate and deploy Gen AI-powered solutions for scalable, customer-facing applications. You",
+        "city": "Tel Aviv",
+        "state": "Center District",
+        "country": "Israel",
+        "country_code": "IL",
+        "full_location": "Tel Aviv, Israel",
+        "categories": [
+          {
+            "name": "ML Engineering"
+          }
+        ],
+        "employment_type": "FULL_TIME",
+        "posted_date": "2026-07-19T15:02:00+0000",
+        "update_date": "2026-10-28T13:30:49+0000",
+        "apply_url": "https://external-workingatbooking.icims.com/jobs/26946/login",
+        "brand": "Booking.com",
+        "hiring_organization": "Booking.com",
+        "meta_data": {
+          "canonical_url": "https://jobs.booking.com/booking/jobs/26946?lang=en-us"
+        }
+      }
+    },
+    {
+      "data": {
+        "slug": "30497",
+        "req_id": "30497",
+        "title": "Machine Learning Engineer II - GenAI applications",
+        "description": "About Us: At Booking.com, data drives our decisions. Technology is at our core. And innovation is everywhere. But our company is more than datasets, lines of code or A/B tests. We\u2019re the thrill of the first night in a new place. The excitement of the next morning. The friends you encounter. The journeys you take. The sights you see. And the memories you make. Through our products, partners and people, we make it easier for everyone to experience the world. Leadership/Team Quote: This opening is for the GenAI Applications Team within the Data & AI Marketplace department. The GenAI Applications team is responsible for designing and delivering agentic, ML-powered solutions for some of our most impactful products, including booking search experiences, trip planning, and trip helpfulness. The team builds AI-driven applications and conversational agents, such as chatbots and intelligent assistants, that significantly enhance the end-to-end customer experience. Role Description: In this role, you will design, build, and operate production-grade AI/machine learning applications for GenAI products. You will integrate foundation models with data, services, and tools; build agent workflows an",
+        "city": "Tel Aviv",
+        "state": "Center District",
+        "country": "Israel",
+        "country_code": "IL",
+        "full_location": "Tel Aviv, Israel",
+        "categories": [
+          {
+            "name": "ML Engineering"
+          }
+        ],
+        "employment_type": "FULL_TIME",
+        "posted_date": "2026-10-21T09:24:00+0000",
+        "update_date": "2026-10-28T13:28:49+0000",
+        "apply_url": "https://external-workingatbooking.icims.com/jobs/30497/login",
+        "brand": "Booking.com",
+        "hiring_organization": "Booking.com",
+        "meta_data": {
+          "canonical_url": "https://jobs.booking.com/booking/jobs/30497?lang=en-us"
+        }
+      }
+    },
+    {
+      "data": {
+        "slug": "999",
+        "req_id": "999",
+        "title": "Account Manager",
+        "description": "<p>London role</p>",
+        "city": "London",
+        "country": "United Kingdom",
+        "country_code": "GB",
+        "full_location": "London, United Kingdom",
+        "posted_date": "2026-10-01T00:00:00+0000",
+        "apply_url": "https://x",
+        "meta_data": {
+          "canonical_url": "https://jobs.booking.com/booking/jobs/999?lang=en-us"
+        }
+      }
+    }
+  ],
+  "totalCount": 3
+}

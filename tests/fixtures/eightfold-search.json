@@ -1,0 +1,47 @@
+{
+  "status": 200,
+  "data": {
+    "positions": [
+      {
+        "id": 563431014999509,
+        "displayJobId": "213552",
+        "name": "Head of Technology",
+        "locations": ["Israel- RAANANA (Amdocs Site)"],
+        "standardizedLocations": ["Ra'anana, Center District, IL"],
+        "postedTs": 1790786825,
+        "department": null,
+        "creationTs": 1790779359,
+        "workLocationOption": "hybrid",
+        "atsJobId": "213552",
+        "positionUrl": "/careers/job/563431014999509"
+      },
+      {
+        "id": 563431014975209,
+        "displayJobId": "213527",
+        "name": "Internal Auditor Manager",
+        "locations": ["Israel- RAANANA (Amdocs Site)"],
+        "standardizedLocations": ["Ra'anana, Center District, IL"],
+        "postedTs": 1792405496,
+        "department": null,
+        "creationTs": 1790450514,
+        "workLocationOption": "onsite",
+        "atsJobId": "213527",
+        "positionUrl": "/careers/job/563431014975209"
+      },
+      {
+        "id": 1,
+        "displayJobId": "x",
+        "name": "Remote Sales (US)",
+        "locations": ["United States - Remote"],
+        "standardizedLocations": ["US"],
+        "postedTs": 1790000000,
+        "department": "Sales",
+        "creationTs": 1790000000,
+        "workLocationOption": "remote",
+        "atsJobId": "x",
+        "positionUrl": "/careers/job/1"
+      }
+    ],
+    "count": 3
+  }
+}

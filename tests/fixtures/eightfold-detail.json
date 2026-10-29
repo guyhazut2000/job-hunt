@@ -1,0 +1,19 @@
+{
+  "status": 200,
+  "data": {
+    "id": 563431014999509,
+    "displayJobId": "213552",
+    "name": "Head of Technology",
+    "locations": ["Israel- RAANANA (Amdocs Site)"],
+    "standardizedLocations": ["Ra'anana, Center District, IL"],
+    "postedTs": 1790786825,
+    "creationTs": 1790779359,
+    "jobDescription": "<p><strong>Required Travel</strong> :Up to 25%\u00a0<br><strong></strong>\u00a0<br><strong>Location:</strong> :Israel- RAANANA (Amdocs Site)\u00a0</p><div><div style=\"padding: 10px 0px;border: 1px solid transparent;\"><div style=\"font-size:20px;word-wrap: break-word;\"><h2 style=\"font-size: 1em; margin: 0px\"><b>Who are we?</b></h2>\r</div><div><p>Amdocs helps the world\u2019s leading communications and media companies deliver exceptional customer experiences through reliable, efficient, and secure operations at scale. We provide software products and services that embed intelligence into how work runs across business, IT, and network domains \u2013delivering measurable outcomes in customer experience, network performance, cloud modernization, and revenue growth. With our talented people, and more than forty years of experience running mission-critical systems around the globe, Amdocs runs billions of transactions daily. Our technology is relied on every day, connecting people worldwide and advancing a more inclusive, connected world. Together, we help those who shape the future to make it amazing. Amdocs is listed on the NASDAQ Global Select Market (NASDAQ: DOX) and reported revenue of $4.53 billion in fiscal 2025. For more information, visit <a href=\"http://www.amdocs.com\">www.amdocs.com</a>\u00a0</p><p>At Amdocs, our mission is to empower our employees to 'Live Amazing, Do Amazing' every day. We believe in creating a workplace where you not only excel professionally but also thrive personally. Through our ",
+    "location": "Israel- RAANANA (Amdocs Site)",
+    "workLocationOption": "hybrid",
+    "atsJobId": "213552",
+    "positionUrl": "/careers/job/563431014999509",
+    "publicUrl": "https://jobs.amdocs.com/careers/job/563431014999509",
+    "department": null
+  }
+}

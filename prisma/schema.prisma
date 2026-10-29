@@ -78,6 +78,10 @@ enum AtsProvider {
   WORKDAY
   RECRUITEE
   WORDPRESS
+  EIGHTFOLD
+  ORACLE_HCM
+  JIBE
+  AMAZON
 }
 
 enum ApplicationStatus {
