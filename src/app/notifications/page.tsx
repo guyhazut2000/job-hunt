@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  AlertTriangle,
   BellOff,
   BriefcaseBusiness,
+  Building2,
   CalendarClock,
   CheckCheck,
   Clock,
@@ -29,6 +31,8 @@ export const metadata: Metadata = { title: "Notifications" };
 
 const ICONS: Record<string, LucideIcon> = {
   JOB_MATCH: BriefcaseBusiness,
+  COMPANY_JOBS: Building2,
+  SCAN_FAILED: AlertTriangle,
   SAVED_JOB_CLOSED: XCircle,
   FOLLOW_UP: Clock,
   INTERVIEW: CalendarClock,

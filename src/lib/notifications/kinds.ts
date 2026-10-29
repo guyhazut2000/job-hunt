@@ -1,11 +1,13 @@
 /** Notification kinds and external channels (plain strings in the DB; validated here). */
 export const NOTIFICATION_KINDS = [
   "JOB_MATCH",
+  "COMPANY_JOBS",
   "SAVED_JOB_CLOSED",
   "FOLLOW_UP",
   "INTERVIEW",
   "LEARNING",
   "DIGEST",
+  "SCAN_FAILED",
   "SYSTEM",
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -30,16 +32,18 @@ export const isKind = (k: unknown): k is NotificationKind =>
 export type ChannelOverrides = Partial<Record<NotificationKind, Partial<Record<ExternalChannel, boolean>>>>;
 
 /**
- * Defaults: everything on, except SYSTEM (in-site only unless turned on) and the daily digest on
- * push (it's a long read meant for Telegram / the /digest page; push can be turned on).
+ * Defaults: everything on, except SYSTEM (in-site only unless turned on), and the daily digest and
+ * scan-problem alerts on push (a long read / not urgent — Telegram and in-site only; push can be turned on).
  */
 const DEFAULT_ON: Record<NotificationKind, Record<ExternalChannel, boolean>> = {
   JOB_MATCH: { push: true, telegram: true },
+  COMPANY_JOBS: { push: true, telegram: true },
   SAVED_JOB_CLOSED: { push: true, telegram: true },
   FOLLOW_UP: { push: true, telegram: true },
   INTERVIEW: { push: true, telegram: true },
   LEARNING: { push: true, telegram: true },
   DIGEST: { push: false, telegram: true },
+  SCAN_FAILED: { push: false, telegram: true },
   SYSTEM: { push: false, telegram: false },
 };
 

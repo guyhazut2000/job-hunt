@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Pause, Play, Search, Trash2 } from "lucide-react";
-import { deleteSavedSearch, toggleSavedSearch } from "@/app/notification-actions";
+import { ArrowRight, BellRing, Pause, Play, Search, Trash2 } from "lucide-react";
+import { deleteSavedSearch, toggleSavedSearch, unfollowCompany } from "@/app/notification-actions";
 import { PrefsForm } from "@/components/notifications/PrefsForm";
 import { PushToggle } from "@/components/notifications/PushToggle";
 import { TelegramConnect } from "@/components/notifications/TelegramConnect";
@@ -24,10 +24,15 @@ export default async function NotificationSettingsPage() {
   const user = await requireUser();
   const locale = await getLocale();
   const s = notificationStrings(locale);
-  const [prefsRow, channels, searches] = await Promise.all([
+  const [prefsRow, channels, searches, follows] = await Promise.all([
     db.notificationPreference.findUnique({ where: { userId: user.id } }),
     db.notificationChannel.findMany({ where: { userId: user.id }, select: { type: true } }),
     db.savedSearch.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" } }),
+    db.companyFollow.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      include: { company: { select: { id: true, name: true, slug: true } } },
+    }),
   ]);
   const prefs = toEffective(prefsRow);
   const pushCount = channels.filter((c) => c.type === CHANNEL_TYPES.push).length;
@@ -112,6 +117,42 @@ export default async function NotificationSettingsPage() {
                     </Button>
                   </form>
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section id="followed-companies" aria-labelledby="fc-h" className="card flex scroll-mt-24 flex-col gap-3">
+        <h2 id="fc-h" className="font-heading text-lg font-bold">
+          {s.followedCompanies}
+        </h2>
+        <p className="text-muted-foreground text-sm">{s.followedCompaniesLead}</p>
+        {follows.length === 0 ? (
+          <p className="text-sm">{s.noFollowedCompanies}</p>
+        ) : (
+          <ul className="divide-y rounded-md border" data-testid="followed-companies">
+            {follows.map((f) => (
+              <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="flex flex-wrap items-center gap-2 font-semibold">
+                    <BellRing className="text-muted-foreground size-4" aria-hidden />
+                    <Link href={`/companies/${f.company.slug}`} className="truncate hover:underline">
+                      {f.company.name}
+                    </Link>
+                  </span>
+                  {f.lastNotifiedAt && (
+                    <span className="text-muted-foreground text-xs">
+                      {fill(s.lastAlert, { time: formatDateTime(f.lastNotifiedAt, dateLocale) })}
+                    </span>
+                  )}
+                </div>
+                <form action={unfollowCompany.bind(null, f.company.id)}>
+                  <Button type="submit" variant="ghost" size="sm" className="text-destructive">
+                    <Trash2 data-icon="inline-start" aria-hidden />
+                    {s.unfollow}
+                  </Button>
+                </form>
               </li>
             ))}
           </ul>

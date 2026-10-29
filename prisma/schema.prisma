@@ -125,6 +125,7 @@ model User {
   savedSearches        SavedSearch[]
   digests              Digest[]
   notificationChannels NotificationChannel[]
+  companyFollows       CompanyFollow[]
 }
 
 model Profile {
@@ -229,6 +230,8 @@ model Company {
   addedVia          String?
   startupCandidates StartupCandidate[]
   hiringProcesses   HiringProcess[]
+  followers         CompanyFollow[]
+  scanFailureAlerts ScanFailureAlert[]
 
   /// Optional office override for the jobs map (docs/jobs-map.md), set by an admin. When `officeCity`
   /// is set it replaces only that city's pin; null applies to all of the company's jobs.
@@ -1057,7 +1060,7 @@ model Notification {
   id         String                 @id @default(cuid())
   userId     String
   user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  /// JOB_MATCH | SAVED_JOB_CLOSED | FOLLOW_UP | SYSTEM (see kinds.ts)
+  /// JOB_MATCH | COMPANY_JOBS | SCAN_FAILED | SAVED_JOB_CLOSED | FOLLOW_UP | ... (see kinds.ts)
   kind       String
   title      String
   body       String?
@@ -1185,4 +1188,34 @@ model NotificationDelivery {
 
   @@unique([notificationId, channelId])
   @@index([status, nextAttemptAt])
+}
+
+/// "Follow company": alert (COMPANY_JOBS) when the company publishes new jobs (docs/notifications.md).
+model CompanyFollow {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId      String
+  company        Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  /// Jobs created after this were not checked yet.
+  lastCheckedAt  DateTime  @default(now())
+  lastNotifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@unique([userId, companyId])
+  @@index([companyId])
+}
+
+/// One row per failing-sync streak that was already alerted (SCAN_FAILED), so a company failing for
+/// days produces one alert, not one per scan. `streakKey` = the last successful sync (or "never").
+model ScanFailureAlert {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  streakKey String
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@unique([companyId, streakKey])
+  @@index([createdAt])
 }

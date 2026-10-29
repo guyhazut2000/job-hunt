@@ -16,6 +16,8 @@ const en = {
   justNow: "just now",
   kinds: {
     JOB_MATCH: "New matching jobs",
+    COMPANY_JOBS: "Companies I follow",
+    SCAN_FAILED: "Scan problems",
     SAVED_JOB_CLOSED: "A saved job closed",
     FOLLOW_UP: "Follow-up reminders",
     INTERVIEW: "Interview reminders",
@@ -25,6 +27,8 @@ const en = {
   },
   kindHints: {
     JOB_MATCH: "When a scan finds new jobs for one of your saved searches.",
+    COMPANY_JOBS: "When a company you follow publishes new jobs.",
+    SCAN_FAILED: "When we can't read the jobs of a company you follow (admins: any company). Once per outage.",
     SAVED_JOB_CLOSED: "When a job you saved is no longer published.",
     FOLLOW_UP: "When an application has had no update for a while.",
     INTERVIEW: "About 24h and 2h before an interview date you set.",
@@ -41,6 +45,14 @@ const en = {
   closedBody: "{company} no longer publishes this job. It stays in your tracker.",
   followTitle: "Time to follow up: {title}",
   followBody: "You applied to {company} {days} days ago with no update. A short follow-up email can help.",
+  companyOne: "New at {company}: {title}",
+  companyMany: "{n} new jobs at {company}",
+  companyBodyOne: "{location} — a company you follow.",
+  scanFailTitle: "Can't read {company}'s jobs right now",
+  scanFailBody:
+    "The last {n} scans failed, so new jobs there may be missing. Check their careers page directly; we'll keep trying.",
+  scanFailAdminTitle: "{n} companies stopped syncing",
+  scanFailAdminOne: "Sync failing: {company}",
   testTitle: "Test notification",
   testBody: "Notifications reach this device. 🎉",
   // ── settings ──
@@ -108,6 +120,16 @@ const en = {
   saveSearchEmpty: "Add a search term or a filter first",
   allJobs: "All jobs",
   manage: "Manage",
+  // ── follow company ──
+  follow: "Follow",
+  following: "Following",
+  unfollow: "Unfollow",
+  followHint: "Get an alert when {company} publishes new jobs",
+  followedCompanies: "Companies I follow",
+  followedCompaniesLead:
+    "You'll get an alert when they publish new jobs, and once if we can't read their jobs. Follow a company from its page.",
+  noFollowedCompanies: "You don't follow any company yet. Open a company page and press “Follow”.",
+  followLimit: "You can follow up to {n} companies",
 };
 
 export type NotificationStrings = typeof en;
@@ -128,6 +150,8 @@ const he: NotificationStrings = {
   justNow: "הרגע",
   kinds: {
     JOB_MATCH: "משרות חדשות מתאימות",
+    COMPANY_JOBS: "חברות שאני עוקב אחריהן",
+    SCAN_FAILED: "תקלות בסריקה",
     SAVED_JOB_CLOSED: "משרה ששמרתי נסגרה",
     FOLLOW_UP: "תזכורות follow-up",
     INTERVIEW: "תזכורות לראיונות",
@@ -137,6 +161,8 @@ const he: NotificationStrings = {
   },
   kindHints: {
     JOB_MATCH: "כשסריקה מוצאת משרות חדשות לאחד החיפושים השמורים שלך.",
+    COMPANY_JOBS: "כשחברה שאתה עוקב אחריה מפרסמת משרות חדשות.",
+    SCAN_FAILED: "כשאנחנו לא מצליחים לקרוא משרות של חברה שאתה עוקב אחריה (מנהלים: כל חברה). פעם אחת לכל תקלה.",
     SAVED_JOB_CLOSED: "כשמשרה ששמרת כבר לא מפורסמת.",
     FOLLOW_UP: "כשהגשה לא קיבלה עדכון כבר זמן מה.",
     INTERVIEW: "בערך 24 שעות ושעתיים לפני תאריך ראיון שהגדרת.",
@@ -152,6 +178,14 @@ const he: NotificationStrings = {
   closedBody: "{company} כבר לא מפרסמת את המשרה. היא נשארת אצלך במעקב.",
   followTitle: "זמן ל-follow-up: {title}",
   followBody: "הגשת ל-{company} לפני {days} ימים ואין עדכון. מייל follow-up קצר יכול לעזור.",
+  companyOne: "חדש ב-{company}: {title}",
+  companyMany: "{n} משרות חדשות ב-{company}",
+  companyBodyOne: "{location} — חברה שאתה עוקב אחריה.",
+  scanFailTitle: "לא מצליחים לקרוא כרגע את המשרות של {company}",
+  scanFailBody:
+    "{n} הסריקות האחרונות נכשלו, אז ייתכן שחסרות משרות חדשות. כדאי לבדוק ישירות בדף הקריירה שלהם; אנחנו ממשיכים לנסות.",
+  scanFailAdminTitle: "{n} חברות הפסיקו להסתנכרן",
+  scanFailAdminOne: "הסנכרון נכשל: {company}",
   testTitle: "התראת בדיקה",
   testBody: "ההתראות מגיעות למכשיר הזה. 🎉",
   settingsTitle: "הגדרות התראות",
@@ -215,6 +249,15 @@ const he: NotificationStrings = {
   saveSearchEmpty: "הוסף קודם מילת חיפוש או מסנן",
   allJobs: "כל המשרות",
   manage: "ניהול",
+  follow: "עקוב",
+  following: "במעקב",
+  unfollow: "הפסק לעקוב",
+  followHint: "קבל התראה כש-{company} מפרסמת משרות חדשות",
+  followedCompanies: "חברות שאני עוקב אחריהן",
+  followedCompaniesLead:
+    "תקבל התראה כשהן מפרסמות משרות חדשות, ופעם אחת אם לא נצליח לקרוא את המשרות שלהן. עוקבים אחרי חברה מהעמוד שלה.",
+  noFollowedCompanies: "אתה עוד לא עוקב אחרי אף חברה. פתח עמוד של חברה ולחץ „עקוב”.",
+  followLimit: "אפשר לעקוב אחרי עד {n} חברות",
 };
 
 export function notificationStrings(locale: Locale): NotificationStrings {
