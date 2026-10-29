@@ -7,6 +7,7 @@ import {
   heuristicFeedback,
   keyTerms,
   normalizeFeedback,
+  normalizeHebrew,
   questionItem,
   suggestedRating,
   verdictFor,
@@ -148,5 +149,68 @@ describe("track order", () => {
     const pos = new Map(order.map((id, i) => [id, i]));
     for (const id of order)
       for (const p of GRAPH.byId.get(id)!.prerequisites) if (pos.has(p)) expect(pos.get(p)!).toBeLessThan(pos.get(id)!);
+  });
+});
+
+describe("offline grading — Hebrew answers", () => {
+  const heItem = {
+    kind: "question" as const,
+    id: "q-he",
+    prompt: "מה ההבדל בין image ל-container?",
+    reference:
+      "אימג׳ הוא תבנית לקריאה בלבד שנבנית מ-Dockerfile בשכבות. קונטיינר הוא מופע רץ של אימג׳ עם שכבה כתיבה משלו.",
+  };
+
+  it("normalizes niqqud, geresh and final letters", () => {
+    expect(normalizeHebrew("שָׁלוֹם")).toBe(normalizeHebrew("שלום"));
+    expect(normalizeHebrew("שלום")).toBe("שלומ");
+    expect(normalizeHebrew("אימג׳")).toBe("אימג");
+    expect(keyTerms("הַקּוֹנְטֵיינֶר")).toEqual(keyTerms("הקונטיינר"));
+  });
+
+  it("strips prefix letters, including combinations (ו/ה/ב/ל/מ/ש/כ)", () => {
+    for (const answer of [
+      "והקונטיינר רץ כמופע של האימג׳ שנבנה בשכבות מתוך תבנית ב-Dockerfile",
+      "כשהקונטיינר רץ הוא מופע של אימג׳; ובשכבות שלו יש את התבנית מה-Dockerfile",
+    ]) {
+      const fb = heuristicFeedback(heItem, answer, "he");
+      expect(fb.score).toBeGreaterThanOrEqual(70);
+    }
+  });
+
+  it("scores a Hebrew answer with niqqud like the same answer without it", () => {
+    const plain = "האימג׳ הוא התבנית שנבנית בשכבות מ-Dockerfile, והקונטיינר הוא מופע רץ של האימג׳ עם שכבת כתיבה.";
+    const pointed =
+      "הָאִימְג׳ הוּא הַתַּבְנִית שֶׁנִּבְנֵית בִּשְׁכָבוֹת מִ-Dockerfile, וְהַקּוֹנְטֵיינֶר הוּא מוֹפָע רָץ שֶׁל הָאִימְג׳ עִם שִׁכְבַת כְּתִיבָה.";
+    const a = heuristicFeedback(heItem, plain, "he");
+    const b = heuristicFeedback(heItem, pointed, "he");
+    expect(b.score).toBe(a.score);
+    expect(b.verdict).toBe("strong");
+  });
+
+  it("matches Hebrew answers to an English reference through synonyms", () => {
+    const fb = heuristicFeedback(
+      item,
+      "אימג׳ זה תבנית לקריאה בלבד שבנויה משכבות מתוך Dockerfile, וקונטיינר הוא מופע רץ של האימג׳ עם שכבה לכתיבה.",
+      "he",
+    );
+    expect(fb.verdict).toBe("strong");
+    expect(fb.strengths[0]).toMatch(/container|image/);
+  });
+
+  it("maps multi-word Hebrew terms (מסד נתונים → database)", () => {
+    const dbItem = {
+      kind: "question" as const,
+      id: "db",
+      prompt: "What is an index?",
+      reference: "An index speeds up database queries.",
+    };
+    const fb = heuristicFeedback(dbItem, "אינדקס מאיץ שאילתות במסד הנתונים כי לא צריך לסרוק את כל הטבלה", "he");
+    expect(fb.score).toBeGreaterThanOrEqual(70);
+  });
+
+  it("still grades a vague Hebrew answer as weak", () => {
+    const fb = heuristicFeedback(heItem, "משהו עם מכונות וירטואליות, אני חושב שזה דומה.", "he");
+    expect(fb.verdict).toBe("weak");
   });
 });

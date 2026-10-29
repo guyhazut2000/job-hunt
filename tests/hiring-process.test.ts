@@ -466,6 +466,59 @@ describe("discovery v2", () => {
     expect(res.failure).toBeNull();
   });
 
+  it("stops hitting a host that never answers (tarpit) instead of waiting out every timeout", async () => {
+    // Every request to the host fails at the network level (e.g. www.hpe.com hanging until the timeout).
+    const fetchImpl = vi.fn(async () => {
+      throw new TypeError("fetch failed");
+    }) as typeof fetch;
+    const res = await discoverProcessPages(
+      { slug: "tarpit", name: "Tarpit", website: "https://tarpit.example", careersUrl: null },
+      { fetchImpl, minIntervalMs: 0, robotsCache: new Map() },
+    );
+    // robots.txt (1 failure) + a single attempt at the first page (2nd failure) → host is skipped.
+    expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls.length).toBeLessThanOrEqual(3);
+    expect(res.failure).toBe("unreachable");
+    expect(res.pages).toEqual([]);
+  });
+
+  it("a host that recovers is not marked down", async () => {
+    const hostFailures = new Map<string, number>();
+    let n = 0;
+    const fetchImpl = vi.fn(async (input: string | URL | Request) => {
+      if (String(input).endsWith("/robots.txt")) return new Response("", { status: 404 });
+      if (n++ === 0) throw new TypeError("fetch failed"); // one transient reset, then fine
+      return new Response("<title>Careers</title><p>Join us</p>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      });
+    }) as typeof fetch;
+    const res = await fetchPublicPage("https://flaky.example/careers", {
+      fetchImpl,
+      minIntervalMs: 0,
+      robotsCache: new Map(),
+      hostFailures,
+    });
+    expect(res.ok).toBe(true);
+    expect(hostFailures.get("flaky.example")).toBeUndefined();
+  });
+
+  it("respects a per-company time budget", async () => {
+    let t = 0;
+    const fetchImpl = vi.fn(async (input: string | URL | Request) => {
+      t += 30_000; // every request "takes" 30 s
+      if (String(input).endsWith("/robots.txt")) return new Response("", { status: 404 });
+      return new Response("<title>Acme</title><p>Welcome</p>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      });
+    }) as typeof fetch;
+    const res = await discoverProcessPages(
+      { slug: "slow", name: "Slow", website: "https://slow.example", careersUrl: null },
+      { fetchImpl, minIntervalMs: 0, robotsCache: new Map(), maxMs: 60_000, now: () => t },
+    );
+    expect(res.stats.fetches).toBeLessThanOrEqual(2);
+  });
+
   it("explains company-level failures", () => {
     const base = {
       fetches: 3,

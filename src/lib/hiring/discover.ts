@@ -10,7 +10,15 @@
  * Bounded (`maxFetches` page requests + `maxSitemapFetches`), robots.txt-honouring, and it records *why*
  * nothing was found (bot wall, robots, client-rendered, unreachable, no process text…).
  */
-import { cachedRobots, fetchPublicPage, isBlockedUrl, politeGet, robotsSitemaps, type FetchDeps } from "./fetch";
+import {
+  cachedRobots,
+  fetchPublicPage,
+  isBlockedUrl,
+  isHostDown,
+  politeGet,
+  robotsSitemaps,
+  type FetchDeps,
+} from "./fetch";
 import { isDedicatedProcessSource, PROCESS_RE, processPassages, stageLineCount, type SourcePage } from "./extract";
 import { HIRING_SEEDS } from "./seeds";
 
@@ -126,8 +134,21 @@ interface QItem {
 
 export async function discoverProcessPages(
   target: CompanyTarget,
-  deps: FetchDeps & { maxFetches?: number; maxSitemapFetches?: number; maxPages?: number } = {},
+  deps: FetchDeps & {
+    maxFetches?: number;
+    maxSitemapFetches?: number;
+    maxPages?: number;
+    /** Wall-clock budget for one company's discovery (default 60 s); `now` is injectable for tests. */
+    maxMs?: number;
+    now?: () => number;
+  } = {},
 ): Promise<DiscoveryResult> {
+  const now = deps.now ?? Date.now;
+  const startedAt = now();
+  const maxMs = deps.maxMs ?? 60_000;
+  const outOfTime = () => now() - startedAt > maxMs;
+  // Per-company host health unless the caller shares one across the run.
+  deps = { ...deps, hostFailures: deps.hostFailures ?? new Map() };
   const maxFetches = deps.maxFetches ?? 12;
   const maxSitemapFetches = deps.maxSitemapFetches ?? 3;
   const maxPages = deps.maxPages ?? 4;
@@ -210,7 +231,7 @@ export async function discoverProcessPages(
     }
     let sitemapFetches = 0;
     const todo = [...new Set(candidates)];
-    while (todo.length && sitemapFetches < maxSitemapFetches) {
+    while (todo.length && sitemapFetches < maxSitemapFetches && !outOfTime()) {
       const sm = todo.shift()!;
       if (/\.gz(\?|$)/i.test(sm) || !allowedSites.has(siteKey(sm) ?? "")) continue;
       sitemapFetches++;
@@ -235,7 +256,7 @@ export async function discoverProcessPages(
     }
   };
 
-  while (stats.fetches < maxFetches) {
+  while (stats.fetches < maxFetches && !outOfTime()) {
     // Sitemaps once the high-priority queue (seeds + process links) is exhausted.
     if (!sitemapDone && !queue.some((q) => q.tier <= 1) && stats.fetches > 0) await readSitemaps();
     const item = next();
@@ -248,6 +269,12 @@ export async function discoverProcessPages(
     }
     if (item.guessed && guessesDisabled) continue;
     const { url } = item;
+    // An unresponsive host: count it as a network failure without sending (or waiting on) the request.
+    if (isHostDown(deps, url)) {
+      stats.network++;
+      if (!item.guessed) checked.push({ url, title: "", result: "error" });
+      continue;
+    }
     stats.fetches++;
     const res = await fetchPublicPage(url, deps);
     if (!res.ok) {
