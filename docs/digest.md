@@ -9,14 +9,14 @@ detail page. Quiet days are stored but not sent.
 
 The window is "since the previous digest" (max 7 days back), or the last 24h for the first one.
 
-| Section             | Source                                                                                             |
-| ------------------- | -------------------------------------------------------------------------------------------------- |
-| New jobs            | `JOB_MATCH` alerts from saved searches + new jobs scoring ≥ 70 on your profile (top 5, untracked). |
-| Application updates | Applications whose status (`statusChangedAt`) or hiring stage changed in the window.               |
-| Follow-ups due      | Same rule as follow-up reminders (`APPLIED`, untouched for N days).                                |
-| Upcoming interviews | `interviewAt` in the next 7 days; counts `INTERVIEW`-status applications with no date.             |
-| Learning            | Week minutes vs goal, active days, streak, reviews due, next topic.                                |
-| Job scans           | `IngestionRun` failures in the window (your companies first).                                      |
+| Section             | Source                                                                                                                                  |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| New jobs            | `JOB_MATCH` (saved searches) and `COMPANY_JOBS` (followed companies) alerts + new jobs scoring ≥ 70 on your profile (top 5, untracked). |
+| Application updates | Applications whose status (`statusChangedAt`) or hiring stage changed in the window.                                                    |
+| Follow-ups due      | Same rule as follow-up reminders (`APPLIED`, untouched for N days).                                                                     |
+| Upcoming interviews | `interviewAt` in the next 7 days; counts `INTERVIEW`-status applications with no date.                                                  |
+| Learning            | Week minutes vs goal, active days, streak, reviews due, next topic.                                                                     |
+| Job scans           | `IngestionRun` failures in the window (your companies first).                                                                           |
 
 Stored as raw data (`Digest.content`, versioned) and rendered in the viewer's current language, so
 switching he/en re-renders old digests. `Digest` has `@@unique([userId, day])` (Israel date).

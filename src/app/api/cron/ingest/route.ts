@@ -7,7 +7,9 @@ import { LAST_SCAN_TAG } from "@/lib/ingestion/last-scan";
 import { ingestAllDetailed } from "@/lib/ingestion/run";
 import { resolvePendingLinkedinJobs } from "@/lib/linkedin/resolve";
 import { processDeliveries } from "@/lib/notifications/deliver";
+import { runFollowedCompanyAlerts } from "@/lib/notifications/company-follow";
 import { runSavedSearchAlerts } from "@/lib/notifications/saved-search";
+import { runScanFailureAlerts } from "@/lib/notifications/scan-failures";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -56,9 +58,15 @@ async function handle(req: Request) {
     linkedin: await resolvePendingLinkedinJobs().catch(() => null),
     // Jobs-map points for new / moved postings (offline gazetteer); never fails the ingest.
     geocode: await geocodeJobs().catch(() => null),
-    // Saved-search alerts for the jobs this run created, sent right away (quiet hours permitting).
+    // Saved-search, followed-company and scan-failure alerts for this run, sent right away (quiet
+    // hours permitting).
     notifications: await runSavedSearchAlerts()
-      .then(async (alerts) => ({ ...alerts, deliveries: await processDeliveries() }))
+      .then(async (alerts) => ({
+        ...alerts,
+        companies: await runFollowedCompanyAlerts().catch(() => null),
+        failures: await runScanFailureAlerts().catch(() => null),
+        deliveries: await processDeliveries(),
+      }))
       .catch(() => null),
   };
   return NextResponse.json({ summary, results });

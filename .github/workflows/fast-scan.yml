@@ -1,0 +1,39 @@
+# Fast scan (docs/notifications.md#fast-scan): every 15 min during the day (Israel time), ask the
+# app to refresh its stalest job boards for ~45 s and send alerts for new jobs right away.
+# Vercel Hobby crons run at most once a day, so GitHub's free scheduler does the ticking.
+# The runner only sends one authenticated HTTP request; it never touches the database.
+name: Fast scan
+
+on:
+  schedule:
+    # 05:00–19:45 UTC ≈ 07:00–21:45 Israel winter time (08:00–22:45 in summer). GitHub may delay
+    # scheduled runs by several minutes under load.
+    - cron: "*/15 5-19 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: fast-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Trigger scan
+        env:
+          SCAN_TRIGGER_SECRET: ${{ secrets.SCAN_TRIGGER_SECRET }}
+          APP_URL: ${{ vars.APP_URL || 'https://job-hunt-nine-orcin.vercel.app' }}
+        run: |
+          if [ -z "$SCAN_TRIGGER_SECRET" ]; then
+            echo "::warning::SCAN_TRIGGER_SECRET is not set — skipping (see docs/notifications.md#fast-scan)"
+            exit 0
+          fi
+          code=$(curl -sS -o body.json -w '%{http_code}' --max-time 150 \
+            -X POST -H "Authorization: Bearer $SCAN_TRIGGER_SECRET" "$APP_URL/api/cron/scan")
+          echo "HTTP $code"
+          # Summary counts only (no secrets, no user data).
+          jq -c '.summary // .skipped // .error' body.json || true
+          test "$code" = 200

@@ -17,6 +17,7 @@ import {
   parseStoredQuery,
 } from "@/lib/notifications/saved-search";
 import { activeFilterCount } from "@/lib/jobs/filters";
+import { MAX_FOLLOWED_COMPANIES } from "@/lib/notifications/company-follow";
 import { cleanWeekdays } from "@/lib/notifications/prefs";
 import { requireUser } from "@/lib/session";
 
@@ -189,4 +190,39 @@ export async function disconnectTelegram() {
   const user = await requireUser();
   await db.notificationChannel.deleteMany({ where: { userId: user.id, type: CHANNEL_TYPES.telegram } });
   revalidate();
+}
+
+// ── follow company (COMPANY_JOBS / SCAN_FAILED alerts) ──
+
+export type FollowState = { following: boolean; error?: "limit" | "not_found" };
+
+/** Follow / unfollow a company. Following starts now: only jobs published after this are alerted. */
+export async function setCompanyFollow(companyId: string, follow: boolean): Promise<FollowState> {
+  const user = await requireUser();
+  const company = await db.company.findUnique({ where: { id: companyId }, select: { id: true, slug: true } });
+  if (!company) return { following: false, error: "not_found" };
+  if (follow) {
+    const existing = await db.companyFollow.findUnique({
+      where: { userId_companyId: { userId: user.id, companyId } },
+      select: { id: true },
+    });
+    if (!existing) {
+      if ((await db.companyFollow.count({ where: { userId: user.id } })) >= MAX_FOLLOWED_COMPANIES)
+        return { following: false, error: "limit" };
+      await db.companyFollow.create({ data: { userId: user.id, companyId } }).catch((e: unknown) => {
+        // Double click: the unique key already holds it.
+        if (!(e instanceof Error && "code" in e && (e as { code?: string }).code === "P2002")) throw e;
+      });
+    }
+  } else {
+    await db.companyFollow.deleteMany({ where: { userId: user.id, companyId } });
+  }
+  revalidate();
+  revalidatePath(`/companies/${company.slug}`);
+  return { following: follow };
+}
+
+/** Unfollow from the settings list (form action). */
+export async function unfollowCompany(companyId: string) {
+  await setCompanyFollow(companyId, false);
 }

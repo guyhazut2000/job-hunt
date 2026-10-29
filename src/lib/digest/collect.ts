@@ -21,7 +21,7 @@ export async function collectDigestData(
   const d = emptyDigestData(day, since, now);
   const [alerts, apps, profile, searches, runs, learningPrefs, hasLearning] = await Promise.all([
     db.notification.findMany({
-      where: { userId, kind: "JOB_MATCH", createdAt: { gt: since, lte: now } },
+      where: { userId, kind: { in: ["JOB_MATCH", "COMPANY_JOBS"] }, createdAt: { gt: since, lte: now } },
       select: { data: true },
       take: 200,
     }),
@@ -55,7 +55,7 @@ export async function collectDigestData(
     db.stageProgress.findFirst({ where: { userId }, select: { id: true } }),
   ]);
 
-  // New jobs: saved-search alerts in the window…
+  // New jobs: saved-search and followed-company alerts in the window…
   const bySearch = new Map<string, number>();
   for (const a of alerts) {
     const data = (a.data ?? {}) as { savedSearchId?: string; jobIds?: string[] };

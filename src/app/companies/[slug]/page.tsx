@@ -9,10 +9,13 @@ import { CompanySalaryBands } from "@/components/salary/CompanySalaryBands";
 import { HiringProcessSection } from "@/components/hiring/HiringProcessSection";
 import { careersLink, isManualCompany, isSyncFailing, safeHttpUrl } from "@/lib/companies/status";
 import { db } from "@/lib/db";
+import { MAX_FOLLOWED_COMPANIES } from "@/lib/notifications/company-follow";
 import { formatDateTime } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { linkedinStrings } from "@/lib/i18n/linkedin";
 import { BackToTop } from "@/components/BackToTop";
+import { FollowCompanyButton } from "@/components/notifications/FollowCompanyButton";
+import { fill, notificationStrings } from "@/lib/i18n/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +37,16 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
   const careers = careersLink(company);
   const website = safeHttpUrl(company.website);
   const note = (locale === "he" ? company.notesHe : company.notesEn) ?? company.notesHe ?? company.notesEn;
+  const userId = session?.user?.id;
+  const following = userId
+    ? Boolean(
+        await db.companyFollow.findUnique({
+          where: { userId_companyId: { userId, companyId: company.id } },
+          select: { id: true },
+        }),
+      )
+    : false;
+  const ns = notificationStrings(locale);
   return (
     <div className="flex flex-col gap-6">
       <Link
@@ -52,6 +65,19 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
           </p>
         )}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+          {userId && (
+            <FollowCompanyButton
+              companyId={company.id}
+              initial={following}
+              labels={{
+                follow: ns.follow,
+                following: ns.following,
+                unfollow: ns.unfollow,
+                hint: fill(ns.followHint, { company: company.name }),
+                limit: fill(ns.followLimit, { n: MAX_FOLLOWED_COMPANIES }),
+              }}
+            />
+          )}
           {website && (
             <a
               className="text-primary inline-flex min-h-11 items-center gap-1 font-semibold underline-offset-4 hover:underline"
