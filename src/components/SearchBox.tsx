@@ -199,7 +199,7 @@ export function SearchBox({
           aria-autocomplete="list"
           aria-activedescendant={showList && active >= 0 ? `${listId}-opt-${active}` : undefined}
           aria-keyshortcuts="/"
-          className="input bg-card h-12 min-h-12 ps-10 pe-24 text-base shadow-xs placeholder:text-start [&::-webkit-search-cancel-button]:appearance-none"
+          className="input bg-card h-12 min-h-12 pr-26 pl-10 text-base [[dir=rtl]_&]:pr-10 [[dir=rtl]_&]:pl-26 shadow-xs placeholder:text-start [&::-webkit-search-cancel-button]:appearance-none"
           onChange={(e) => {
             const v = e.target.value;
             setValue(v);
@@ -232,6 +232,9 @@ export function SearchBox({
             }
           }}
         />
+        {/* The input is dir="auto" (typed text may be the other script than the page), so its logical
+            padding would flip away from these page-direction overlays. Padding is pinned to the page
+            direction instead, reserving room for mic + clear/kbd + an ~8px gap. */}
         <div className="absolute inset-y-0 end-1.5 flex items-center gap-1">
           <VoiceInputButton
             targetRef={inputRef}
