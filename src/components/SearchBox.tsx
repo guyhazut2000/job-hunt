@@ -199,7 +199,7 @@ export function SearchBox({
           aria-autocomplete="list"
           aria-activedescendant={showList && active >= 0 ? `${listId}-opt-${active}` : undefined}
           aria-keyshortcuts="/"
-          className="input bg-card h-12 min-h-12 pr-26 pl-10 text-base [[dir=rtl]_&]:pr-10 [[dir=rtl]_&]:pl-26 shadow-xs placeholder:text-start [&::-webkit-search-cancel-button]:appearance-none"
+          className="input bg-card h-12 min-h-12 pr-26 pl-10 text-base shadow-xs placeholder:text-start [&::-webkit-search-cancel-button]:appearance-none [[dir=rtl]_&]:pr-10 [[dir=rtl]_&]:pl-26"
           onChange={(e) => {
             const v = e.target.value;
             setValue(v);
