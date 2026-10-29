@@ -103,7 +103,7 @@ const labelOf = (skill: string) => GRAPH.byId.get(skill)?.label ?? skill;
 /** Gather the snapshot for one user with a few cheap queries (no demand/impact computation). */
 export async function learningSnapshot(userId: string, idleDays: number, now: Date): Promise<LearningSnapshot> {
   const since60 = new Date(now.getTime() - 60 * DAY);
-  const [rows, sessions, reviews, reviewsDue, skills] = await Promise.all([
+  const [rows, sessions, reviews, reviewsDue, skills, patternAttempts] = await Promise.all([
     db.stageProgress.findMany({ where: { userId }, orderBy: { updatedAt: "desc" }, take: 200 }),
     db.studySession.findMany({
       where: { userId, createdAt: { gte: since60 } },
@@ -119,11 +119,18 @@ export async function learningSnapshot(userId: string, idleDays: number, now: Da
     }),
     db.questionReview.count({ where: { userId, dueAt: { lte: now } } }),
     db.skillProgress.findMany({ where: { userId }, orderBy: { updatedAt: "desc" }, take: 50 }),
+    db.patternAttempt.findMany({
+      where: { userId, createdAt: { gte: since60 } },
+      select: { createdAt: true },
+      orderBy: { createdAt: "desc" },
+      take: 300,
+    }),
   ]);
   const activity = [
     ...rows.map((r) => r.updatedAt),
     ...sessions.map((r) => r.createdAt),
     ...reviews.map((r) => r.updatedAt),
+    ...patternAttempts.map((r) => r.createdAt),
   ].filter((d) => d >= since60);
   const lastActivity = activity.length ? new Date(Math.max(...activity.map((d) => d.getTime()))) : null;
   const done = new Set(skills.filter((s) => s.status === "DONE").map((s) => s.skill));

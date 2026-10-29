@@ -1,5 +1,15 @@
 import Link from "next/link";
-import { ArrowLeft, Check, LayoutDashboard, Lightbulb, Route, Sparkles, TrendingUp, UserRound } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  LayoutDashboard,
+  Lightbulb,
+  Puzzle,
+  Route,
+  Sparkles,
+  TrendingUp,
+  UserRound,
+} from "lucide-react";
 import { auth } from "@/auth";
 import { LearnExplorer, type ExplorerSkill } from "@/components/learning/LearnExplorer";
 import { ProgressRing, SkillCard, SkillMonogram, type LearnStatus } from "@/components/learning/SkillVisuals";
@@ -8,6 +18,7 @@ import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
 import { fmt, learningStrings } from "@/lib/i18n/learning";
 import { learningHubStrings } from "@/lib/i18n/learning-hub";
+import { problemSolvingStrings } from "@/lib/i18n/problem-solving";
 import { crossJobImpact, GRAPH, knownSkillIds, TRACKS, trackOrder } from "@/lib/learning/graph";
 import { demandMap, getProgress } from "@/lib/learning/server";
 import { LEARN_CATEGORIES } from "@/lib/learning/types";
@@ -28,6 +39,7 @@ export default async function LearnPage() {
   const userId = session?.user?.id;
   const hub = learningHubStrings(locale);
   const cs = conceptStrings(locale);
+  const ps = problemSolvingStrings(locale);
   const [demand, progress, profile] = await Promise.all([
     demandMap(),
     getProgress(userId),
@@ -141,6 +153,21 @@ export default async function LearnPage() {
           ))}
         </dl>
       </header>
+
+      <Link
+        href="/learn/problem-solving"
+        data-testid="ps-entry"
+        className="group bg-card hover:bg-secondary/60 flex min-h-16 items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 transition-colors sm:px-6"
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <Puzzle className="text-primary size-6 shrink-0" aria-hidden />
+          <span className="flex min-w-0 flex-col">
+            <span className="font-bold">{ps.navShort}</span>
+            <span className="text-foreground/75 text-sm">{ps.entryLead}</span>
+          </span>
+        </span>
+        <ArrowLeft className="size-5 shrink-0 ltr:rotate-180" aria-hidden />
+      </Link>
 
       {/* Personal: logged out / no profile / continue + recommended */}
       {!userId ? (

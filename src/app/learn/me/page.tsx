@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { GoalEditor, LogSessionForm } from "@/components/learning/hub/HubForms";
+import { ProblemSolvingCard } from "@/components/problem-solving/ProblemSolvingCard";
 import { TrackRoadmapView } from "@/components/learning/hub/TrackRoadmapView";
 import { ProgressRing, SkillMonogram } from "@/components/learning/SkillVisuals";
 import { Button } from "@/components/ui/button";
@@ -354,6 +355,7 @@ export default async function MyLearningPage({ searchParams }: { searchParams: P
 
         {/* Aside: weekly goal + time log */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
+          <ProblemSolvingCard userId={user.id} locale={locale} />
           <section aria-labelledby="goal" className="bg-card flex flex-col gap-3 rounded-xl border p-4">
             <div className="flex items-center justify-between gap-2">
               <h2 id="goal" className="font-bold">
