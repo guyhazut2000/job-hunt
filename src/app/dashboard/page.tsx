@@ -10,6 +10,9 @@ import { getReviewItems } from "@/lib/email/review";
 import { getDictionary } from "@/lib/i18n";
 import { emailSyncStrings } from "@/lib/i18n/email-sync";
 import { jobsMapStrings } from "@/lib/i18n/jobs-map";
+import { reminderStrings } from "@/lib/i18n/reminders";
+import { formatInterviewTime } from "@/lib/notifications/interviews";
+import { toIsraelLocalInput } from "@/lib/notifications/israel-time";
 import { requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +27,16 @@ export default async function DashboardPage() {
     db.application.findMany({
       where: { userId: user.id },
       orderBy: { updatedAt: "desc" },
-      select: { id: true, title: true, company: true, url: true, jobId: true, status: true },
+      select: {
+        id: true,
+        title: true,
+        company: true,
+        url: true,
+        jobId: true,
+        status: true,
+        interviewAt: true,
+        interviewNote: true,
+      },
     }),
     db.contact.findMany({
       where: { userId: user.id },
@@ -44,7 +56,18 @@ export default async function DashboardPage() {
     if (c.status === "REFERRED") e.referred++;
     byJob.set(c.jobId, e);
   }
-  const items = apps.map((a) => ({ ...a, contacts: a.jobId ? byJob.get(a.jobId) : undefined }));
+  const items = apps.map(({ interviewAt, interviewNote, ...a }) => ({
+    ...a,
+    contacts: a.jobId ? byJob.get(a.jobId) : undefined,
+    interview: interviewAt
+      ? {
+          value: toIsraelLocalInput(interviewAt),
+          display: formatInterviewTime(interviewAt, locale),
+          note: interviewNote,
+        }
+      : null,
+  }));
+  const rs = reminderStrings(locale);
   const contactRows = contacts.map((c) => ({
     id: c.id,
     name: c.name,
@@ -156,6 +179,16 @@ export default async function DashboardPage() {
         statusLabel={t.ui.status}
         emptyLabel={t.ui.emptyColumn}
         contactsLabel={{ count: t.people.trackerCount, referred: t.people.trackerReferred }}
+        interviewLabels={{
+          set: rs.interviewSet,
+          date: rs.interviewDate,
+          note: rs.interviewNote,
+          save: rs.interviewSave,
+          clear: rs.interviewClear,
+          saved: rs.interviewSaved,
+          invalid: rs.interviewInvalid,
+          at: rs.interviewAt,
+        }}
       />
 
       <section aria-labelledby="outreach-h" className="border-rule flex flex-col gap-3 border-t-2 pt-6">

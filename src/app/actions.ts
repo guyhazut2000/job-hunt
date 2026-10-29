@@ -92,7 +92,7 @@ export async function updateApplicationStatus(id: string, status: ApplicationSta
   if (!STATUSES.includes(status)) throw new Error("Invalid status");
   await db.application.updateMany({
     where: { id, userId: user.id },
-    data: { status, ...(status === "APPLIED" ? { appliedAt: new Date() } : {}) },
+    data: { status, statusChangedAt: new Date(), ...(status === "APPLIED" ? { appliedAt: new Date() } : {}) },
   });
   track("application_status_changed", { status });
   revalidatePath("/dashboard");

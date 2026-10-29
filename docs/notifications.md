@@ -6,12 +6,15 @@ reminders, and two optional outbound channels: **web push** and **Telegram**. Se
 
 ## What triggers a notification
 
-| Kind               | When                                                                              | Dedupe key               |
-| ------------------ | --------------------------------------------------------------------------------- | ------------------------ |
-| `JOB_MATCH`        | A saved search has new jobs (`Job.createdAt` after the search's `lastCheckedAt`). | `search:<id>:<iso>`      |
-| `SAVED_JOB_CLOSED` | A job you saved (application status `SAVED`) became inactive in the last 3 days.  | `closed:<applicationId>` |
-| `FOLLOW_UP`        | An application is still `APPLIED` and untouched for N days (default 7, 1–60).     | `followup:<id>:<date>`   |
-| `SYSTEM`           | Test notifications from the settings page. In-site only by default.               | —                        |
+| Kind               | When                                                                                      | Dedupe key                     |
+| ------------------ | ----------------------------------------------------------------------------------------- | ------------------------------ |
+| `JOB_MATCH`        | A saved search has new jobs (`Job.createdAt` after the search's `lastCheckedAt`).         | `search:<id>:<iso>`            |
+| `SAVED_JOB_CLOSED` | A job you saved (application status `SAVED`) became inactive in the last 3 days.          | `closed:<applicationId>`       |
+| `FOLLOW_UP`        | An application is still `APPLIED` and untouched for N days (default 7, 1–60).             | `followup:<id>:<date>`         |
+| `INTERVIEW`        | ~24h and ~2h before an `Application.interviewAt` you set on the tracker.                  | `interview:<id>:<iso>:<stage>` |
+| `LEARNING`         | In your study slot, if you haven't studied today: streak, reviews, stalled stage.         | `learning:<day>`               |
+| `DIGEST`           | Once a day after your digest hour — see [digest.md](digest.md). Telegram only by default. | `digest:<day>`                 |
+| `SYSTEM`           | Test notifications from the settings page. In-site only by default.                       | —                              |
 
 Saved searches with a "match ≥" / fit filter only alert on jobs scoring at or above it (default 65)
 when the user has a scorable profile. One new job links straight to the job; several are grouped
@@ -25,7 +28,11 @@ Kinds and channels are stored as strings, so adding a new kind needs no enum mig
 channel with `nextAttemptAt` pushed past quiet hours. `processDeliveries()`:
 
 - re-checks quiet hours (Israel time, `22:00–07:00` by default, optional Shabbat Fri 16:00 → Sat 20:00);
-- skips rows older than 2 days and anything over the per-user hourly cap (default 6);
+- skips rows older than 2 days and anything over the per-user hourly cap (default 6) — `INTERVIEW`
+  and `DIGEST` are exempt from the cap;
+- skips rows whose `data.expiresAt` has passed (an interview reminder deferred by quiet hours past the
+  interview itself is never sent; if the deferral already lands after it, only the in-site row is written);
+- sends `data.telegramHtml` verbatim to Telegram when present (the daily digest);
 - retries with backoff 5 → 10 → 20 → 40 min, marking `FAILED` after 5 attempts;
 - deletes a channel on a permanent error (push 404/410, Telegram 403 / chat not found).
 
@@ -35,7 +42,31 @@ channel with `nextAttemptAt` pushed past quiet hours. `processDeliveries()`:
 - `/api/cron/notify` at `30 5 * * *` and `0 15 * * *` UTC (07:30 / 17:00 Israel in winter) — runs
   searches, follow-ups, closed-job alerts and flushes deliveries deferred by quiet hours.
 
-Both require `Authorization: Bearer $CRON_SECRET`.
+- `/api/cron/hourly` — listed 24 times in `vercel.json` (`0 H * * *` for each hour; a Hobby cron may
+  run once a day, so one entry per hour). Runs interview reminders, study reminders, daily digests and
+  flushes deliveries.
+
+All require `Authorization: Bearer $CRON_SECRET`.
+
+### Timing honesty (Hobby crons)
+
+Hobby crons fire **somewhere inside** the scheduled hour, not on the minute, so two "hourly" runs can
+be up to ~2h apart. The reminders are built around that:
+
+- Interview: the "24h" reminder is sent on the first run 3–27h before, the "2h" one on the first run
+  0–3h before — so expect it **1–3h** before, never after the interview.
+- Study: sent on the first run between your hour and +3h on a scheduled weekday (Israel time).
+- Digest: generated on the first run at/after your digest hour, so it arrives up to ~1h late.
+
+If an hourly run is missed entirely (platform hiccup), the next one catches up within those windows.
+For minute-precise reminders you would need an external scheduler (e.g. a free cron-job.org job
+calling `/api/cron/hourly` every 15 min with the bearer secret) — not set up.
+
+### Study / interview / digest settings
+
+`/settings/notifications` has per-feature on/off: study reminders (hour, weekdays, idle-days
+threshold), interview reminders, and the daily digest (hour). Channels per kind are in the same
+table as the other kinds. Interview dates are entered on the tracker card (`/dashboard`) in Israel time.
 
 ## Environment
 

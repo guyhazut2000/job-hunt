@@ -10,6 +10,7 @@ import { learningHubStrings } from "@/lib/i18n/learning-hub";
 import { chatStrings } from "@/lib/i18n/chat";
 import { db } from "@/lib/db";
 import { notificationStrings } from "@/lib/i18n/notifications";
+import { reminderStrings } from "@/lib/i18n/reminders";
 import { NotificationBell } from "./notifications/NotificationBell";
 import { Brand } from "./Brand";
 import { NavLinks, type NavLink } from "./NavLinks";
@@ -34,6 +35,7 @@ export async function Header() {
           { href: "/profile", label: t.nav.profile, priority: "lg" as const },
           { href: "/documents", label: documentStrings(locale).nav, priority: "more" as const },
           { href: "/learn/me", label: learningHubStrings(locale).navMine, priority: "more" as const },
+          { href: "/digest", label: reminderStrings(locale).nav, priority: "more" as const },
           { href: "/chat", label: chatStrings(locale).short, priority: "more" as const },
         ]
       : []),

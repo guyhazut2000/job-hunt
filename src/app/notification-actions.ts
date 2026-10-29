@@ -17,6 +17,7 @@ import {
   parseStoredQuery,
 } from "@/lib/notifications/saved-search";
 import { activeFilterCount } from "@/lib/jobs/filters";
+import { cleanWeekdays } from "@/lib/notifications/prefs";
 import { requireUser } from "@/lib/session";
 
 const revalidate = () => {
@@ -43,6 +44,9 @@ const prefsSchema = z.object({
   quietEnd: z.coerce.number().int().min(0).max(23),
   followUpDays: z.coerce.number().int().min(1).max(60),
   maxPerHour: z.coerce.number().int().min(1).max(30),
+  learningHour: z.coerce.number().int().min(0).max(23),
+  learningIdleDays: z.coerce.number().int().min(1).max(30),
+  digestHour: z.coerce.number().int().min(0).max(23),
 });
 
 export async function saveNotificationPrefs(_: PrefsFormState, formData: FormData): Promise<PrefsFormState> {
@@ -59,6 +63,10 @@ export async function saveNotificationPrefs(_: PrefsFormState, formData: FormDat
     quietEnabled: on("quietEnabled"),
     quietShabbat: on("quietShabbat"),
     followUpEnabled: on("followUpEnabled"),
+    learningEnabled: on("learningEnabled"),
+    learningDays: cleanWeekdays(formData.getAll("learningDays")),
+    interviewEnabled: on("interviewEnabled"),
+    digestEnabled: on("digestEnabled"),
     channels,
   };
   await db.notificationPreference.upsert({

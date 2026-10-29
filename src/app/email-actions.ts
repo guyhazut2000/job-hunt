@@ -94,7 +94,8 @@ export async function approveEmailCandidate(formData: FormData): Promise<{ error
     if (!app) return { error: "not_found" };
     // The user explicitly approved: apply the detected status unless it would move backwards.
     const next = nextStatus(app.status, target) ?? (app.status === target ? null : target);
-    if (next) await db.application.update({ where: { id: app.id }, data: { status: next } });
+    if (next)
+      await db.application.update({ where: { id: app.id }, data: { status: next, statusChangedAt: new Date() } });
     applicationId = app.id;
   } else if (f.mode === "job") {
     const job = await db.job.findUnique({
@@ -105,7 +106,11 @@ export async function approveEmailCandidate(formData: FormData): Promise<{ error
     const existing = await db.application.findUnique({ where: { userId_jobId: { userId: user.id, jobId: job.id } } });
     if (existing) {
       const next = nextStatus(existing.status, target);
-      if (next) await db.application.update({ where: { id: existing.id }, data: { status: next } });
+      if (next)
+        await db.application.update({
+          where: { id: existing.id },
+          data: { status: next, statusChangedAt: new Date() },
+        });
       applicationId = existing.id;
     } else {
       const app = await db.application.create({

@@ -1,5 +1,13 @@
 /** Notification kinds and external channels (plain strings in the DB; validated here). */
-export const NOTIFICATION_KINDS = ["JOB_MATCH", "SAVED_JOB_CLOSED", "FOLLOW_UP", "SYSTEM"] as const;
+export const NOTIFICATION_KINDS = [
+  "JOB_MATCH",
+  "SAVED_JOB_CLOSED",
+  "FOLLOW_UP",
+  "INTERVIEW",
+  "LEARNING",
+  "DIGEST",
+  "SYSTEM",
+] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
 /** External channels. In-site is always on and not listed here. */
@@ -21,11 +29,17 @@ export const isKind = (k: unknown): k is NotificationKind =>
 /** Per-kind channel overrides as stored in NotificationPreference.channels. */
 export type ChannelOverrides = Partial<Record<NotificationKind, Partial<Record<ExternalChannel, boolean>>>>;
 
-/** Defaults: everything on, except SYSTEM which stays in-site only unless turned on. */
+/**
+ * Defaults: everything on, except SYSTEM (in-site only unless turned on) and the daily digest on
+ * push (it's a long read meant for Telegram / the /digest page; push can be turned on).
+ */
 const DEFAULT_ON: Record<NotificationKind, Record<ExternalChannel, boolean>> = {
   JOB_MATCH: { push: true, telegram: true },
   SAVED_JOB_CLOSED: { push: true, telegram: true },
   FOLLOW_UP: { push: true, telegram: true },
+  INTERVIEW: { push: true, telegram: true },
+  LEARNING: { push: true, telegram: true },
+  DIGEST: { push: false, telegram: true },
   SYSTEM: { push: false, telegram: false },
 };
 
@@ -43,6 +57,9 @@ export function parseOverrides(raw: unknown): ChannelOverrides {
   }
   return out;
 }
+
+/** Kinds whose push/Telegram messages are not dropped by the per-hour cap (scheduled and time-critical). */
+export const CAP_EXEMPT: readonly NotificationKind[] = ["INTERVIEW", "DIGEST"];
 
 export function channelEnabled(overrides: ChannelOverrides, kind: NotificationKind, ch: ExternalChannel): boolean {
   return overrides[kind]?.[ch] ?? DEFAULT_ON[kind][ch];

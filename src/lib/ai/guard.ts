@@ -13,6 +13,7 @@ export type AiFeature =
   | "learn_feedback"
   | "tutor_chat"
   | "hiring_process"
+  | "digest"
   | "chat";
 export type AiOutcome = "ok" | "cached" | "error" | "rate_limited" | "limited";
 

@@ -21,7 +21,15 @@ export interface NewNotification {
 export async function notify(
   userId: string,
   n: NewNotification,
-  opts: { now?: Date; ignoreQuiet?: boolean } = {},
+  opts: {
+    now?: Date;
+    ignoreQuiet?: boolean;
+    /**
+     * Push/Telegram are pointless after this moment (e.g. the interview itself). If quiet hours
+     * would hold the message past it, it stays in-site only; the send queue also drops it then.
+     */
+    expiresAt?: Date;
+  } = {},
 ): Promise<{ id: string } | null> {
   const now = opts.now ?? new Date();
   let created: { id: string };
@@ -33,7 +41,12 @@ export async function notify(
         title: n.title.slice(0, 200),
         body: n.body?.slice(0, 1000),
         url: n.url,
-        data: n.data,
+        data: opts.expiresAt
+          ? ({
+              ...(n.data && typeof n.data === "object" && !Array.isArray(n.data) ? n.data : {}),
+              expiresAt: opts.expiresAt.toISOString(),
+            } as Prisma.InputJsonValue)
+          : n.data,
         dedupeKey: n.dedupeKey,
         createdAt: now,
       },
@@ -48,6 +61,7 @@ export async function notify(
     db.notificationChannel.findMany({ where: { userId }, select: { id: true, type: true } }),
   ]);
   const at = opts.ignoreQuiet ? now : nextAllowedAt(prefs, now);
+  if (opts.expiresAt && at >= opts.expiresAt) return created;
   const rows = channels
     .filter((c) => {
       const ch = channelOfType(c.type);

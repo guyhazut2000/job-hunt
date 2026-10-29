@@ -7,6 +7,8 @@ export interface OutgoingMessage {
   body?: string | null;
   /** In-app path; opened through /notifications/open/<id> so it is marked read. */
   url?: string | null;
+  /** Full pre-rendered Telegram HTML (the daily digest); replaces title/body/link when set. */
+  telegramHtml?: string;
 }
 
 export type SendResult = { ok: true } | { ok: false; error: string; permanent: boolean };
@@ -38,9 +40,10 @@ export async function sendWebPush(target: PushTarget, msg: OutgoingMessage): Pro
   }
 }
 
-const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+export const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 export function telegramText(msg: OutgoingMessage, base = siteUrl()): string {
+  if (msg.telegramHtml) return msg.telegramHtml;
   const lines = [`<b>${escapeHtml(msg.title)}</b>`];
   if (msg.body) lines.push(escapeHtml(msg.body));
   if (msg.url) lines.push(`${base}${openPath(msg.id)}`);
