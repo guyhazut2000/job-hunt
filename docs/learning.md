@@ -127,6 +127,12 @@ Content source, in order: cached `StageContent` row → Gemini on first open (zo
 Gemini and reviewed) → generic content built from the roadmap topics. Regenerate: max 3 per stage row, and
 `AI_USER_MONTHLY_REGEN_LIMIT` (default 20) per user per month — the same limit for everyone.
 
+## Problem-solving method
+
+LeetCode-style pattern practice (decision guide, cheat sheets, practice, paste mode) lives under
+`/learn/problem-solving` — see `docs/problem-solving.md`. Attempts count toward the learning streak and
+show on `/learn/me`.
+
 ## Limits
 
 - Hours are rough estimates to job-usable basics, not mastery.

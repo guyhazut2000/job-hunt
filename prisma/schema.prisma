@@ -124,6 +124,7 @@ model User {
   learningPrefs        LearningPrefs?
   hiringProcesses      HiringProcess[]
   answerFeedback       AnswerFeedback[]
+  patternAttempts      PatternAttempt[]
   notifications        Notification[]
   notificationPrefs    NotificationPreference?
   savedSearches        SavedSearch[]
@@ -1055,6 +1056,36 @@ model AnswerFeedback {
 
   @@unique([userId, skill, stage, itemId])
   @@index([userId, updatedAt])
+}
+
+// ── Problem-solving method (docs/problem-solving.md) ──────────────────────────────────────────────
+
+/// One practice attempt ("practice": picked pattern(s) for a built-in problem) or one pasted-problem
+/// walkthrough ("paste"). Content lives in src/lib/algo; only the user's work is stored.
+model PatternAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// "practice" | "paste"
+  mode        String
+  problemId   String?
+  problemText String?
+  /// Checklist answers: question id → option id.
+  answers     Json
+  picked      String[]
+  expected    String[]
+  /// "correct" | "partial" | "miss" | "analysis"
+  result      String
+  reasoning   String   @default("")
+  /// ReasoningFeedback or Walkthrough (src/lib/algo/feedback.ts).
+  feedback    Json?
+  /// "ai" | "offline" | "limited"
+  source      String
+  model       String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, problemId, createdAt])
 }
 
 // ── Notifications (issue #41) ─────────────────────────────────────────────────────────────────────

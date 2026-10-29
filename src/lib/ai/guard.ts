@@ -11,6 +11,8 @@ export type AiFeature =
   | "learn_content"
   | "learn_regen"
   | "learn_feedback"
+  | "algo_feedback"
+  | "algo_walkthrough"
   | "tutor_chat"
   | "hiring_process"
   | "digest"

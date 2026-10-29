@@ -7,6 +7,7 @@ import { getDictionary } from "@/lib/i18n";
 import { documentStrings } from "@/lib/i18n/documents";
 import { learningStrings } from "@/lib/i18n/learning";
 import { learningHubStrings } from "@/lib/i18n/learning-hub";
+import { problemSolvingStrings } from "@/lib/i18n/problem-solving";
 import { chatStrings } from "@/lib/i18n/chat";
 import { db } from "@/lib/db";
 import { notificationStrings } from "@/lib/i18n/notifications";
@@ -35,6 +36,7 @@ export async function Header() {
           { href: "/dashboard", label: t.nav.dashboard, priority: "lg" as const },
           { href: "/profile", label: t.nav.profile, priority: "lg" as const },
           { href: "/documents", label: documentStrings(locale).nav, priority: "more" as const },
+          { href: "/learn/problem-solving", label: problemSolvingStrings(locale).nav, priority: "more" as const },
           { href: "/learn/me", label: learningHubStrings(locale).navMine, priority: "more" as const },
           { href: "/learn/concepts", label: conceptStrings(locale).nav, priority: "more" as const },
           { href: "/digest", label: reminderStrings(locale).nav, priority: "more" as const },
