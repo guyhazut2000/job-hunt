@@ -130,6 +130,7 @@ model User {
   digests              Digest[]
   notificationChannels NotificationChannel[]
   companyFollows       CompanyFollow[]
+  concepts             Concept[]
 }
 
 model Profile {
@@ -236,6 +237,7 @@ model Company {
   hiringProcesses   HiringProcess[]
   followers         CompanyFollow[]
   scanFailureAlerts ScanFailureAlert[]
+  concepts          Concept[]
 
   /// Optional office override for the jobs map (docs/jobs-map.md), set by an admin. When `officeCity`
   /// is set it replaces only that city's pin; null applies to all of the company's jobs.
@@ -1222,4 +1224,72 @@ model ScanFailureAlert {
 
   @@unique([companyId, streakKey])
   @@index([createdAt])
+}
+
+/// Personal concept glossary (docs/concepts.md): tech concepts and company concepts (culture, interview style)
+/// the user wants to understand. One row per user × slug; company concepts carry `companyId` and a slug
+/// prefixed with the company slug ("amazon~star-method").
+model Concept {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug         String
+  name         String
+  /// TECH | COMPANY
+  kind         String           @default("TECH")
+  companyId    String?
+  company      Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  /// NEW | LEARNING | UNDERSTOOD
+  status       String           @default("NEW")
+  /// Self-rated understanding 1–5.
+  confidence   Int              @default(1)
+  notes        String?
+  category     String?
+  tags         String[]         @default([])
+  /// Roadmap skill id (src/lib/learning) this concept belongs to, when known.
+  skill        String?
+  /// How it was added: "manual", "suggested", "related", "skill:<id>", "company".
+  source       String?
+  parentId     String?
+  parent       Concept?         @relation("ConceptTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children     Concept[]        @relation("ConceptTree")
+  lastOpenedAt DateTime         @default(now())
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  messages     ConceptMessage[]
+
+  @@unique([userId, slug])
+  @@index([userId, updatedAt])
+  @@index([companyId])
+}
+
+/// Drill-down / chat history per concept (role user|assistant; `action` = deeper|simpler|example|mistakes|compare|chat).
+model ConceptMessage {
+  id        String   @id @default(cuid())
+  conceptId String
+  concept   Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  role      String
+  action    String   @default("chat")
+  content   String
+  /// ai | offline | limited (assistant messages only)
+  source    String?
+  createdAt DateTime @default(now())
+
+  @@index([conceptId, createdAt])
+}
+
+/// AI overview per concept key × locale, shared by all users (key = slug, company concepts include the company
+/// slug), so a repeat lookup of the same concept costs no AI quota.
+model ConceptOverview {
+  id        String   @id @default(cuid())
+  key       String
+  locale    String
+  kind      String
+  source    String
+  model     String?
+  content   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, locale])
 }

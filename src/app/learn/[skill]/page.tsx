@@ -33,6 +33,7 @@ import { STAGES, type Resource } from "@/lib/learning/types";
 import { levelFromDepth } from "@/lib/learning/ui";
 import { hasScorableProfile, scoreMatch, toCandidate } from "@/lib/profile/score";
 import { cn } from "@/lib/utils";
+import { SkillConceptsSection } from "@/components/concepts/SkillConceptsSection";
 
 export const dynamic = "force-dynamic";
 
@@ -374,6 +375,8 @@ export default async function SkillPage({ params }: Params) {
               </a>
             )}
           </section>
+
+          <SkillConceptsSection skillId={node.id} skillLabel={node.label} userId={userId} locale={locale} />
 
           {/* Jobs that need this */}
           {top.length > 0 && (

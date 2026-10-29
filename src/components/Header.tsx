@@ -14,6 +14,7 @@ import { reminderStrings } from "@/lib/i18n/reminders";
 import { NotificationBell } from "./notifications/NotificationBell";
 import { Brand } from "./Brand";
 import { NavLinks, type NavLink } from "./NavLinks";
+import { conceptStrings } from "@/lib/i18n/concepts";
 
 export async function Header() {
   const [{ t, locale }, session] = await Promise.all([getDictionary(), auth()]);
@@ -35,6 +36,7 @@ export async function Header() {
           { href: "/profile", label: t.nav.profile, priority: "lg" as const },
           { href: "/documents", label: documentStrings(locale).nav, priority: "more" as const },
           { href: "/learn/me", label: learningHubStrings(locale).navMine, priority: "more" as const },
+          { href: "/learn/concepts", label: conceptStrings(locale).nav, priority: "more" as const },
           { href: "/digest", label: reminderStrings(locale).nav, priority: "more" as const },
           { href: "/chat", label: chatStrings(locale).short, priority: "more" as const },
         ]

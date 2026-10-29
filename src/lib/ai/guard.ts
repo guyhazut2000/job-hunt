@@ -14,6 +14,8 @@ export type AiFeature =
   | "tutor_chat"
   | "hiring_process"
   | "digest"
+  | "concept_overview"
+  | "concept_chat"
   | "chat";
 export type AiOutcome = "ok" | "cached" | "error" | "rate_limited" | "limited";
 

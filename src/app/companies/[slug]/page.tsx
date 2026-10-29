@@ -7,6 +7,7 @@ import { LinkedinCompanyLinks } from "@/components/LinkedinCompanyLink";
 import { People } from "@/components/outreach/People";
 import { CompanySalaryBands } from "@/components/salary/CompanySalaryBands";
 import { HiringProcessSection } from "@/components/hiring/HiringProcessSection";
+import { CompanyConceptsSection } from "@/components/concepts/CompanyConceptsSection";
 import { careersLink, isManualCompany, isSyncFailing, safeHttpUrl } from "@/lib/companies/status";
 import { db } from "@/lib/db";
 import { MAX_FOLLOWED_COMPANIES } from "@/lib/notifications/company-follow";
@@ -161,6 +162,11 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
         companyId={company.id}
         companyName={company.name}
         techStack={[...new Set(company.jobs.flatMap((j) => j.techStack))]}
+        userId={session?.user?.id}
+        locale={locale}
+      />
+      <CompanyConceptsSection
+        company={{ id: company.id, name: company.name, slug: company.slug }}
         userId={session?.user?.id}
         locale={locale}
       />
