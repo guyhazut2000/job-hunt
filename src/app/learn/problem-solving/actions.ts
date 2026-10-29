@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getLocale } from "@/lib/i18n";
-import { cleanAnswers, type GuideAnswers } from "@/lib/algo/checklist";
+import { cleanAnswers, QUESTION_BY_ID, type GuideAnswers } from "@/lib/algo/checklist";
 import { checkKeys, cleanPicks, gradePick, optionLabel, type AttemptResult } from "@/lib/algo/engine";
 import {
   PROBLEM_TEXT_MAX,
@@ -45,7 +45,7 @@ export interface Reveal {
   alsoOk: PatternId[];
   why: string;
   leetcode: string | null;
-  keys: { question: string; expected: string; given: string; ok: boolean }[];
+  keys: { question: string; label: string; expected: string; given: string; ok: boolean }[];
 }
 
 function revalidate() {
@@ -90,6 +90,7 @@ export async function submitAttempt(raw: z.input<typeof attemptInput>): Promise<
     leetcode: problem.leetcode ?? null,
     keys: checkKeys(problem, answers).map((k) => ({
       question: k.question,
+      label: QUESTION_BY_ID.get(k.question) ? tr(QUESTION_BY_ID.get(k.question)!.q, locale) : k.question,
       expected: optionLabel(k.question, k.expected, locale),
       given: optionLabel(k.question, k.given, locale),
       ok: k.ok,

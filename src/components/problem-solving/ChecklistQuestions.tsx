@@ -41,6 +41,7 @@ export function ChecklistQuestions({
                     key={o.id}
                     type="button"
                     aria-pressed={on}
+                    data-option={o.id}
                     onClick={() => set(q.id, o.id)}
                     className={cn(
                       "min-h-10 rounded-full border px-3 text-sm transition-colors",

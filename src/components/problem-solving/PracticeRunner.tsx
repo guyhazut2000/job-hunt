@@ -113,7 +113,8 @@ export function PracticeRunner({
                   ) : (
                     <X className="text-destructive mt-0.5 size-4 shrink-0" aria-label="mismatch" />
                   )}
-                  <span className="flex flex-col">
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-muted-foreground text-xs">{k.label}</span>
                     <span>
                       <span className="text-muted-foreground">{t.shouldBe}: </span>
                       <span className="font-semibold">{k.expected}</span>
