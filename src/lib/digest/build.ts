@@ -227,7 +227,11 @@ export function digestSummary(d: DigestData, locale: Locale): string {
   if (d.followUps.length) parts.push(fill(s.sumFollow, { n: d.followUps.length }));
   if (d.interviews.length) parts.push(fill(s.sumInterview, { when: formatInterviewAt(d.interviews[0].at, locale) }));
   if (d.learning?.reviewsDue) parts.push(fill(s.sumReviews, { n: d.learning.reviewsDue }));
+  if (d.interviewsMissingDate) parts.push(fill(s.sumNoDate, { n: d.interviewsMissingDate }));
   if (d.scans.failed) parts.push(fill(s.sumScans, { n: d.scans.failed }));
+  if (!parts.length && d.learning?.streak) parts.push(fill(s.sumStreak, { n: d.learning.streak }));
+  else if (!parts.length && d.learning?.minutesThisWeek)
+    parts.push(fill(s.sumMinutes, { n: d.learning.minutesThisWeek }));
   return parts.length ? parts.join(" · ") : s.sumQuiet;
 }
 

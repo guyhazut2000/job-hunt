@@ -4,7 +4,7 @@ import { Newspaper, Settings } from "lucide-react";
 import { GenerateDigest } from "@/components/digest/GenerateDigest";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
-import { digestIsEmpty, formatDay, parseDigestData } from "@/lib/digest/build";
+import { digestIsEmpty, digestSummary, formatDay, parseDigestData } from "@/lib/digest/build";
 import { getLocale } from "@/lib/i18n";
 import { notificationStrings } from "@/lib/i18n/notifications";
 import { reminderStrings } from "@/lib/i18n/reminders";
@@ -80,7 +80,9 @@ export default async function DigestListPage() {
                     />
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="font-semibold">{formatDay(d.day, locale)}</span>
-                      <span className="text-muted-foreground text-sm">{quiet ? r.quietDay : d.summary}</span>
+                      <span className="text-muted-foreground text-sm">
+                        {quiet ? r.quietDay : digestSummary(data, locale)}
+                      </span>
                     </span>
                   </Link>
                 </li>

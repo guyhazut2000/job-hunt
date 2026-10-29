@@ -5,6 +5,8 @@ import { ArrowLeft, ArrowRight, Lightbulb } from "lucide-react";
 import { db } from "@/lib/db";
 import {
   digestSections,
+  digestSummary,
+  fallbackSuggestions,
   formatDay,
   parseDigestData,
   parseSuggestions,
@@ -28,8 +30,9 @@ export default async function DigestPage({ params }: { params: Promise<{ id: str
   const data = row ? parseDigestData(row.content) : null;
   if (!row || !data) notFound();
   const sections = digestSections(data, locale);
-  const suggestions = parseSuggestions(row.suggestions);
   const source = (["ai", "offline", "limited"].includes(row.aiSource) ? row.aiSource : "offline") as SuggestionSource;
+  // Rule-based tips re-render in the viewer's language; AI tips are kept as written.
+  const suggestions = source === "ai" ? parseSuggestions(row.suggestions) : fallbackSuggestions(data, locale);
   const dateLocale = locale === "he" ? "he-IL" : "en-GB";
   const Back = locale === "he" ? ArrowRight : ArrowLeft;
 
@@ -45,7 +48,7 @@ export default async function DigestPage({ params }: { params: Promise<{ id: str
         </Link>
         <p className="kicker">{r.title}</p>
         <h1 className="text-title font-black">{formatDay(row.day, locale)}</h1>
-        <p className="text-muted-foreground leading-relaxed">{row.summary}</p>
+        <p className="text-muted-foreground leading-relaxed">{digestSummary(data, locale)}</p>
         <p className="text-muted-foreground text-xs">
           {fill(r.window, {
             from: formatDateTime(new Date(data.since), dateLocale),

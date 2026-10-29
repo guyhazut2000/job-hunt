@@ -150,6 +150,14 @@ describe("daily digest", () => {
     expect(digestIsEmpty(sample())).toBe(false);
     expect(digestSummary(e, "en")).toBe(reminderStrings("en").sumQuiet);
   });
+  it("never calls a non-empty digest a quiet day", () => {
+    const e = emptyDigestData("2026-11-04", now, now);
+    const streakOnly = { ...e, learning: { ...sample().learning!, reviewsDue: 0, streak: 4 } };
+    expect(digestIsEmpty(streakOnly)).toBe(false);
+    expect(digestSummary(streakOnly, "en")).toBe("4-day study streak");
+    const noDate = { ...e, interviewsMissingDate: 2 };
+    expect(digestSummary(noDate, "en")).toBe("2 interviews without a date");
+  });
   it("builds sections and a summary", () => {
     const secs = digestSections(sample(), "en");
     expect(secs.map((s) => s.key)).toEqual(["jobs", "status", "followups", "interviews", "learning", "scans"]);

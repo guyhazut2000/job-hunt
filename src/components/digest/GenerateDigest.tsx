@@ -23,7 +23,7 @@ export function GenerateDigest({
       <p role="status" aria-live="polite" className="text-sm font-semibold">
         {state?.ok ? (
           <span className="text-fit">
-            {state.sent ? labels.sent : labels.ok}{" "}
+            {state.sent ? labels.sent : labels.ok}.{" "}
             {state.id && (
               <Link href={`/digest/${state.id}`} className="underline underline-offset-4">
                 {labels.open}
