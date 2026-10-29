@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { getLocale } from "@/lib/i18n";
 import { fill, notificationStrings } from "@/lib/i18n/notifications";
+import { reminderStrings } from "@/lib/i18n/reminders";
 import { isTelegramConfigured, vapidConfig } from "@/lib/notifications/config";
 import { CHANNEL_TYPES } from "@/lib/notifications/kinds";
 import { toEffective } from "@/lib/notifications/prefs";
@@ -117,7 +118,7 @@ export default async function NotificationSettingsPage() {
         )}
       </section>
 
-      <PrefsForm prefs={prefs} s={s} />
+      <PrefsForm prefs={prefs} s={s} r={reminderStrings(locale)} />
     </div>
   );
 }

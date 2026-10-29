@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { saveNotificationPrefs, type PrefsFormState } from "@/app/notification-actions";
 import { Button } from "@/components/ui/button";
 import type { NotificationStrings } from "@/lib/i18n/notifications";
+import type { ReminderStrings } from "@/lib/i18n/reminders";
 import { channelEnabled, EXTERNAL_CHANNELS, NOTIFICATION_KINDS } from "@/lib/notifications/kinds";
 import type { EffectivePrefs } from "@/lib/notifications/prefs";
 
@@ -14,7 +15,7 @@ const selectCls =
   "border-input bg-background focus-visible:ring-ring/50 h-10 rounded-md border px-2 text-sm tabular-nums outline-none focus-visible:ring-3";
 const checkCls = "accent-primary size-4.5 shrink-0";
 
-export function PrefsForm({ prefs, s }: { prefs: EffectivePrefs; s: NotificationStrings }) {
+export function PrefsForm({ prefs, s, r }: { prefs: EffectivePrefs; s: NotificationStrings; r: ReminderStrings }) {
   const [state, action, pending] = useActionState<PrefsFormState, FormData>(saveNotificationPrefs, undefined);
   return (
     <form action={action} className="flex flex-col gap-6" data-testid="prefs-form">
@@ -141,6 +142,91 @@ export function PrefsForm({ prefs, s }: { prefs: EffectivePrefs; s: Notification
             className={`${selectCls} w-20`}
             dir="ltr"
           />
+        </label>
+      </section>
+
+      <section aria-labelledby="interview-h" className="card flex flex-col gap-3">
+        <h2 id="interview-h" className="font-heading text-lg font-bold">
+          {r.interviewSection}
+        </h2>
+        <p className="text-muted-foreground text-sm">{r.interviewLead}</p>
+        <label className="flex min-h-10 items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" name="interviewEnabled" defaultChecked={prefs.interviewEnabled} className={checkCls} />
+          {r.interviewEnabled}
+        </label>
+      </section>
+
+      <section aria-labelledby="learning-h" className="card flex flex-col gap-3">
+        <h2 id="learning-h" className="font-heading text-lg font-bold">
+          {r.learningSection}
+        </h2>
+        <p className="text-muted-foreground text-sm">{r.learningLead}</p>
+        <label className="flex min-h-10 items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" name="learningEnabled" defaultChecked={prefs.learningEnabled} className={checkCls} />
+          {r.learningEnabled}
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          {r.learningHour}
+          <select name="learningHour" defaultValue={prefs.learningHour} className={selectCls} dir="ltr">
+            {HOURS.map((h) => (
+              <option key={h} value={h}>
+                {hh(h)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-sm">{r.learningDays}</legend>
+          <div className="flex flex-wrap gap-1.5">
+            {r.weekdays.map((label, d) => (
+              <label
+                key={d}
+                className="has-checked:border-primary has-checked:bg-primary/10 flex min-h-10 min-w-11 items-center justify-center gap-1.5 rounded-md border px-2 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  name="learningDays"
+                  value={d}
+                  defaultChecked={prefs.learningDays.includes(d)}
+                  className={checkCls}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <label className="flex flex-wrap items-center gap-2 text-sm">
+          {r.learningIdle}
+          <input
+            type="number"
+            name="learningIdleDays"
+            min={1}
+            max={30}
+            defaultValue={prefs.learningIdleDays}
+            className={`${selectCls} w-20`}
+            dir="ltr"
+          />
+        </label>
+      </section>
+
+      <section aria-labelledby="digest-h" className="card flex flex-col gap-3">
+        <h2 id="digest-h" className="font-heading text-lg font-bold">
+          {r.digestSection}
+        </h2>
+        <p className="text-muted-foreground text-sm">{r.digestLead}</p>
+        <label className="flex min-h-10 items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" name="digestEnabled" defaultChecked={prefs.digestEnabled} className={checkCls} />
+          {r.digestEnabled}
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          {r.digestHour}
+          <select name="digestHour" defaultValue={prefs.digestHour} className={selectCls} dir="ltr">
+            {HOURS.map((h) => (
+              <option key={h} value={h}>
+                {hh(h)}
+              </option>
+            ))}
+          </select>
         </label>
       </section>
 

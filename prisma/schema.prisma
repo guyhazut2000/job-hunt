@@ -123,6 +123,7 @@ model User {
   notifications        Notification[]
   notificationPrefs    NotificationPreference?
   savedSearches        SavedSearch[]
+  digests              Digest[]
   notificationChannels NotificationChannel[]
 }
 
@@ -395,29 +396,35 @@ model Job {
 }
 
 model Application {
-  id             String            @id @default(cuid())
-  userId         String
-  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jobId          String?
-  job            Job?              @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId           String?
+  job             Job?              @relation(fields: [jobId], references: [id], onDelete: SetNull)
   // For applications tracked manually (jobs found outside the platform)
-  title          String
-  company        String
-  url            String?
-  status         ApplicationStatus @default(SAVED)
-  notes          String?
-  appliedAt      DateTime?
+  title           String
+  company         String
+  url             String?
+  status          ApplicationStatus @default(SAVED)
+  notes           String?
+  appliedAt       DateTime?
   // How it got onto the board; EMAIL = detected by email sync (see emailMessageId)
-  source         ApplicationSource @default(APP)
-  emailMessageId String?
+  source          ApplicationSource @default(APP)
+  emailMessageId  String?
   /// Hiring-process stage the user marked as current (a STAGE_KINDS key, see src/lib/hiring/kinds.ts).
-  currentStage   String?
-  currentStageAt DateTime?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  currentStage    String?
+  currentStageAt  DateTime?
+  /// When the status last changed (set by every status update; null for rows from before it existed).
+  statusChangedAt DateTime?
+  /// Next scheduled interview (reminders ~24h and ~2h before) and a free-text note (link, place, who).
+  interviewAt     DateTime?
+  interviewNote   String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   @@unique([userId, jobId])
   @@index([userId, status])
+  @@index([interviewAt])
 }
 
 /// DEPRECATED: billing was removed (non-commercial practice project). Table kept, unused, because
@@ -1087,8 +1094,38 @@ model NotificationPreference {
   /// One-time code for linking Telegram (/start <code>), hashed, short-lived.
   telegramLinkCode    String?   @unique
   telegramLinkExpires DateTime?
+  /// Learning reminders: on these Israel weekdays (0 = Sunday) at/after this hour.
+  learningEnabled     Boolean   @default(true)
+  learningHour        Int       @default(19)
+  learningDays        Int[]     @default([0, 1, 2, 3, 4])
+  /// Nudge after this many days without study (streak / due reviews nudge regardless).
+  learningIdleDays    Int       @default(2)
+  interviewEnabled    Boolean   @default(true)
+  /// Daily digest, generated once per Israel day at/after digestHour.
+  digestEnabled       Boolean   @default(true)
+  digestHour          Int       @default(8)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+}
+
+/// One daily digest per user per Israel day (YYYY-MM-DD), kept as history (see docs/digest.md).
+model Digest {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day         String
+  /// Short one-line summary (also the notification body).
+  summary     String
+  /// Structured sections (src/lib/digest/build.ts DigestContent).
+  content     Json
+  /// "Streamline your process" suggestions and where they came from: ai | offline | limited.
+  suggestions Json     @default("[]")
+  aiSource    String   @default("offline")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, day])
+  @@index([userId, createdAt])
 }
 
 /// A /jobs query the user wants alerts for. `query` is the /jobs query string (without "?").

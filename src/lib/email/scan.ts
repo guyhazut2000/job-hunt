@@ -127,7 +127,11 @@ export async function processMessages(
       await db.$transaction([
         db.application.update({
           where: { id: a.applicationId },
-          data: { status: a.newStatus, ...(app?.status === "SAVED" ? { appliedAt: m.date } : {}) },
+          data: {
+            status: a.newStatus,
+            statusChangedAt: new Date(),
+            ...(app?.status === "SAVED" ? { appliedAt: m.date } : {}),
+          },
         }),
         db.emailCandidate.create({ data: { ...data, status: "AUTO_ADDED" } }),
       ]);

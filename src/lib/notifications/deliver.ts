@@ -1,10 +1,13 @@
 import { db } from "@/lib/db";
-import { CHANNEL_TYPES } from "./kinds";
+import { CAP_EXEMPT, CHANNEL_TYPES, isKind } from "./kinds";
 import { toEffective } from "./prefs";
 import { isQuiet, nextAllowedAt } from "./quiet";
 import { sendTelegram, sendWebPush, type SendResult } from "./senders";
 
 export const MAX_ATTEMPTS = 5;
+
+const jsonObject = (v: unknown): Record<string, unknown> =>
+  v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 
 /** Exponential backoff after a failed attempt: 5 min, 10, 20, 40… */
 export function backoffMs(attempts: number): number {
@@ -39,7 +42,9 @@ export async function processDeliveries(
     take: opts.limit ?? 200,
     include: {
       channel: true,
-      notification: { select: { id: true, userId: true, title: true, body: true, url: true, createdAt: true } },
+      notification: {
+        select: { id: true, userId: true, kind: true, title: true, body: true, url: true, data: true, createdAt: true },
+      },
     },
   });
   if (!due.length) return summary;
@@ -67,17 +72,24 @@ export async function processDeliveries(
       summary.deferred++;
       continue;
     }
-    // Stale (> 2 days) or over the hourly cap: keep it in-site only.
+    // Stale (> 2 days), past its expiry (e.g. the interview already started) or over the hourly
+    // cap: keep it in-site only. Interviews and the daily digest are exempt from the cap.
+    const meta = jsonObject(d.notification.data);
     const stale = now.getTime() - d.notification.createdAt.getTime() > 2 * 86_400_000;
-    if (stale || (sentCounts.get(uid) ?? 0) >= prefs.maxPerHour) {
+    const expired = typeof meta.expiresAt === "string" && now.getTime() >= Date.parse(meta.expiresAt);
+    const exempt = isKind(d.notification.kind) && CAP_EXEMPT.includes(d.notification.kind);
+    if (stale || expired || (!exempt && (sentCounts.get(uid) ?? 0) >= prefs.maxPerHour)) {
       await db.notificationDelivery.update({
         where: { id: d.id },
-        data: { status: "SKIPPED", lastError: stale ? "stale" : "rate limit" },
+        data: { status: "SKIPPED", lastError: stale ? "stale" : expired ? "expired" : "rate limit" },
       });
       summary.skipped++;
       continue;
     }
-    const msg = d.notification;
+    const msg = {
+      ...d.notification,
+      telegramHtml: typeof meta.telegramHtml === "string" ? meta.telegramHtml : undefined,
+    };
     let res: SendResult;
     if (d.channel.type === CHANNEL_TYPES.push) res = await sendWebPush(d.channel, msg);
     else if (d.channel.type === CHANNEL_TYPES.telegram) res = await sendTelegram(d.channel.endpoint, msg);

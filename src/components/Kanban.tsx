@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptimistic, useRef, useTransition } from "react";
+import { InterviewDate, type InterviewDateLabels } from "./InterviewDate";
 import { TruncatedText } from "./TruncatedText";
 import type { ApplicationStatus } from "@prisma/client";
 import { ExternalLink, GripVertical, Trash2, Users } from "lucide-react";
@@ -17,6 +18,8 @@ export interface KanbanItem {
   status: ApplicationStatus;
   /** Saved outreach contacts for this job (referral tracking). */
   contacts?: { total: number; referred: number };
+  /** Interview date (Israel wall time for the input + a formatted label), when set. */
+  interview?: { value: string; display: string; note: string | null } | null;
 }
 
 const COLUMNS: ApplicationStatus[] = ["SAVED", "APPLIED", "SCREENING", "INTERVIEW", "OFFER", "REJECTED"];
@@ -36,6 +39,7 @@ export function Kanban({
   statusLabel,
   emptyLabel,
   contactsLabel,
+  interviewLabels,
 }: {
   items: KanbanItem[];
   labels: Record<string, string>;
@@ -43,6 +47,7 @@ export function Kanban({
   statusLabel: string;
   emptyLabel: string;
   contactsLabel?: { count: string; referred: string };
+  interviewLabels?: InterviewDateLabels;
 }) {
   const [, start] = useTransition();
   const board = useRef<HTMLDivElement>(null);
@@ -151,6 +156,18 @@ export function Kanban({
                                 </span>
                               )}
                             </p>
+                          )}
+                          {interviewLabels && (i.status === "INTERVIEW" || i.interview) && (
+                            <div className="mt-1">
+                              <InterviewDate
+                                applicationId={i.id}
+                                title={i.title}
+                                value={i.interview?.value ?? ""}
+                                note={i.interview?.note ?? null}
+                                display={i.interview?.display ?? null}
+                                labels={interviewLabels}
+                              />
+                            </div>
                           )}
                         </div>
                       </div>

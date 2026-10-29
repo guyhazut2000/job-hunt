@@ -1,6 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BellOff, BriefcaseBusiness, CheckCheck, Clock, Settings, Sparkles, XCircle } from "lucide-react";
+import {
+  BellOff,
+  BriefcaseBusiness,
+  CalendarClock,
+  CheckCheck,
+  Clock,
+  GraduationCap,
+  Newspaper,
+  Settings,
+  Sparkles,
+  XCircle,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { markAllNotificationsRead } from "@/app/notification-actions";
 import { Button } from "@/components/ui/button";
@@ -8,6 +19,7 @@ import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { getLocale } from "@/lib/i18n";
 import { notificationStrings } from "@/lib/i18n/notifications";
+import { reminderStrings } from "@/lib/i18n/reminders";
 import { isKind } from "@/lib/notifications/kinds";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -19,6 +31,9 @@ const ICONS: Record<string, LucideIcon> = {
   JOB_MATCH: BriefcaseBusiness,
   SAVED_JOB_CLOSED: XCircle,
   FOLLOW_UP: Clock,
+  INTERVIEW: CalendarClock,
+  LEARNING: GraduationCap,
+  DIGEST: Newspaper,
   SYSTEM: Sparkles,
 };
 
@@ -49,6 +64,12 @@ export default async function NotificationsPage() {
                 </Button>
               </form>
             )}
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/digest">
+                <Newspaper data-icon="inline-start" aria-hidden />
+                {reminderStrings(locale).nav}
+              </Link>
+            </Button>
             <Button asChild variant="ghost" size="sm">
               <Link href="/settings/notifications">
                 <Settings data-icon="inline-start" aria-hidden />
