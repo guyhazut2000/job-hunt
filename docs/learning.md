@@ -112,7 +112,10 @@ tomorrow; didn't know → due now.
   — same DB cache and per-user / global free-tier limits as the rest of the AI — returns a zod-validated verdict
   (strong / partial / weak), score 0–100, summary, up to 3 strengths, up to 4 improvements and a follow-up
   question. The answer is fenced and the model is told to ignore instructions inside it. On `LLM_PROVIDER=mock`,
-  limits or invalid output it falls back to an offline key-term check (labelled as such). For Q&A the verdict
+  limits or invalid output it falls back to an offline key-term check (labelled as such). The check is Hebrew-aware:
+  niqqud, geresh / gershayim and final letters are normalised, prefix letters (ו/ה/ב/ל/מ/ש/כ, also combined such as
+  "וכשה") and plural suffixes are stripped, and a small Hebrew ↔ English synonym map (e.g. מסד נתונים → database,
+  קונטיינר → container, שאילתה → query) lets a Hebrew answer cover an English reference. For Q&A the verdict
   suggests a self-rating; the user still chooses. Latest result per user × item is stored in `AnswerFeedback`
   (additive migration `20261028220000_learning_answer_feedback`) and shown again on return.
 - **AI tutor**: streamed chat (AI SDK `useChat` → `POST /api/learn/tutor`), Socratic, stage- and level-aware,

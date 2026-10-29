@@ -141,41 +141,222 @@ const STOP = new Set(
   ).split(" "),
 );
 
-const HE_PREFIX = /^[והבלמשכ](?=[\u0590-\u05ff]{3,})/;
+// Hebrew: niqqud / cantillation marks, geresh & gershayim, final letter forms.
+const NIQQUD = /[\u0591-\u05bd\u05bf-\u05c7]/g;
+const FINALS: Record<string, string> = { ך: "כ", ם: "מ", ן: "נ", ף: "פ", ץ: "צ" };
+/** One-letter Hebrew prefixes (ו ה ב ל מ ש כ), possibly combined: "וכשה", "שב", "מה"… */
+const HE_PREFIX_LETTERS = "והבלמשכ";
+const HE_WORD = /^[\u05d0-\u05ea]+$/;
 
-/** Lowercased content words (Latin/Hebrew/digits), Hebrew one-letter prefixes stripped. */
-export function keyTerms(text: string): string[] {
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const raw of text.toLowerCase().match(/[a-z0-9][a-z0-9.+#_-]*[a-z0-9+#]|[\u0590-\u05ff]+|[a-z0-9]/g) ?? []) {
-    const w = raw.replace(HE_PREFIX, "");
-    if (w.length < 3 || STOP.has(w) || STOP.has(raw)) continue;
-    if (!seen.has(w)) {
-      seen.add(w);
-      out.push(w);
-    }
+/**
+ * Hebrew ↔ English synonyms for common technical terms, so a Hebrew answer covers an English reference
+ * (and the other way round). Keys are normalised Hebrew stems (no niqqud, no final letters, no prefixes);
+ * values are the canonical English term. Multi-word phrases are joined before tokenising.
+ */
+const HE_PHRASES: [RegExp, string][] = [
+  [/(מסד|בסיס) ה?נתונים/g, "database"],
+  [/מפתח ראשי/g, "primary-key"],
+  [/מפתח זר/g, "foreign-key"],
+  [/איזון עומסים/g, "load-balancing"],
+  [/בקרת גרסאות/g, "version-control"],
+  [/מכונה וירטואלית|מכונות וירטואליות/g, "virtual-machine"],
+  [/מערכת הפעלה/g, "operating-system"],
+  [/שורת (ה)?פקודה/g, "command-line"],
+];
+const HE_SYNONYMS: Record<string, string> = {};
+for (const [en, he] of Object.entries({
+  server: "שרת סרבר",
+  client: "לקוח קליינט",
+  database: "דאטאבייס דטבייס",
+  table: "טבלה",
+  index: "אינדקס",
+  query: "שאילתה שאילתא קוורי",
+  cache: "מטמונ קאש",
+  memory: "זיכרונ",
+  process: "תהליכ פרוסס",
+  thread: "תהליכונ ת'רד",
+  function: "פונקציה",
+  variable: "משתנה",
+  class: "מחלקה",
+  object: "אובייקט",
+  array: "מערכ",
+  list: "רשימה",
+  loop: "לולאה",
+  condition: "תנאי",
+  test: "בדיקה בדיקות טסט",
+  security: "אבטחה",
+  encryption: "הצפנה",
+  authorization: "הרשאה הרשאות",
+  authentication: "אימות הזדהות",
+  network: "רשת",
+  request: "בקשה",
+  response: "תגובה",
+  interface: "ממשק",
+  cloud: "ענ",
+  deployment: "פריסה דיפלוי",
+  container: "קונטיינר מכולה",
+  image: "אימג'",
+  cluster: "אשכול קלאסטר",
+  load: "עומס",
+  concurrency: "מקביליות",
+  performance: "ביצועים",
+  scalability: "סקלביליות סקיילביליות",
+  version: "גרסה",
+  branch: "ענפ בראנצ'",
+  merge: "מיזוג מרג'",
+  error: "שגיאה",
+  exception: "חריגה",
+  file: "קובצ",
+  directory: "תיקייה",
+  user: "משתמש",
+  password: "סיסמה",
+  key: "מפתח",
+  asynchronous: "אסינכרוני",
+  synchronous: "סינכרוני",
+  queue: "תור",
+  stack: "מחסנית",
+  tree: "עצ",
+  graph: "גרפ",
+  sort: "מיונ",
+  search: "חיפוש",
+  algorithm: "אלגוריתמ",
+  complexity: "סיבוכיות",
+  recursion: "רקורסיה",
+  inheritance: "ירושה",
+  polymorphism: "פולימורפיזמ",
+  encapsulation: "כימוס",
+  abstraction: "הפשטה",
+  type: "טיפוס",
+  module: "מודול",
+  library: "ספרייה",
+  dependency: "תלות",
+  monitoring: "ניטור",
+  log: "לוג יומנ",
+  backup: "גיבוי",
+  replication: "שכפול רפליקציה",
+  transaction: "טרנזקציה",
+  lock: "נעילה",
+  template: "תבנית",
+  instance: "מופע",
+  layer: "שכבה",
+  component: "קומפוננטה רכיב",
+  state: "סטייט",
+  render: "רינדור",
+  promise: "פרומיס",
+  permission: "הרשאה",
+  token: "טוקנ אסימונ",
+  port: "פורט",
+  route: "ניתוב",
+  pipeline: "פייפליינ",
+  build: "בילד",
+  commit: "קומיט",
+  repository: "מאגר ריפו",
+  schema: "סכמה",
+  migration: "מיגרציה",
+  environment: "סביבה",
+  configuration: "תצורה קונפיגורציה",
+  storage: "אחסונ",
+  volume: "ווליומ",
+  running: "רצ",
+})) {
+  for (const w of he.split(" ")) HE_SYNONYMS[normalizeHebrew(w)] = en;
+}
+
+/** Strip niqqud, geresh/gershayim and quote marks, and map final letters to their regular form. */
+export function normalizeHebrew(text: string): string {
+  return text
+    .normalize("NFC")
+    .replace(NIQQUD, "")
+    .replace(/[\u05f3\u05f4'"`׳״]/g, "")
+    .replace(/[ךםןףץ]/g, (c) => FINALS[c]);
+}
+
+/** Prefix-stripped forms of a normalised Hebrew word: itself, then up to 3 leading ו/ה/ב/ל/מ/ש/כ removed (≥3 letters left). */
+function prefixStems(w: string): string[] {
+  const out = [w];
+  let cur = w;
+  for (let i = 0; i < 3 && cur.length > 3 && HE_PREFIX_LETTERS.includes(cur[0]); i++) {
+    cur = cur.slice(1);
+    out.push(cur);
   }
   return out;
 }
 
-function covers(answerTerms: Set<string>, term: string): boolean {
-  if (answerTerms.has(term)) return true;
-  for (const a of answerTerms) {
-    if (a.length >= 4 && term.length >= 4 && (a.startsWith(term) || term.startsWith(a))) {
-      if (Math.abs(a.length - term.length) <= 3) return true;
-    }
+/** All matching forms: prefix stems, plus each without a plural / construct suffix (ים, ות, י). */
+function hebrewStems(w: string): string[] {
+  const out = prefixStems(w);
+  for (const st of [...out]) {
+    const bare = st.replace(/(ים|ות|יי?)$/, "");
+    if (bare !== st && bare.length >= 3) out.push(bare);
   }
-  return false;
+  return out;
+}
+
+interface Term {
+  /** What we show the user (the word as written, without niqqud). */
+  label: string;
+  /** Normalised forms that count as the same term (stems + English synonym). */
+  keys: string[];
+}
+
+const STOP_NORM = new Set([...STOP].map((w) => normalizeHebrew(w)));
+
+function terms(text: string): Term[] {
+  let t = text
+    .toLowerCase()
+    .normalize("NFC")
+    .replace(NIQQUD, "")
+    .replace(/\u05be/g, " "); // maqaf → space
+  for (const [re, en] of HE_PHRASES) t = t.replace(re, ` ${en} `);
+  const out: Term[] = [];
+  const seen = new Set<string>();
+  for (const raw of t.match(
+    /[a-z0-9][a-z0-9.+#_-]*[a-z0-9+#]|[\u05d0-\u05ea](?:[\u05d0-\u05ea\u05f3\u05f4'"]*[\u05d0-\u05ea\u05f3])?|[a-z0-9]/g,
+  ) ?? []) {
+    const word = normalizeHebrew(raw);
+    let keys: string[];
+    if (HE_WORD.test(word)) {
+      if (prefixStems(word).some((st) => STOP_NORM.has(st))) continue;
+      const stems = hebrewStems(word);
+      const syn = stems.map((st) => HE_SYNONYMS[st]).find(Boolean);
+      keys = stems.filter((st) => st.length >= 3);
+      if (syn) keys.push(syn);
+      if (!keys.length) continue;
+    } else {
+      if (word.length < 3 || STOP.has(word)) continue;
+      keys = [word];
+    }
+    // Same concept twice (e.g. "container" and "הקונטיינר") counts once.
+    const id = keys.find((k) => /^[a-z]/.test(k)) ?? keys[keys.length - 1];
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push({ label: raw.replace(/^['"]+|['"]+$/g, ""), keys });
+  }
+  return out;
+}
+
+/** Lowercased content words (Latin/Hebrew/digits); Hebrew niqqud, final letters and prefix letters are normalised for matching. */
+export function keyTerms(text: string): string[] {
+  return terms(text).map((t) => t.label);
+}
+
+function close(a: string, b: string): boolean {
+  if (a === b) return true;
+  return a.length >= 4 && b.length >= 4 && (a.startsWith(b) || b.startsWith(a)) && Math.abs(a.length - b.length) <= 3;
+}
+
+function covers(answer: Term[], term: Term): boolean {
+  return answer.some((a) => a.keys.some((k) => term.keys.some((t) => close(k, t))));
 }
 
 const MAX_TERMS = 14;
 
 export function heuristicFeedback(item: FeedbackItem, answer: string, locale: Locale): AnswerFeedback {
   const he = locale === "he";
-  const ref = keyTerms(item.reference).slice(0, MAX_TERMS);
-  const ans = new Set(keyTerms(answer));
-  const hit = ref.filter((t) => covers(ans, t));
-  const miss = ref.filter((t) => !covers(ans, t));
+  const ref = terms(item.reference).slice(0, MAX_TERMS);
+  const ans = terms(answer);
+  const hit = ref.filter((t) => covers(ans, t)).map((t) => t.label);
+  const miss = ref.filter((t) => !covers(ans, t)).map((t) => t.label);
   const words = answer.trim().split(/\s+/).filter(Boolean).length;
   const coverage = ref.length ? hit.length / ref.length : 0;
   // Coverage drives the score; very short answers are capped.
