@@ -223,12 +223,16 @@ describe("token crypto & feature flag", () => {
     const enc = encryptSecret("synthetic-refresh-token", k);
     expect(enc).not.toContain("synthetic");
     expect(decryptSecret(enc, k)).toBe("synthetic-refresh-token");
-    expect(() =>
-      decryptSecret(
-        enc.replace(/.$/, (c) => (c === "A" ? "B" : "A")),
-        k,
-      ),
-    ).toThrow();
+    // Tamper with a real ciphertext byte. (Swapping the last base64url character is not enough: for a 23-byte
+    // ciphertext its low 2 bits are padding, so A↔B / B→A etc. decode to the same bytes ~1 time in 16.)
+    const parts = enc.split(".");
+    const ct = Buffer.from(parts[3], "base64url");
+    ct[0] ^= 0x01;
+    const tampered = [...parts.slice(0, 3), ct.toString("base64url")].join(".");
+    expect(() => decryptSecret(tampered, k)).toThrow();
+    const tag = Buffer.from(parts[2], "base64url");
+    tag[0] ^= 0x01;
+    expect(() => decryptSecret([parts[0], parts[1], tag.toString("base64url"), parts[3]].join("."), k)).toThrow();
   });
   it("rejects bad keys and gates the feature", () => {
     expect(loadKey("short")).toBeNull();
