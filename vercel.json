@@ -20,6 +20,10 @@
       "schedule": "20 5 * * *"
     },
     {
+      "path": "/api/cron/ingest?provider=EIGHTFOLD,ORACLE_HCM,JIBE,AMAZON",
+      "schedule": "50 5 * * *"
+    },
+    {
       "path": "/api/cron/email-sync",
       "schedule": "0 5 * * *"
     },
@@ -42,6 +46,10 @@
     {
       "path": "/api/cron/notify",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/manual-check",
+      "schedule": "45 6 * * 0"
     },
     {
       "path": "/api/cron/hourly",

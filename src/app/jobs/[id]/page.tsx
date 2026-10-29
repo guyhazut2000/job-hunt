@@ -63,6 +63,10 @@ const SOURCE_LABELS: Record<AtsProvider, string> = {
   WORKDAY: "Workday",
   RECRUITEE: "Recruitee",
   WORDPRESS: "WordPress",
+  EIGHTFOLD: "Eightfold",
+  ORACLE_HCM: "Oracle Recruiting",
+  JIBE: "iCIMS",
+  AMAZON: "amazon.jobs",
   MANUAL: "",
 };
 

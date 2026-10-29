@@ -14,6 +14,7 @@ import {
 import { db } from "@/lib/db";
 import { groupByLetter, HEBREW, LATIN, letterAnchor, OTHER } from "@/lib/alpha";
 import { getDictionary } from "@/lib/i18n";
+import { manualCheckStrings } from "@/lib/i18n/manual-check";
 import { linkedinStrings } from "@/lib/i18n/linkedin";
 import { BackToTop } from "@/components/BackToTop";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,7 @@ export default async function CompaniesPage({
   const now = new Date();
   const scanned = (d: Date) => ls.companyScanned.replace("{time}", formatRelative(d, t.dateLocale, now));
   const li = linkedinStrings(locale);
+  const mc = manualCheckStrings(locale);
   const filter = parseCompanyFilter(sp.sync);
   const ss = searchStrings(locale);
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.trim().slice(0, MAX_QUERY_LENGTH) || undefined;
@@ -122,6 +124,16 @@ export default async function CompaniesPage({
           })}
         </ul>
       </nav>
+
+      {filter === "manual" && (
+        <aside
+          className="bg-card text-muted-foreground rounded-lg border p-4 text-sm"
+          data-testid="manual-check-banner"
+        >
+          <p className="text-foreground mb-1 font-semibold">{mc.bannerTitle}</p>
+          <p>{mc.bannerBody}</p>
+        </aside>
+      )}
 
       {q && (
         <p className="text-muted-foreground -mt-2 text-sm" aria-live="polite" data-testid="companies-count">

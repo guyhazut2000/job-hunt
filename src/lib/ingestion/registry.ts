@@ -1,8 +1,12 @@
 import type { AtsProvider } from "@prisma/client";
+import { amazonAdapter } from "./adapters/amazon";
 import { ashbyAdapter } from "./adapters/ashby";
 import { comeetAdapter } from "./adapters/comeet";
+import { eightfoldAdapter } from "./adapters/eightfold";
 import { greenhouseAdapter } from "./adapters/greenhouse";
+import { jibeAdapter } from "./adapters/jibe";
 import { leverAdapter } from "./adapters/lever";
+import { oracleHcmAdapter } from "./adapters/oracle-hcm";
 import { recruiteeAdapter } from "./adapters/recruitee";
 import { smartRecruitersAdapter } from "./adapters/smartrecruiters";
 import { workableAdapter } from "./adapters/workable";
@@ -20,6 +24,10 @@ const adapters: Partial<Record<AtsProvider, AtsAdapter<unknown>>> = {
   RECRUITEE: recruiteeAdapter as AtsAdapter<unknown>,
   WORKDAY: workdayAdapter as AtsAdapter<unknown>,
   WORDPRESS: wordpressAdapter as AtsAdapter<unknown>,
+  EIGHTFOLD: eightfoldAdapter as AtsAdapter<unknown>,
+  ORACLE_HCM: oracleHcmAdapter as AtsAdapter<unknown>,
+  JIBE: jibeAdapter as AtsAdapter<unknown>,
+  AMAZON: amazonAdapter as AtsAdapter<unknown>,
 };
 
 export function getAdapter(provider: AtsProvider): AtsAdapter<unknown> | undefined {

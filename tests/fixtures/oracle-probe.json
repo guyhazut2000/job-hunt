@@ -1,0 +1,20 @@
+{
+  "items": [
+    {
+      "TotalJobsCount": 1,
+      "requisitionList": [],
+      "locationsFacet": [
+        {
+          "Id": 300000000392747,
+          "Name": "Israel",
+          "TotalCount": 1
+        },
+        {
+          "Id": 300000095157133,
+          "Name": "Herzliya",
+          "TotalCount": 1
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "TotalJobsCount": 1,
+      "requisitionList": [
+        {
+          "Id": "4111",
+          "Title": "Human Resources Director \u2013 Israel",
+          "PostedDate": "2026-05-26",
+          "PrimaryLocation": "Herzliya, Israel",
+          "PrimaryLocationCountry": "IL",
+          "WorkplaceType": "",
+          "secondaryLocations": []
+        }
+      ]
+    }
+  ]
+}

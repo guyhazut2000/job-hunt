@@ -27,7 +27,17 @@ describe("manual company list", () => {
   });
   it("includes the companies we couldn't sync", () => {
     const slugs = MANUAL_COMPANIES.map((c) => c.slug);
-    for (const s of ["broadcom", "amdocs", "dell", "hippo", "snyk", "vayyar"]) expect(slugs).toContain(s);
+    for (const s of ["check-point", "apple", "meta", "hippo", "snyk", "vayyar"]) expect(slugs).toContain(s);
+  });
+  it("moved bot-protected companies with a public careers API to automatic sync", () => {
+    const slugs = new Set(MANUAL_COMPANIES.map((c) => c.slug));
+    const auto = new Map(JOB_SOURCES.map((s) => [s.slug, s.provider]));
+    for (const s of ["amdocs", "qualcomm", "microsoft", "verint", "dell", "oracle-israel", "booking-com", "amazon"]) {
+      expect(slugs.has(s), s).toBe(false);
+      expect(auto.get(s), s).toMatch(/EIGHTFOLD|ORACLE_HCM|JIBE|AMAZON/);
+    }
+    expect(auto.get("cisco")).toBe("WORKDAY");
+    expect(auto.get("broadcom")).toBe("WORKDAY");
   });
 });
 

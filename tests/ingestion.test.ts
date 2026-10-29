@@ -8,10 +8,14 @@ import { getAdapter, SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
 describe("ingestion adapters", () => {
   it("registers every public ATS adapter", () => {
     expect([...SUPPORTED_PROVIDERS].sort()).toEqual([
+      "AMAZON",
       "ASHBY",
       "COMEET",
+      "EIGHTFOLD",
       "GREENHOUSE",
+      "JIBE",
       "LEVER",
+      "ORACLE_HCM",
       "RECRUITEE",
       "SMARTRECRUITERS",
       "WORDPRESS",

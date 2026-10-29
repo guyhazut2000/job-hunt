@@ -18,6 +18,11 @@ import { ESTABLISHED_SOURCES, withoutHub } from "../companies/established";
  *  - WORDPRESS: "<host>" or "<host>/<postType>" → <host>/wp-json/wp/v2/<postType> (default post type "job")
  *  - WORKDAY: "<tenant>/<wdN>/<site>" → <tenant>.<wdN>.myworkdayjobs.com/wday/cxs/<tenant>/<site>/jobs
  *    (only the "Israel" location facet is requested, paginated and paced)
+ *  - EIGHTFOLD: "<host>/<domain>" → <host>/api/pcsx/search?domain=<domain>&location=Israel
+ *  - ORACLE_HCM: "<host>/<siteNumber>" → <host>/hcmRestApi/resources/latest/recruitingCEJobRequisitions
+ *    (Oracle Recruiting Cloud candidate experience; filtered by the site's "Israel" location facet)
+ *  - JIBE: "<host>" → <host>/api/jobs?location=Israel (iCIMS Jibe careers sites)
+ *  - AMAZON: ISO-3 country code ("ISR") → www.amazon.jobs/en/search.json
  *
  * Only Israel-located (or Israel-remote) postings are ingested; see `isIsraelLocation`.
  */
@@ -52,6 +57,9 @@ const workable = src("WORKABLE");
 const sr = src("SMARTRECRUITERS");
 const recruitee = src("RECRUITEE");
 const workday = src("WORKDAY");
+const eightfold = src("EIGHTFOLD");
+const oracle = src("ORACLE_HCM");
+const jibe = src("JIBE");
 const lever = (slug: string, name: string, boardId: string, website: string, industry: string, hq = "Tel Aviv") =>
   ({ slug, name, provider: "LEVER", boardId, website, industry, hqLocation: hq }) as const satisfies JobSource;
 
@@ -588,5 +596,86 @@ export const JOB_SOURCES: JobSource[] = [
     "Pleasanton",
   ),
   // Established employers (integrators, defense, finance) — see src/lib/companies/established.ts
+  // Large employers whose HTML careers sites block bots: their search pages read public JSON APIs
+  // (allowed by robots.txt), synced here with the identifiable job-hunt-bot User-Agent. The tenant was
+  // matched to the company through its own careers page. See docs/sources.md ("Bot-protected sites").
+  {
+    ...eightfold(
+      "amdocs",
+      "Amdocs",
+      "jobs.amdocs.com/amdocs.com",
+      "https://www.amdocs.com",
+      "Telecom software",
+      "Ra'anana",
+    ),
+    careersUrl: "https://jobs.amdocs.com/careers",
+  },
+  {
+    ...eightfold(
+      "qualcomm",
+      "Qualcomm",
+      "careers.qualcomm.com/qualcomm.com",
+      "https://www.qualcomm.com",
+      "Semiconductors",
+      "San Diego",
+    ),
+    careersUrl: "https://careers.qualcomm.com",
+  },
+  {
+    ...eightfold(
+      "microsoft",
+      "Microsoft",
+      "apply.careers.microsoft.com/microsoft.com",
+      "https://www.microsoft.com",
+      "Software & cloud",
+      "Redmond",
+    ),
+    careersUrl: "https://careers.microsoft.com",
+  },
+  {
+    ...oracle(
+      "verint",
+      "Verint",
+      "fa-epcb-saasfaprod1.fa.ocs.oraclecloud.com/CX",
+      "https://www.verint.com",
+      "Customer engagement software",
+      "Melville",
+    ),
+    careersUrl: "https://www.verint.com/en/careers/",
+  },
+  {
+    ...oracle(
+      "dell",
+      "Dell Technologies",
+      "enterpriseplatform.dell.com/CX_1001",
+      "https://www.dell.com",
+      "Computing hardware",
+      "Round Rock",
+    ),
+    careersUrl: "https://jobs.dell.com",
+  },
+  {
+    ...jibe("booking-com", "Booking.com", "jobs.booking.com", "https://www.booking.com", "Online travel", "Amsterdam"),
+    careersUrl: "https://jobs.booking.com",
+  },
+  {
+    ...src("AMAZON")("amazon", "Amazon", "ISR", "https://www.amazon.com", "E-commerce & cloud", "Seattle"),
+    careersUrl: "https://www.amazon.jobs",
+  },
+  {
+    ...workday("cisco", "Cisco", "cisco/wd5/Cisco_Careers", "https://www.cisco.com", "Networking", "San Jose"),
+    careersUrl: "https://jobs.cisco.com",
+  },
+  {
+    ...workday(
+      "broadcom",
+      "Broadcom",
+      "broadcom/wd1/External_Career",
+      "https://www.broadcom.com",
+      "Semiconductors & infrastructure software",
+      "Palo Alto",
+    ),
+    careersUrl: "https://www.broadcom.com/company/careers",
+  },
   ...ESTABLISHED_SOURCES.map(withoutHub),
 ];

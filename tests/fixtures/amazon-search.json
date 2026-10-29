@@ -1,0 +1,41 @@
+{
+  "hits": 2,
+  "jobs": [
+    {
+      "id": "80e00195-6e9c-40a6-afd9-e09c24f9db89",
+      "id_icims": "10588958",
+      "title": "Lab engineer",
+      "company_name": "Annapurna Labs Ltd.",
+      "city": "Haifa",
+      "country_code": "ISR",
+      "location": "IL, Haifa",
+      "normalized_location": "Haifa, Haifa, ISR",
+      "description": "Annapurna Labs, an Amazon company, designs and delivers high-end, custom silicon that sits at the very heart of AWS. Our devices don't just support the cloud - they actively define it. From Trainium, the purpose-built machine learning accelerator driving the next wave of AI innovation forward, to Graviton, the Arm-based server processor that is redefining price-performance for compute workloads, to Nitro, the advanced network and cloud management controller that powers every single AWS instance - Annapurna's products consistently set the standard for the entire industry<br/><br/>We are looking",
+      "basic_qualifications": "- Practical engineering diploma in Computer Science or Electrical Engineering. Please include a grade sheet/academic transcript along with your CV in a single PDF when submitting your application<br/>- 5+ years of experience in lab management and activities<br/>- Experience in software development",
+      "preferred_qualifications": "- Experience in the following fields is preferred:<br/>- Device ramp up<br/>- PVT testing<br/><br/>Our inclusive culture empowers Amazonians to deliver the best results for our customers. If you have a disability and need a workplace accommodation or adjustment during the application and hiring process, including support for the interview or onboarding process, please visit <a href=\"https://amazon.jobs/content/en/how-we-hire/accommodations\">https://amazon.jobs/content/en/how-we-hire/accommodations</a> for more information. If the country/region you\u2019re applying in isn\u2019t listed, please contact y",
+      "job_category": "Software Development",
+      "job_schedule_type": "full-time",
+      "job_path": "/en/jobs/10588958/lab-engineer",
+      "posted_date": "October 26, 2026",
+      "updated_time": "3 days"
+    },
+    {
+      "id": "7ccde222-2a83-4b3e-bb93-6c9d8b0cc5b8",
+      "id_icims": "10589065",
+      "title": "Hardware Technical Program Manager, Nitro Team",
+      "company_name": "Annapurna Labs Ltd.",
+      "city": "Haifa",
+      "country_code": "ISR",
+      "location": "IL, Haifa",
+      "normalized_location": "Haifa, Haifa, ISR",
+      "description": "Annapurna Labs is the team behind the custom silicon and systems at the heart of AWS (Amazon Web Services) infrastructure \u2014 we operate like a start-up with the scale of the world's largest cloud provider.<br/><br/><br/><br/>Key job responsibilities<br/>Per K2 Generation, own tasks that are cross cards SKUs. This includes:<br/>- Drive shared technologies (Ethernet, PCIe, DRAM) integration plan. Work w partner Org in AWS (eg NPD, AIS, HW-Eng) on per generation plan with milestones. This while getting definitions from K2 owner, and Ethernet, PCIe and DRAM owners. <br/>- Own Readiness to new Chip ",
+      "basic_qualifications": "- At least 5 years of Program Management; Managing multi-discpline hardware (or HW+SW) based programs (one/or-more of: Post-silicon, system products). Leading tasks of 5+ teams deliveries. Experience with 2+ full cycles of Program Management from kickoff to Mass-Production.<br/>- Hardware experience (at least 5 years) in one of the System Development disciplines: board design or mechanical or QnR or other HW discipline.<br/>- Experience with owning multi-discipline task forces with direct customer impact.<br/>- B.Sc. in Engineering.",
+      "preferred_qualifications": "- Experience with Mass Production<br/>- Experience with either: PCIe add-in cards or Mezz cards design or architecture; Servers (x86 / ARM / Machine learning) design or architecture; Silicon Program Management<br/>- Experience w leading execution of new methodology/product-flows<br/>- Experience w direct work with customer (customer interface management, leading support)<br/>- Experience with presenting status summary to senior leadership (beyond the direct manager)<br/><br/>Our inclusive culture empowers Amazonians to deliver the best results for our customers. If you have a disability and ne",
+      "job_category": "Project/Program/Product Management--Technical",
+      "job_schedule_type": "full-time",
+      "job_path": "/en/jobs/10589065/hardware-technical-program-manager-nitro-team",
+      "posted_date": "October 29, 2026",
+      "updated_time": "about 3 hours"
+    }
+  ]
+}
