@@ -2,8 +2,9 @@ import Link from "next/link";
 import { AuthForm } from "@/components/AuthForm";
 import { AuthShell } from "@/components/AuthShell";
 import { getDictionary } from "@/lib/i18n";
+import { localizedTitle } from "@/lib/i18n/titles";
 
-export const metadata = { title: "Log in" };
+export const generateMetadata = localizedTitle("login");
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { t } = await getDictionary();

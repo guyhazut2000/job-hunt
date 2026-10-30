@@ -18,9 +18,10 @@ import { cvTailorStrings } from "@/lib/i18n/cv-tailor";
 import { fmt } from "@/lib/i18n/learning";
 import { requireUser } from "@/lib/session";
 import { deleteTailoredAction } from "../actions";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Tailored CV" };
+export const generateMetadata = localizedTitle("cvTailor");
 
 const LIMITS: AiLimitReason[] = ["user_daily", "global_daily", "global_minute", "provider_quota"];
 

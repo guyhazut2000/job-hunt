@@ -29,9 +29,10 @@ import { pickTrack, trackRoadmap, tracksForRoles } from "@/lib/learning/roadmap"
 import { STAGES, type Stage } from "@/lib/learning/types";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "My learning" };
+export const generateMetadata = localizedTitle("learnMe");
 
 const label = (id: string) => GRAPH.byId.get(id)?.label ?? id;
 const list = (ids: string[]) => ids.map(label).join(", ");

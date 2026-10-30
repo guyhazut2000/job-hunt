@@ -12,9 +12,10 @@ import { getLocale } from "@/lib/i18n";
 import { fmt } from "@/lib/i18n/learning";
 import { problemSolvingStrings } from "@/lib/i18n/problem-solving";
 import { cn } from "@/lib/utils";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Practice" };
+export const generateMetadata = localizedTitle("psPractice");
 
 const RESULT_TONE: Record<string, string> = {
   correct: "bg-fit-soft text-fit",

@@ -1,6 +1,7 @@
 import { getDictionary } from "@/lib/i18n";
+import { localizedTitle } from "@/lib/i18n/titles";
 
-export const metadata = { title: "Privacy" };
+export const generateMetadata = localizedTitle("privacy");
 
 export default async function PrivacyPage() {
   const { t, locale } = await getDictionary();

@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Newspaper, Settings } from "lucide-react";
 import { GenerateDigest } from "@/components/digest/GenerateDigest";
@@ -11,9 +10,10 @@ import { reminderStrings } from "@/lib/i18n/reminders";
 import { dayKey } from "@/lib/learning/progress";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Daily digest" };
+export const generateMetadata = localizedTitle("digest");
 
 export default async function DigestListPage() {
   const user = await requireUser();
