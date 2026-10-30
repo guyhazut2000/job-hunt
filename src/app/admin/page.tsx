@@ -100,14 +100,14 @@ export default async function AdminPage() {
       <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         <form action={adminAddCompany} className="card flex flex-col gap-3">
           <h2 className="font-semibold">{t.admin.addCompany}</h2>
-          <input name="name" required placeholder={t.admin.name} className="input" />
+          <input name="name" required placeholder={t.admin.name} aria-label={t.admin.name} className="input" />
           <select name="provider" className="select-native" aria-label={t.admin.provider}>
             {SUPPORTED_PROVIDERS.map((p) => (
               <option key={p}>{p}</option>
             ))}
           </select>
-          <input name="boardId" required placeholder={t.admin.boardId} className="input" dir="ltr" />
-          <input name="website" type="url" placeholder="https://" className="input" dir="ltr" />
+          <input name="boardId" required placeholder={t.admin.boardId} aria-label={t.admin.boardId} className="input" dir="ltr" />
+          <input name="website" type="url" placeholder="https://" aria-label={t.admin.website} className="input" dir="ltr" />
           <button className="btn-primary" type="submit">
             {t.admin.add}
           </button>
