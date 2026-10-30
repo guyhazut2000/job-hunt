@@ -4,6 +4,7 @@ import { Percent } from "@/components/Percent";
 import { Progress } from "@/components/ui/progress";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import type { computeCompleteness } from "@/lib/profile/completeness";
+import { legacyProfileHref } from "@/lib/profile/tabs";
 
 export function CompletenessMeter({
   t,
@@ -35,7 +36,7 @@ export function CompletenessMeter({
             {missing.slice(0, 6).map((m) => (
               <li key={m.key}>
                 <Link
-                  href={`/profile?tab=${m.tab}`}
+                  href={legacyProfileHref(m.tab)}
                   className="hover:border-primary hover:text-primary inline-flex min-h-11 items-center gap-1.5 rounded-md border border-dashed px-3 text-sm transition-colors"
                 >
                   <span aria-hidden className="text-primary font-mono text-xs">

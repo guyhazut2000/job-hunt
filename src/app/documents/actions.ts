@@ -21,7 +21,7 @@ import { requireUser } from "@/lib/session";
 type Fail = { ok: false; error: UploadError | "storage" | "invalid" | "notFound" | "generic" | "expiryBeforeIssue" };
 
 function refresh() {
-  revalidatePath("/documents");
+  revalidatePath("/profile");
 }
 
 /** Keep a display-safe base name; the extension always comes from the verified storage key. */

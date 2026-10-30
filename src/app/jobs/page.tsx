@@ -520,7 +520,7 @@ export default async function JobsPage({
                 {t.pv2.topMatches}
               </h2>
               <Link
-                href="/profile?tab=prefs"
+                href="/profile?tab=profile&section=prefs"
                 className="text-muted-foreground hover:text-foreground inline-flex min-h-11 items-center text-sm underline underline-offset-4"
               >
                 {t.pv2.tuneMatches}

@@ -30,7 +30,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         initial={data.proposal}
         submitLabel={p.confirm}
         resumeId={data.resume.id}
-        next="/profile?tab=pro"
+        next="/profile?tab=profile"
       />
     </div>
   );

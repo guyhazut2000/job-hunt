@@ -99,7 +99,7 @@ export function MobileNav({ user, labels, locale }: { user: { role: string } | n
                 {user && (
                   <SheetClose asChild>
                     <Button asChild variant="outline" className="justify-start">
-                      <Link href="/documents">{labels.documents}</Link>
+                      <Link href="/profile?tab=documents">{labels.documents}</Link>
                     </Button>
                   </SheetClose>
                 )}
