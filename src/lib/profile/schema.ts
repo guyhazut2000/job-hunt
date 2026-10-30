@@ -115,7 +115,13 @@ export function parseList<T>(schema: z.ZodType<T>, value: unknown): T[] {
 }
 
 const CATEGORY_OF: Record<string, SkillCategory> = {};
-const put = (cat: SkillCategory, names: string[]) => names.forEach((n) => (CATEGORY_OF[n.toLowerCase()] = cat));
+/** Canonical spelling of every skill we can auto-categorize (used for add-skill autocomplete). */
+export const KNOWN_SKILLS: string[] = [];
+const put = (cat: SkillCategory, names: string[]) =>
+  names.forEach((n) => {
+    CATEGORY_OF[n.toLowerCase()] = cat;
+    KNOWN_SKILLS.push(n);
+  });
 put("languages", [
   "TypeScript",
   "JavaScript",
