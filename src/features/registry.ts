@@ -774,6 +774,7 @@ export const FEATURES: Feature[] = [
     audience: "public",
     routes: ["/features"],
     added: "2026-10-30",
+    prs: [60],
     keywords: ["features", "help", "changelog", "עזרה"],
   },
 
