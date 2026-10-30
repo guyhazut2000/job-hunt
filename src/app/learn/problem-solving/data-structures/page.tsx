@@ -5,8 +5,9 @@ import { PATTERNS } from "@/lib/algo/patterns";
 import { tr } from "@/lib/algo/types";
 import { getLocale } from "@/lib/i18n";
 import { problemSolvingStrings } from "@/lib/i18n/problem-solving";
+import { localizedTitle } from "@/lib/i18n/titles";
 
-export const metadata = { title: "Data structures" };
+export const generateMetadata = localizedTitle("psDataStructures");
 
 export default async function DataStructuresPage() {
   const locale = await getLocale();

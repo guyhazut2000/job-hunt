@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, Lightbulb } from "lucide-react";
@@ -17,9 +16,10 @@ import { getLocale } from "@/lib/i18n";
 import { fill } from "@/lib/i18n/notifications";
 import { reminderStrings } from "@/lib/i18n/reminders";
 import { requireUser } from "@/lib/session";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Daily digest" };
+export const generateMetadata = localizedTitle("digest");
 
 export default async function DigestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

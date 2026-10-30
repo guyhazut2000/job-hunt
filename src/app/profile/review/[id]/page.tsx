@@ -3,9 +3,10 @@ import { ProfessionalForm } from "@/components/profile/ProfessionalForm";
 import { getDictionary } from "@/lib/i18n";
 import { loadReview } from "@/lib/profile/review";
 import { requireUser } from "@/lib/session";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Review CV" };
+export const generateMetadata = localizedTitle("reviewCv");
 
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();

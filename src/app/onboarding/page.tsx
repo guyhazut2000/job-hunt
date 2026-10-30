@@ -10,9 +10,10 @@ import { getDictionary } from "@/lib/i18n";
 import { readPreferences, readProfessional } from "@/lib/profile/load";
 import { requireUser } from "@/lib/session";
 import { loadReview } from "@/lib/profile/review";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Get started" };
+export const generateMetadata = localizedTitle("onboarding");
 
 function Stepper({ steps, current }: { steps: string[]; current: number }) {
   return (

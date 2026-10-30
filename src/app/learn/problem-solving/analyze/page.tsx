@@ -7,9 +7,10 @@ import { patternName } from "@/lib/algo/patterns";
 import { db } from "@/lib/db";
 import { getLocale } from "@/lib/i18n";
 import { problemSolvingStrings } from "@/lib/i18n/problem-solving";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Analyze a problem" };
+export const generateMetadata = localizedTitle("psAnalyze");
 
 export default async function AnalyzePage() {
   const [locale, session] = await Promise.all([getLocale(), auth()]);

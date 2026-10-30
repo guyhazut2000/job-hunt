@@ -9,8 +9,9 @@ import { PATTERNS } from "@/lib/algo/patterns";
 import { PROBLEMS } from "@/lib/algo/problems";
 import { getLocale } from "@/lib/i18n";
 import { problemSolvingStrings } from "@/lib/i18n/problem-solving";
+import { localizedTitle } from "@/lib/i18n/titles";
 
-export const metadata = { title: "Problem solving" };
+export const generateMetadata = localizedTitle("problemSolving");
 
 export default async function ProblemSolvingPage({
   searchParams,

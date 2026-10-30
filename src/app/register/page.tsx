@@ -2,8 +2,9 @@ import Link from "next/link";
 import { AuthForm } from "@/components/AuthForm";
 import { AuthShell } from "@/components/AuthShell";
 import { getDictionary } from "@/lib/i18n";
+import { localizedTitle } from "@/lib/i18n/titles";
 
-export const metadata = { title: "Sign up" };
+export const generateMetadata = localizedTitle("register");
 
 export default async function RegisterPage() {
   const { t } = await getDictionary();

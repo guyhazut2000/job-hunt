@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function Brand({ tagline }: { tagline?: string }) {
   return (
-    <Link href="/" className="group flex min-h-11 shrink-0 items-center gap-2.5" aria-label="job-hunt">
+    <Link href="/" className="group flex min-h-11 shrink-0 items-center gap-2.5">
       <span
         aria-hidden
         className="bg-foreground text-background grid size-8 place-items-center rounded-[3px] font-mono text-[0.8rem] font-medium tracking-tighter transition-transform group-hover:-rotate-6"

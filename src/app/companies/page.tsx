@@ -30,9 +30,10 @@ import { auth } from "@/auth";
 import { formatDateTime } from "@/lib/format";
 import { lastScanStrings } from "@/lib/i18n/last-scan";
 import { formatRelative } from "@/lib/ingestion/last-scan";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Companies" };
+export const generateMetadata = localizedTitle("companies");
 
 export default async function CompaniesPage({
   searchParams,
