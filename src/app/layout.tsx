@@ -3,7 +3,6 @@ import { Assistant, Frank_Ruhl_Libre, IBM_Plex_Mono } from "next/font/google";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { MobileNav } from "@/components/MobileNav";
-import { notificationStrings } from "@/lib/i18n/notifications";
 import { ChatFab } from "@/components/chat/ChatFab";
 import { DirectionProvider } from "@/components/ui/direction";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -78,7 +77,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 documents: documentStrings(locale).nav,
                 learnMine: learningHubStrings(locale).navMine,
                 digest: reminderStrings(locale).nav,
-                whatsNew: notificationStrings(locale).whatsNewNav,
                 admin: t.nav.admin,
                 features: t.nav.features,
                 language: t.nav.language,

@@ -3,7 +3,7 @@ import type { Locale } from "@/lib/i18n/dictionaries";
 import { fill, notificationStrings } from "@/lib/i18n/notifications";
 import { notify, sentDedupeKeys } from "./create";
 import { CONTENT_FIELDS, type ContentField } from "@/lib/jobs/content-hash";
-import { entriesToAnnounce, entryText } from "@/lib/whats-new";
+import { entriesToAnnounce, entryText, WHATS_NEW_URL } from "@/lib/whats-new";
 import { toEffective } from "./prefs";
 
 const DAY = 86_400_000;
@@ -184,7 +184,7 @@ export async function runWhatsNew(now = new Date()): Promise<{ announced: number
           kind: "WHATS_NEW",
           title: fill(s.whatsNewTitle, { title: text.title }),
           body: text.body,
-          url: "/whats-new",
+          url: e.url ?? WHATS_NEW_URL,
           data: { entry: e.id },
           dedupeKey: `whatsnew:${e.id}`,
         },

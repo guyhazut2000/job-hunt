@@ -66,9 +66,6 @@ const en = {
   stagePrep: "Prepare: interview questions and the hiring process on the job page.",
   whatsNewTitle: "New on the site: {title}",
   whatsNewNav: "What's new",
-  whatsNewKicker: "Changelog",
-  whatsNewLead: "New features and changes on the site, newest first. Big ones also arrive as a notification.",
-  whatsNewOpen: "Open",
   // ── delivery mode ──
   modeCol: "When",
   modeInstant: "Instant",
@@ -235,9 +232,6 @@ const he: NotificationStrings = {
   stagePrep: "להתכונן: שאלות ראיון ותהליך הגיוס בעמוד המשרה.",
   whatsNewTitle: "חדש באתר: {title}",
   whatsNewNav: "מה חדש",
-  whatsNewKicker: "עדכוני אתר",
-  whatsNewLead: "פיצ'רים חדשים ושינויים באתר, מהחדש לישן. החשובים מגיעים גם כהתראה.",
-  whatsNewOpen: "לפתוח",
   // ── delivery mode ──
   modeCol: "מתי",
   modeInstant: "מיד",

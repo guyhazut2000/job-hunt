@@ -25,6 +25,7 @@ import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { getLocale } from "@/lib/i18n";
 import { notificationStrings } from "@/lib/i18n/notifications";
+import { WHATS_NEW_URL } from "@/lib/whats-new";
 import { reminderStrings } from "@/lib/i18n/reminders";
 import { isKind } from "@/lib/notifications/kinds";
 import { requireUser } from "@/lib/session";
@@ -83,7 +84,7 @@ export default async function NotificationsPage() {
               </Link>
             </Button>
             <Button asChild variant="ghost" size="sm">
-              <Link href="/whats-new">
+              <Link href={WHATS_NEW_URL}>
                 <Megaphone data-icon="inline-start" aria-hidden />
                 {s.whatsNewNav}
               </Link>

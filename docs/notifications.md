@@ -48,9 +48,10 @@ they are not repeated.
 
 ### What's new (`WHATS_NEW`)
 
-`/whats-new` (link in "More" and on `/notifications`) lists `src/lib/whats-new.ts`, newest first. Add an
-entry in the same PR as a feature; set `announce: true` only for changes worth a notification. The notify
-cron sends each announced entry once per user (skipping users who joined after it).
+The changelog itself is the "מה חדש" section of `/features` (from `src/features/registry.ts`, see
+[features.md](features.md)); `/notifications` links to it. For a change worth a notification, also add an
+entry with `announce: true` to `src/lib/whats-new.ts`. The notify cron sends each announced entry once per
+user within 7 days of its date (skipping users who joined after it); the notice links to the changelog.
 
 ### Instant or daily digest, per kind
 
