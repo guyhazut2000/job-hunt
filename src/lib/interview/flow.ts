@@ -28,7 +28,9 @@ export function nextStep(
   if (words(answer) < SHORT_ANSWER_WORDS && asked.length === 0) return ask(t(SHORT_FOLLOWUP, lang));
   if (mode === "HR") {
     const parts = starParts(all);
-    const missing = (["r", "a", "s", "t"] as const).find((k) => !parts[k] && !asked.includes(t(STAR_FOLLOWUPS[k], lang)));
+    const missing = (["r", "a", "s", "t"] as const).find(
+      (k) => !parts[k] && !asked.includes(t(STAR_FOLLOWUPS[k], lang)),
+    );
     if (missing) return ask(t(STAR_FOLLOWUPS[missing], lang));
     return ask(q.followUps.find((f) => !asked.includes(f)));
   }

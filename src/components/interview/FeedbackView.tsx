@@ -86,7 +86,7 @@ export function FeedbackView({
         <ol className="flex flex-col gap-3">
           {feedback.perQuestion.map((p) => (
             <li key={p.index} className="border-rule flex flex-col gap-1.5 border-b pb-3 text-sm">
-              <p className="font-semibold leading-relaxed whitespace-pre-line" dir="auto">
+              <p className="leading-relaxed font-semibold whitespace-pre-line" dir="auto">
                 {p.index + 1}. {plan[p.index]?.q.split("\n")[0]}
               </p>
               {p.strength && (

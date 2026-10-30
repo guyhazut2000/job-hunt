@@ -152,7 +152,9 @@ export default async function InterviewPage({
                   {s.score !== null ? (
                     <span className="font-bold tabular-nums">{fmt(t.scoreOf, { n: s.score })}</span>
                   ) : (
-                    <span className="text-primary text-sm font-semibold">{s.status === "done" ? t.view : t.continue}</span>
+                    <span className="text-primary text-sm font-semibold">
+                      {s.status === "done" ? t.view : t.continue}
+                    </span>
                   )}
                 </Link>
               </li>

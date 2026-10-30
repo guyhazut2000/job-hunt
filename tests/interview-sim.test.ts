@@ -69,7 +69,9 @@ describe("offline plans", () => {
 
 describe("answer analysis", () => {
   it("detects STAR parts in English and Hebrew", () => {
-    const en = starParts("At my last job we had an outage. My task was to fix it. I added retries, and as a result errors fell by 30%.");
+    const en = starParts(
+      "At my last job we had an outage. My task was to fix it. I added retries, and as a result errors fell by 30%.",
+    );
     expect(en).toEqual({ s: true, t: true, a: true, r: true });
     const he = starParts("בעבודה הקודמת שלי היה צריך לשפר ביצועים. אני כתבתי מטמון, והתוצאה הייתה שיפור של 40%.");
     expect(he.a && he.r).toBe(true);
@@ -86,11 +88,21 @@ describe("follow-up flow", () => {
   const plan: PlannedQuestion[] = offlinePlan("HR", ctx, "en", 1);
 
   it("asks to expand a very short first answer", () => {
-    expect(nextStep(plan, "HR", "en", 0, [], "I am a dev")).toEqual({ kind: "followup", text: t(SHORT_FOLLOWUP, "en") });
+    expect(nextStep(plan, "HR", "en", 0, [], "I am a dev")).toEqual({
+      kind: "followup",
+      text: t(SHORT_FOLLOWUP, "en"),
+    });
   });
 
   it("HR asks for the missing STAR part (result first)", () => {
-    const step = nextStep(plan, "HR", "en", 2, [], "When we had a flaky deploy process my task was to own it, so I built the new pipeline myself with two scripts.");
+    const step = nextStep(
+      plan,
+      "HR",
+      "en",
+      2,
+      [],
+      "When we had a flaky deploy process my task was to own it, so I built the new pipeline myself with two scripts.",
+    );
     expect(step).toEqual({ kind: "followup", text: t(STAR_FOLLOWUPS.r, "en") });
   });
 
@@ -102,7 +114,9 @@ describe("follow-up flow", () => {
     if (second.kind === "followup") expect(asked).not.toContain(second.text);
     const capped = nextStep(plan, "HR", "en", 2, Array(MAX_FOLLOWUPS.HR).fill("x"), LONG);
     expect(capped).toEqual({ kind: "next", index: 3 });
-    expect(nextStep(plan, "HR", "en", plan.length - 1, Array(MAX_FOLLOWUPS.HR).fill("x"), LONG)).toEqual({ kind: "done" });
+    expect(nextStep(plan, "HR", "en", plan.length - 1, Array(MAX_FOLLOWUPS.HR).fill("x"), LONG)).toEqual({
+      kind: "done",
+    });
   });
 
   it("PROBLEM skips follow-ups the answer already covers", () => {
@@ -129,8 +143,24 @@ describe("feedback", () => {
     "At my previous company we had a slow checkout. My goal was to fix it before Black Friday. I profiled the service, I added caching and led two engineers. As a result latency dropped by 45% and conversion rose 3%.";
 
   it("offline grader scores every rubric dimension and rewards STAR answers", () => {
-    const good = heuristicFeedback("HR", plan, turnsFor(plan, plan.map(() => strong)), "en");
-    const weak = heuristicFeedback("HR", plan, turnsFor(plan, plan.map((_, i) => (i ? null : "ok"))), "en");
+    const good = heuristicFeedback(
+      "HR",
+      plan,
+      turnsFor(
+        plan,
+        plan.map(() => strong),
+      ),
+      "en",
+    );
+    const weak = heuristicFeedback(
+      "HR",
+      plan,
+      turnsFor(
+        plan,
+        plan.map((_, i) => (i ? null : "ok")),
+      ),
+      "en",
+    );
     expect(good.dimensions.map((d) => d.key)).toEqual(RUBRIC.HR.map((r) => r.key));
     expect(good.dimensions.every((d) => d.score >= 1 && d.score <= 5)).toBe(true);
     expect(overallScore(good)).toBeGreaterThan(overallScore(weak));

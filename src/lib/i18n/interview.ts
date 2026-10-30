@@ -99,8 +99,14 @@ const en: Strings = {
   noTargets: "No saved jobs or applications yet. Save a job or add an application to practise for it.",
   mode: "Interview type",
   modes: {
-    HR: { name: "HR / behavioral", hint: "Stories from your experience, feedback by STAR (situation, task, action, result)." },
-    TECH: { name: "Technical concepts", hint: "Questions on the posting's technologies and your concepts, plus light system design." },
+    HR: {
+      name: "HR / behavioral",
+      hint: "Stories from your experience, feedback by STAR (situation, task, action, result).",
+    },
+    TECH: {
+      name: "Technical concepts",
+      hint: "Questions on the posting's technologies and your concepts, plus light system design.",
+    },
     PROBLEM: {
       name: "Problem solving",
       hint: "Algorithm questions from the /learn method: explain the approach, pattern and complexity. No code editor.",

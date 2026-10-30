@@ -146,7 +146,8 @@ export async function createInterviewSession(
   return { id: session.id, reason };
 }
 
-export const readPlan = (v: Prisma.JsonValue): PlannedQuestion[] => (Array.isArray(v) ? (v as unknown as PlannedQuestion[]) : []);
+export const readPlan = (v: Prisma.JsonValue): PlannedQuestion[] =>
+  Array.isArray(v) ? (v as unknown as PlannedQuestion[]) : [];
 export const readFeedback = (v: Prisma.JsonValue | null): Feedback | null =>
   v && typeof v === "object" && !Array.isArray(v) ? (v as unknown as Feedback) : null;
 
@@ -191,7 +192,10 @@ export async function advanceSession(
     const answer = input.answer.trim().slice(0, MAX_ANSWER_CHARS);
     if (!answer) return { ok: false, done: false };
     const asked = current.filter((m) => m.kind === "followup").map((m) => m.content);
-    const soFar = current.filter((m) => m.kind === "answer").map((m) => m.content).join("\n");
+    const soFar = current
+      .filter((m) => m.kind === "answer")
+      .map((m) => m.content)
+      .join("\n");
     await db.interviewMessage.create({
       data: { sessionId: id, role: "candidate", kind: "answer", content: answer, questionIndex: i },
     });
@@ -207,7 +211,13 @@ export async function advanceSession(
   if (step.kind === "next") {
     await db.$transaction([
       db.interviewMessage.create({
-        data: { sessionId: id, role: "interviewer", kind: "question", content: plan[step.index].q, questionIndex: step.index },
+        data: {
+          sessionId: id,
+          role: "interviewer",
+          kind: "question",
+          content: plan[step.index].q,
+          questionIndex: step.index,
+        },
       }),
       db.interviewSession.update({ where: { id }, data: { questionIndex: step.index, followUps: 0 } }),
     ]);
@@ -225,7 +235,8 @@ export async function finishSession(
   const s = await ownedActive(userId, id);
   if (!s) return null;
   const existing = readFeedback(s.feedback);
-  if (s.status === "done" && existing) return { feedback: existing, source: (s.feedbackSource ?? "offline") as PlanSource };
+  if (s.status === "done" && existing)
+    return { feedback: existing, source: (s.feedbackSource ?? "offline") as PlanSource };
   const plan = readPlan(s.plan);
   const mode = s.mode as InterviewMode;
   const lang = (s.language === "en" ? "en" : "he") as Lang;

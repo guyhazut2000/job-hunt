@@ -21,13 +21,19 @@ export function starParts(text: string): Record<"s" | "t" | "a" | "r", boolean> 
 
 export const hasNumber = (s: string) => /\d/.test(s);
 export const mentionsTradeoff = (s: string) =>
-  /trade-?off|\bbut\b|however|instead|alternative|downside|pros?\b|cons?\b|depends|לעומת|אבל|חיסרון|יתרון|תלוי|במקום|חלופה/i.test(s);
+  /trade-?off|\bbut\b|however|instead|alternative|downside|pros?\b|cons?\b|depends|לעומת|אבל|חיסרון|יתרון|תלוי|במקום|חלופה/i.test(
+    s,
+  );
 export const mentionsComplexity = (s: string) =>
   /O\s?\(|\b(linear|logarithmic|quadratic|constant (time|space)|n log n)\b|לינארי|לוגריתמי|ריבועי|סיבוכיות/i.test(s);
 export const mentionsEdges = (s: string) =>
-  /edge case|empty|null|duplicate|negative|overflow|single element|zero|ריק|ריקה|כפיל|שלילי|גלישה|איבר אחד|אפס|מקרה קצה|מקרי קצה/i.test(s);
+  /edge case|empty|null|duplicate|negative|overflow|single element|zero|ריק|ריקה|כפיל|שלילי|גלישה|איבר אחד|אפס|מקרה קצה|מקרי קצה/i.test(
+    s,
+  );
 export const mentionsExample = (s: string) =>
-  /\b(i (used|built|worked|had)|we (used|built|had)|in (my|our) (project|team|company)|for example|at \w+)\b|לדוגמה|למשל|בפרויקט|השתמשתי|השתמשנו|עבדתי|בנינו/i.test(s);
+  /\b(i (used|built|worked|had)|we (used|built|had)|in (my|our) (project|team|company)|for example|at \w+)\b|לדוגמה|למשל|בפרויקט|השתמשתי|השתמשנו|עבדתי|בנינו/i.test(
+    s,
+  );
 export const mentionsSteps = (s: string) =>
   /\b(first|then|next|finally|step)\b|ראשית|קודם|אחר כך|לאחר מכן|בסוף|שלב/i.test(s);
 

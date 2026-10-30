@@ -75,7 +75,13 @@ export default async function InterviewSessionPage({
         <div className="flex min-w-0 flex-col gap-8">
           {done && feedback ? (
             <>
-              <FeedbackView feedback={feedback} plan={plan} score={s.score} source={s.feedbackSource ?? "offline"} t={t} />
+              <FeedbackView
+                feedback={feedback}
+                plan={plan}
+                score={s.score}
+                source={s.feedbackSource ?? "offline"}
+                t={t}
+              />
               <details className="border-rule rounded-xl border p-3" data-testid="interview-transcript">
                 <summary className="min-h-11 cursor-pointer content-center font-semibold">{t.transcript}</summary>
                 <ol className="mt-3 flex flex-col gap-2 text-sm">
@@ -119,12 +125,7 @@ export default async function InterviewSessionPage({
           {done && (s.jobId || s.applicationId) && (
             <div className="flex flex-col gap-2" data-testid="interview-again">
               <p className="text-sm font-semibold">{t.again}</p>
-              <StartForm
-                preset={{ job: s.jobId, app: s.applicationId }}
-                defaultMode={mode}
-                defaultLang={lang}
-                t={t}
-              />
+              <StartForm preset={{ job: s.jobId, app: s.applicationId }} defaultMode={mode} defaultLang={lang} compact t={t} />
             </div>
           )}
           <div className="flex flex-col gap-1">
@@ -137,14 +138,23 @@ export default async function InterviewSessionPage({
                 {t.backToJob}
               </Link>
             )}
-            <Link href="/interview" className="text-primary inline-flex min-h-11 items-center gap-1 text-sm font-semibold">
+            <Link
+              href="/interview"
+              className="text-primary inline-flex min-h-11 items-center gap-1 text-sm font-semibold"
+            >
               <ArrowLeft className="size-4 rotate-180 ltr:rotate-0" aria-hidden />
               {t.backToList}
             </Link>
           </div>
           <form action={deleteInterviewAction}>
             <input type="hidden" name="id" value={s.id} />
-            <Button type="submit" variant="ghost" size="sm" className="text-destructive min-h-11" data-testid="interview-delete">
+            <Button
+              type="submit"
+              variant="ghost"
+              size="sm"
+              className="text-destructive min-h-11"
+              data-testid="interview-delete"
+            >
               <Trash2 className="size-4" aria-hidden />
               {t.delete}
             </Button>

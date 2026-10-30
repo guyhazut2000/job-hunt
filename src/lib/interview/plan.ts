@@ -156,9 +156,15 @@ export function normalizePlan(raw: unknown, fallback: PlannedQuestion[], size: n
   const qs = parsed.data.questions
     .map((x) => ({
       q: clip(x.q, 600),
-      followUps: x.followUps.map((f) => clip(f, 300)).filter(Boolean).slice(0, 2),
+      followUps: x.followUps
+        .map((f) => clip(f, 300))
+        .filter(Boolean)
+        .slice(0, 2),
       focus: clip(x.focus, 140),
-      expected: x.expected.map((e) => clip(e, 60)).filter(Boolean).slice(0, 6),
+      expected: x.expected
+        .map((e) => clip(e, 60))
+        .filter(Boolean)
+        .slice(0, 6),
     }))
     .filter((x) => x.q.length >= 8);
   if (qs.length < 3) return null;

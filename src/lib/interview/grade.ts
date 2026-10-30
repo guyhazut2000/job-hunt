@@ -179,7 +179,12 @@ function rawScores(mode: InterviewMode, plan: PlannedQuestion[], answers: string
 function perQuestionNotes(mode: InterviewMode, lang: Lang, answers: string[]): Feedback["perQuestion"] {
   const L = (he: string, en: string) => (lang === "he" ? he : en);
   return answers.map((a, index) => {
-    if (!a) return { index, strength: "", improve: L("השאלה דולגה. נסה/י לענות עליה בסשן הבא.", "Skipped. Try answering it next time.") };
+    if (!a)
+      return {
+        index,
+        strength: "",
+        improve: L("השאלה דולגה. נסה/י לענות עליה בסשן הבא.", "Skipped. Try answering it next time."),
+      };
     const strengths: string[] = [];
     const gaps: string[] = [];
     if (mode === "HR") {
@@ -229,8 +234,7 @@ export function heuristicFeedback(mode: InterviewMode, plan: PlannedQuestion[], 
 }
 
 /** 0–100 from the dimension scores. */
-export const overallScore = (f: Feedback) =>
-  Math.round((mean(f.dimensions.map((d) => d.score)) / 5) * 100);
+export const overallScore = (f: Feedback) => Math.round((mean(f.dimensions.map((d) => d.score)) / 5) * 100);
 
 export const FEEDBACK_MAX_TOKENS = 1500;
 
@@ -284,13 +288,21 @@ export function normalizeFeedback(raw: unknown, mode: InterviewMode, fallback: F
     const d = f.dimensions.find((x) => x.key === r.key);
     const fb = fallback.dimensions.find((x) => x.key === r.key)!;
     if (!d || !Number.isFinite(d.score)) return fb;
-    return { key: r.key, label: r.label[lang], score: Math.max(1, Math.min(5, Math.round(d.score))), note: clip(d.note, 400) };
+    return {
+      key: r.key,
+      label: r.label[lang],
+      score: Math.max(1, Math.min(5, Math.round(d.score))),
+      note: clip(d.note, 400),
+    };
   });
   const perQuestion = fallback.perQuestion.map((fb) => {
     const q = f.perQuestion.find((x) => x.index === fb.index);
     return q ? { index: fb.index, strength: clip(q.strength, 300), improve: clip(q.improve, 300) } : fb;
   });
-  const improvements = f.improvements.map((s) => clip(s, 300)).filter(Boolean).slice(0, 5);
+  const improvements = f.improvements
+    .map((s) => clip(s, 300))
+    .filter(Boolean)
+    .slice(0, 5);
   return {
     summary: clip(f.summary, 600) || fallback.summary,
     dimensions,

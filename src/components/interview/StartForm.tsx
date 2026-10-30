@@ -13,7 +13,11 @@ function Submit({ t }: { t: InterviewStrings }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} className="min-h-11 w-fit rounded-full" data-testid="interview-start">
-      {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Play className="size-4 rtl:rotate-180" aria-hidden />}
+      {pending ? (
+        <Loader2 className="size-4 animate-spin" aria-hidden />
+      ) : (
+        <Play className="size-4 rtl:rotate-180" aria-hidden />
+      )}
       {pending ? t.starting : t.start}
     </Button>
   );
@@ -24,6 +28,7 @@ export function StartForm({
   targets,
   defaultMode = "HR",
   defaultLang,
+  compact = false,
   t,
 }: {
   /** Fixed target (from ?job / ?app). */
@@ -32,6 +37,8 @@ export function StartForm({
   targets?: { value: string; label: string }[];
   defaultMode?: InterviewMode;
   defaultLang: "he" | "en";
+  /** Narrow sidebar: one mode card per row. */
+  compact?: boolean;
   t: InterviewStrings;
 }) {
   const [state, action] = useActionState(startInterviewAction, undefined);
@@ -66,7 +73,7 @@ export function StartForm({
       )}
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1.5 text-sm font-semibold">{t.mode}</legend>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className={cn("grid gap-2", !compact && "sm:grid-cols-3")}>
           {MODES.map((m) => (
             <label
               key={m}
@@ -96,7 +103,13 @@ export function StartForm({
         <legend className="mb-1.5 text-sm font-semibold">{t.language}</legend>
         {(["he", "en"] as const).map((l) => (
           <label key={l} className="inline-flex min-h-11 items-center gap-2 text-sm">
-            <input type="radio" name="language" value={l} defaultChecked={l === defaultLang} className="accent-primary size-4" />
+            <input
+              type="radio"
+              name="language"
+              value={l}
+              defaultChecked={l === defaultLang}
+              className="accent-primary size-4"
+            />
             {l === "he" ? t.langHe : t.langEn}
           </label>
         ))}
