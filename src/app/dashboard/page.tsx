@@ -1,4 +1,4 @@
-import { MailCheck, MapPinned, Plus } from "lucide-react";
+import { BarChart3, MailCheck, MapPinned, Plus } from "lucide-react";
 import Link from "next/link";
 import { addManualApplication } from "@/app/actions";
 import { AutoChangesPanel, type AutoLabels } from "@/components/email/AutoChanges";
@@ -15,6 +15,7 @@ import { interviewStrings } from "@/lib/i18n/interview";
 import { emailSyncStrings } from "@/lib/i18n/email-sync";
 import { jobsMapStrings } from "@/lib/i18n/jobs-map";
 import { reminderStrings } from "@/lib/i18n/reminders";
+import { statsStrings } from "@/lib/i18n/stats";
 import { formatInterviewTime } from "@/lib/notifications/interviews";
 import { toIsraelLocalInput } from "@/lib/notifications/israel-time";
 import { requireUser } from "@/lib/session";
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
   const user = await requireUser();
   const { t, locale } = await getDictionary();
   const es = emailSyncStrings[locale];
+  const ss = statsStrings(locale);
   const ms = jobsMapStrings(locale);
   const [apps, contacts, review] = await Promise.all([
     db.application.findMany({
@@ -121,6 +123,17 @@ export default async function DashboardPage() {
         </dl>
       </header>
 
+      <Link
+        href="/stats"
+        data-testid="dashboard-stats-link"
+        className="bg-card hover:bg-muted/60 flex min-h-12 items-center gap-3 rounded-lg border px-4 py-2 transition-colors"
+      >
+        <BarChart3 className="text-primary size-5 shrink-0" aria-hidden />
+        <span className="flex min-w-0 flex-col">
+          <span className="font-semibold">{ss.dashboardLink}</span>
+          <span className="text-muted-foreground truncate text-xs">{ss.dashboardHint}</span>
+        </span>
+      </Link>
       <Link
         href="/settings/email"
         className="bg-card hover:bg-muted/60 flex min-h-12 items-center gap-3 rounded-lg border px-4 py-2 transition-colors"
