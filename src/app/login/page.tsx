@@ -3,13 +3,14 @@ import { AuthForm } from "@/components/AuthForm";
 import { AuthShell } from "@/components/AuthShell";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/titles";
+import { safeNextPath } from "@/lib/safe-next";
 
 export const generateMetadata = localizedTitle("login");
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { t } = await getDictionary();
   const { next } = await searchParams;
-  const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : undefined;
+  const safeNext = safeNextPath(next);
   return (
     <AuthShell title={t.auth.loginTitle} aside={t.home.title}>
       <AuthForm

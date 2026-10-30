@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { ArrowRight, Building2, Map as MapIcon, ShieldAlert } from "lucide-react";
 import { ConceptChat } from "@/components/concepts/ConceptChat";
 import { ConceptManage } from "@/components/concepts/ConceptManage";
@@ -28,14 +29,17 @@ export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Params) {
-  const { id } = await params;
-  const c = await db.concept.findUnique({ where: { id }, select: { name: true } });
+  const [{ id }, session] = await Promise.all([params, auth()]);
+  // Scoped to the owner: a concept name is private, even in a tab title.
+  const c = session?.user?.id
+    ? await db.concept.findFirst({ where: { id, userId: session.user.id }, select: { name: true } })
+    : null;
   return { title: c ? `${c.name} · Concepts` : "Concepts" };
 }
 
 export default async function ConceptPage({ params }: Params) {
-  const user = await requireUser();
   const { id } = await params;
+  const user = await requireUser(`/learn/concepts/${id}`);
   const concept = await db.concept.findFirst({
     where: { id, userId: user.id },
     include: {

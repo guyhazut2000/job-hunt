@@ -24,9 +24,9 @@ const PRINT_CSS = `@media print {
 }`;
 
 export default async function PrintTailoredCv({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireUser();
-  const t = cvTailorStrings(await getLocale());
   const { id } = await params;
+  const user = await requireUser(`/cv/tailor/${id}/print`);
+  const t = cvTailorStrings(await getLocale());
   const row = await db.tailoredCv.findFirst({
     where: { id, userId: user.id },
     select: { id: true, content: true, language: true, title: true, company: true },

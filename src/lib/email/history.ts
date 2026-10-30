@@ -6,10 +6,13 @@ export type TimelineEntry = {
   id: string;
   from: ApplicationStatus | null;
   to: ApplicationStatus;
-  source: StatusChangeSource;
+  /** "FOLLOW_UP" = a follow-up email the user marked as sent (ApplicationFollowUp), not a status change. */
+  source: StatusChangeSource | "FOLLOW_UP";
   at: string;
   confidence: number | null;
   undone: boolean;
+  /** Follow-up round (1 or 2) for FOLLOW_UP entries. */
+  followUp?: number;
 };
 
 export type AutoInfo = { changeId: string; canUndo: boolean };
@@ -31,10 +34,11 @@ type ChangeRow = {
   applicationId: string;
   fromStatus: ApplicationStatus | null;
   toStatus: ApplicationStatus;
-  source: StatusChangeSource;
+  source: StatusChangeSource | "FOLLOW_UP";
   confidence: number | null;
   undoneAt: Date | null;
   createdAt: Date;
+  followUp?: number;
 };
 
 /**
@@ -60,9 +64,11 @@ export function buildHistory(
       at: fmt(c.createdAt),
       confidence: c.confidence,
       undone: !!c.undoneAt,
+      ...(c.followUp ? { followUp: c.followUp } : {}),
     });
     timeline.set(c.applicationId, list);
-    if (!c.undoneAt) latest.set(c.applicationId, c);
+    // Follow-up rows aren't status changes: they never hide the "auto-updated from email" badge/undo.
+    if (!c.undoneAt && c.source !== "FOLLOW_UP") latest.set(c.applicationId, c);
   }
   const auto = new Map<string, AutoInfo>();
   for (const [appId, c] of latest)
@@ -94,9 +100,30 @@ export async function getStatusHistory(
         },
       })
     : [];
+  const followUps = apps.length
+    ? await db.applicationFollowUp.findMany({
+        where: { userId, applicationId: { in: apps.map((a) => a.id) } },
+        select: { id: true, applicationId: true, round: true, sentAt: true },
+        take: 1000,
+      })
+    : [];
   const fmt = (d: Date) => formatIsraelTime(d, locale);
   const statusOf = new Map(apps.map((a) => [a.id, a.status]));
-  const { timeline, auto } = buildHistory(changes, statusOf, fmt);
+  const rows: ChangeRow[] = [
+    ...changes,
+    ...followUps.map((f) => ({
+      id: f.id,
+      applicationId: f.applicationId,
+      fromStatus: "APPLIED" as const,
+      toStatus: "APPLIED" as const,
+      source: "FOLLOW_UP" as const,
+      confidence: null,
+      undoneAt: null,
+      createdAt: f.sentAt,
+      followUp: f.round,
+    })),
+  ];
+  const { timeline, auto } = buildHistory(rows, statusOf, fmt);
   const since = Date.now() - (opts.recentDays ?? 14) * 86_400_000;
   const byId = new Map(apps.map((a) => [a.id, a]));
   const recent: RecentAuto[] = changes

@@ -158,6 +158,7 @@ export function PrefsForm({ prefs, s, r }: { prefs: EffectivePrefs; s: Notificat
         <h2 id="follow-h" className="font-heading text-lg font-bold">
           {s.followUp}
         </h2>
+        <p className="text-muted-foreground text-sm">{s.followUpHint}</p>
         <label className="flex min-h-10 items-center gap-2 text-sm font-semibold">
           <input type="checkbox" name="followUpEnabled" defaultChecked={prefs.followUpEnabled} className={checkCls} />
           {s.followUpEnabled}

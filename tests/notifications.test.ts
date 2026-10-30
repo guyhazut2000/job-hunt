@@ -87,7 +87,7 @@ describe("kinds and channel overrides", () => {
 
   it("falls back to default prefs", () => {
     const p = toEffective(null);
-    expect(p).toMatchObject({ quietEnabled: true, quietStart: 22, quietEnd: 7, followUpDays: 7, maxPerHour: 6 });
+    expect(p).toMatchObject({ quietEnabled: true, quietStart: 22, quietEnd: 7, followUpDays: 10, maxPerHour: 6 });
   });
 });
 
@@ -138,24 +138,17 @@ describe("saved searches", () => {
 describe("follow-up reminders", () => {
   const now = new Date("2026-11-10T08:00:00Z");
   const appliedAt = new Date("2026-11-02T08:00:00Z");
-  it("is due after N untouched days", () => {
+  const app = { id: "a", status: "APPLIED", appliedAt, createdAt: appliedAt };
+  it("is due after N days without a response", () => {
     expect(daysBetween(appliedAt, now)).toBe(8);
-    expect(followUpDue({ status: "APPLIED", appliedAt, updatedAt: appliedAt, createdAt: appliedAt }, 7, now)).toBe(
-      true,
-    );
-    expect(followUpDue({ status: "APPLIED", appliedAt, updatedAt: appliedAt, createdAt: appliedAt }, 9, now)).toBe(
-      false,
-    );
+    expect(followUpDue(app, 7, now)).toBe(true);
+    expect(followUpDue(app, 9, now)).toBe(false);
   });
-  it("waits when touched recently or status moved on", () => {
-    const touched = new Date("2026-11-08T08:00:00Z");
-    expect(followUpDue({ status: "APPLIED", appliedAt, updatedAt: touched, createdAt: appliedAt }, 7, now)).toBe(false);
-    expect(followUpDue({ status: "INTERVIEW", appliedAt, updatedAt: appliedAt, createdAt: appliedAt }, 7, now)).toBe(
-      false,
-    );
-    expect(
-      followUpDue({ status: "APPLIED", appliedAt: null, updatedAt: appliedAt, createdAt: appliedAt }, 7, now),
-    ).toBe(true);
+  it("waits when the status changed recently or moved on", () => {
+    const moved = new Date("2026-11-08T08:00:00Z");
+    expect(followUpDue({ ...app, statusChangedAt: moved }, 7, now)).toBe(false);
+    expect(followUpDue({ ...app, status: "INTERVIEW" }, 7, now)).toBe(false);
+    expect(followUpDue({ ...app, appliedAt: null }, 7, now)).toBe(true);
   });
 });
 

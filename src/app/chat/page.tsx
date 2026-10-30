@@ -4,12 +4,13 @@ import { ChatPanel } from "@/components/chat/ChatPanel";
 import { getDictionary } from "@/lib/i18n";
 import { chatStrings } from "@/lib/i18n/chat";
 import { localizedTitle } from "@/lib/i18n/titles";
+import { loginPath } from "@/lib/safe-next";
 
 export const generateMetadata = localizedTitle("chat");
 
 export default async function ChatPage({ searchParams }: { searchParams: Promise<{ thread?: string | string[] }> }) {
   const [{ locale }, session, sp] = await Promise.all([getDictionary(), auth(), searchParams]);
-  if (!session?.user?.id) redirect("/login?next=/chat");
+  if (!session?.user?.id) redirect(loginPath("/chat"));
   const s = chatStrings(locale);
   const thread = typeof sp.thread === "string" && /^[\w-]{8,40}$/.test(sp.thread) ? sp.thread : null;
   return (

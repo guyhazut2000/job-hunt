@@ -35,7 +35,7 @@ export default async function ProfilePage({
 }: {
   searchParams: Promise<{ tab?: string; section?: string }>;
 }) {
-  const user = await requireUser();
+  const user = await requireUser("/profile");
   const { t, locale } = await getDictionary();
   const view = resolveProfileView(await searchParams);
   const ds = documentStrings(locale);

@@ -661,6 +661,23 @@ export const FEATURES: Feature[] = [
     keywords: ["reminders", "interview"],
   },
   {
+    id: "follow-up-reminders",
+    name: "תזכורות פולואפ עם טיוטת מייל",
+    description:
+      "כשאין תשובה למועמדות אחרי 10 ימים (ניתן לשינוי) מקבלים תזכורת וטיוטת מייל פולואפ קצרה בעברית או באנגלית. עורכים, מעתיקים או פותחים ב-Gmail ושולחים בעצמך — האתר לא שולח מיילים. עד 2 פולואפים, ואז הצעה לסמן 'ללא מענה'.",
+    howTo:
+      "בלוח המועמדויות לוחצים 'טיוטת פולואפ' על כרטיס, או ב'פולואפים שמחכים לך'. אפשר לדחות ב-3/7 ימים או לבטל למועמדות.",
+    category: "notifications",
+    status: "live",
+    audience: "user",
+    routes: ["/dashboard"],
+    href: "/dashboard",
+    added: "2026-10-30",
+    prs: [68],
+    issue: 41,
+    keywords: ["follow-up", "followup", "פולואפ", "email", "draft"],
+  },
+  {
     id: "daily-digest",
     name: "סיכום יומי",
     description:
@@ -690,6 +707,12 @@ export const FEATURES: Feature[] = [
     added: "2026-10-27",
     prs: [1],
     keywords: ["login", "register", "auth"],
+    updates: [
+      {
+        date: "2026-10-30",
+        text: "אחרי התחברות חוזרים לעמוד שניסיתם לפתוח (למשל קישור לסיכום יומי או לראיון מטלגרם), במקום לעמוד המשרות",
+      },
+    ],
   },
   {
     id: "saved-places",
