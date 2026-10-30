@@ -18,6 +18,7 @@ describe("ingestion adapters", () => {
       "ORACLE_HCM",
       "RECRUITEE",
       "SMARTRECRUITERS",
+      "SUCCESSFACTORS",
       "WORDPRESS",
       "WORKABLE",
       "WORKDAY",

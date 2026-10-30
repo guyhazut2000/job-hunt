@@ -29,6 +29,12 @@ export const DETAIL_BUDGET = 60;
  * Existing rows keep any manual edits to fields not managed here.
  */
 export async function syncSources(sources: JobSource[] = JOB_SOURCES): Promise<number> {
+  // A manual-seed row whose company just got an adapter (provider still MANUAL) becomes automatic.
+  // Rows an admin switched to manual keep their real provider, so they are left alone.
+  await db.company.updateMany({
+    where: { slug: { in: sources.map((s) => s.slug) }, atsProvider: "MANUAL", syncMode: "MANUAL" },
+    data: { syncMode: "AUTO", syncFailures: 0 },
+  });
   for (const s of sources) {
     const managed = {
       name: s.name,
@@ -210,12 +216,52 @@ export interface IngestAllOptions {
    * since we go stalest-first, so every board is still visited across runs).
    */
   timeBudgetMs?: number;
+  /**
+   * Only boards last synced longer ago than this (or never, or failing) are scanned; the rest are
+   * counted as `fresh`. The fast scan uses it so it doesn't re-read boards the daily run just did.
+   */
+  staleAfterMs?: number;
 }
 
 export interface IngestAllResult {
   results: IngestionResult[];
-  /** Companies not reached before the time budget ran out. */
+  /** Stale companies not reached before the time budget ran out (the real backlog). */
   skipped: number;
+  /** Per provider, the stale companies not reached (only providers with a backlog). */
+  skippedByProvider: Partial<Record<AtsProvider, number>>;
+  /** Companies left out because they were synced within `staleAfterMs` (0 without it). */
+  fresh: number;
+}
+
+export interface ScanCandidate {
+  id: string;
+  atsProvider: AtsProvider;
+  lastSyncedAt: Date | null;
+  syncFailures: number;
+}
+
+/**
+ * Stalest-first queue per provider. With `staleAfterMs`, boards synced more recently than that (and
+ * not failing) are dropped from the queue and only counted. Pure — exported for tests.
+ */
+export function planScan(
+  companies: ScanCandidate[],
+  opts: { now?: number; staleAfterMs?: number } = {},
+): { byProvider: Map<AtsProvider, string[]>; fresh: number } {
+  const now = opts.now ?? Date.now();
+  const cutoff = opts.staleAfterMs ? now - opts.staleAfterMs : null;
+  const ts = (c: ScanCandidate) => c.lastSyncedAt?.getTime() ?? -Infinity;
+  const sorted = [...companies].sort((a, b) => ts(a) - ts(b));
+  const byProvider = new Map<AtsProvider, string[]>();
+  let fresh = 0;
+  for (const c of sorted) {
+    if (cutoff !== null && c.lastSyncedAt && c.lastSyncedAt.getTime() >= cutoff && c.syncFailures === 0) {
+      fresh++;
+      continue;
+    }
+    byProvider.set(c.atsProvider, [...(byProvider.get(c.atsProvider) ?? []), c.id]);
+  }
+  return { byProvider, fresh };
 }
 
 /**
@@ -240,15 +286,15 @@ export async function ingestAllDetailed(options: IngestAllOptions = {}): Promise
       atsProvider: options.providers?.length ? { in: options.providers } : { not: "MANUAL" },
       atsBoardId: { not: null },
     },
-    select: { id: true, atsProvider: true },
+    select: { id: true, atsProvider: true, lastSyncedAt: true, syncFailures: true },
     orderBy: { lastSyncedAt: { sort: "asc", nulls: "first" } },
   });
   const deadline = options.timeBudgetMs ? started + options.timeBudgetMs : undefined;
-  const byProvider = new Map<AtsProvider, string[]>();
-  for (const c of companies) byProvider.set(c.atsProvider, [...(byProvider.get(c.atsProvider) ?? []), c.id]);
+  const { byProvider, fresh } = planScan(companies, { now: started, staleAfterMs: options.staleAfterMs });
 
   const results: IngestionResult[] = [];
   let skipped = 0;
+  const skippedByProvider: Partial<Record<AtsProvider, number>> = {};
   await Promise.all(
     [...byProvider.entries()].flatMap(([provider, ids]) => {
       // Lanes pull from one shared queue; >1 lane only where every board is its own host.
@@ -259,6 +305,7 @@ export async function ingestAllDetailed(options: IngestAllOptions = {}): Promise
           // Leave headroom for the slowest single board (detail fetches stop at the deadline too).
           if (deadline && Date.now() > deadline) {
             skipped += ids.length - next;
+            skippedByProvider[provider] = (skippedByProvider[provider] ?? 0) + ids.length - next;
             next = ids.length;
             return;
           }
@@ -269,7 +316,7 @@ export async function ingestAllDetailed(options: IngestAllOptions = {}): Promise
       });
     }),
   );
-  return { results, skipped };
+  return { results, skipped, skippedByProvider, fresh };
 }
 
 export async function ingestAll(options: IngestAllOptions = {}): Promise<IngestionResult[]> {

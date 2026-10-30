@@ -3,6 +3,12 @@ import { db } from "@/lib/db";
 
 /** Fast scan (docs/notifications.md#fast-scan): small, frequent slices of the daily ingest. */
 export const FAST_SCAN_BUDGET_MS = 45_000;
+/**
+ * Boards synced within this window are skipped by the fast scan (the daily run or an earlier tick
+ * just read them), so each tick spends its budget on the stale backlog and `remaining` means
+ * "stale boards still waiting" instead of "every board this tick didn't get to".
+ */
+export const FAST_SCAN_STALE_MS = 60 * 60 * 1000;
 /** An unfinished ingest run younger than this = another scan is in progress; skip this tick. */
 export const OVERLAP_WINDOW_MS = 6 * 60 * 1000;
 

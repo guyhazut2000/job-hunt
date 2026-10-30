@@ -95,8 +95,15 @@ uses **GitHub Actions' scheduler** (free) to call the app more often:
 - `/api/cron/scan` (`maxDuration` 120 s) refreshes the **stalest** AUTO boards for 45 s
   (`FAST_SCAN_BUDGET_MS`, same `ingestAllDetailed` as the daily crons, without the sources sync),
   then immediately runs saved-search, followed-company and scan-failure alerts and flushes the send
-  queue. Boards it didn't reach are first in line next time, so every board is visited in rotation
-  (locally: ~120 boards per run of ~150).
+  queue. Boards it didn't reach are first in line next time, so every board is visited in rotation.
+- Only **stale** boards are scanned: synced more than an hour ago (`FAST_SCAN_STALE_MS`), never synced,
+  or failing. Boards the daily run or an earlier tick just read are counted as `fresh` and skipped.
+- The response summary: `companies` scanned this tick, `remaining` = stale boards it didn't reach
+  (the real backlog, per provider in `remainingByProvider`), `fresh` = skipped as recently synced.
+  Before this filter `remaining` counted every board the tick didn't get to (e.g. 152–154 of ~337 on
+  every tick, even right after a full daily run), because each tick re-read already-fresh boards.
+  Comeet (~170 boards, one shared host, ~40 boards per tick) is usually the only provider with a
+  backlog.
 - If an ingest run (daily cron or a previous fast scan) started in the last 6 minutes and hasn't
   finished, the tick is skipped (`{"skipped":"scan in progress"}`).
 - Typical latency from "posted on the company's ATS" to your phone: ~15–40 min in the daytime

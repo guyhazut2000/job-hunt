@@ -68,6 +68,7 @@ const SOURCE_LABELS: Record<AtsProvider, string> = {
   ORACLE_HCM: "Oracle Recruiting",
   JIBE: "iCIMS",
   AMAZON: "amazon.jobs",
+  SUCCESSFACTORS: "SuccessFactors",
   MANUAL: "",
 };
 

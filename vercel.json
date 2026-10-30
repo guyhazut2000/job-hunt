@@ -20,7 +20,7 @@
       "schedule": "20 5 * * *"
     },
     {
-      "path": "/api/cron/ingest?provider=EIGHTFOLD,ORACLE_HCM,JIBE,AMAZON",
+      "path": "/api/cron/ingest?provider=EIGHTFOLD,ORACLE_HCM,JIBE,AMAZON,SUCCESSFACTORS",
       "schedule": "50 5 * * *"
     },
     {
