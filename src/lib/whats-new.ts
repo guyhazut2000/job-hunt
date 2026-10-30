@@ -23,6 +23,20 @@ export const WHATS_NEW_URL = "/features#whats-new";
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: "2026-10-30-follow-up-drafts",
+    date: "2026-10-30",
+    url: "/dashboard",
+    announce: true,
+    he: {
+      title: "תזכורות פולואפ עם טיוטת מייל מוכנה",
+      body: "אין תשובה אחרי 10 ימים? נזכיר לך ונכין טיוטת מייל פולואפ קצרה בעברית או באנגלית. עורכים, מעתיקים או פותחים ב-Gmail ושולחים בעצמך — האתר לא שולח מיילים. את מספר הימים משנים בהגדרות ההתראות.",
+    },
+    en: {
+      title: "Follow-up reminders with a ready email draft",
+      body: "No reply after 10 days? We'll remind you and prepare a short follow-up email in Hebrew or English. Edit, copy or open it in Gmail and send it yourself — the site never sends email. Change the number of days in notification settings.",
+    },
+  },
+  {
     id: "2026-10-30-notifications-complete",
     date: "2026-10-30",
     url: "/settings/notifications",
