@@ -106,8 +106,22 @@ export default async function AdminPage() {
               <option key={p}>{p}</option>
             ))}
           </select>
-          <input name="boardId" required placeholder={t.admin.boardId} aria-label={t.admin.boardId} className="input" dir="ltr" />
-          <input name="website" type="url" placeholder="https://" aria-label={t.admin.website} className="input" dir="ltr" />
+          <input
+            name="boardId"
+            required
+            placeholder={t.admin.boardId}
+            aria-label={t.admin.boardId}
+            className="input"
+            dir="ltr"
+          />
+          <input
+            name="website"
+            type="url"
+            placeholder="https://"
+            aria-label={t.admin.website}
+            className="input"
+            dir="ltr"
+          />
           <button className="btn-primary" type="submit">
             {t.admin.add}
           </button>

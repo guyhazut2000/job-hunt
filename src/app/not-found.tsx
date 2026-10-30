@@ -22,7 +22,9 @@ export default async function NotFound() {
   const t = STRINGS[locale === "en" ? "en" : "he"];
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
-      <p className="kicker" dir="ltr">404</p>
+      <p className="kicker" dir="ltr">
+        404
+      </p>
       <h1 className="text-display font-black">{t.title}</h1>
       <p className="text-muted-foreground">{t.lead}</p>
       <div className="flex flex-wrap justify-center gap-2">
