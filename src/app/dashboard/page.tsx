@@ -74,6 +74,7 @@ export default async function DashboardPage() {
     autoCreated: es.autoCreated,
     autoMoved: es.autoMoved,
     source: es.source,
+    followUpSent: es.followUpSent,
   };
   const items = apps.map(({ interviewAt, interviewNote, ...a }) => ({
     ...a,

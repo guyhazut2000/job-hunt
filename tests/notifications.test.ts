@@ -87,7 +87,7 @@ describe("kinds and channel overrides", () => {
 
   it("falls back to default prefs", () => {
     const p = toEffective(null);
-    expect(p).toMatchObject({ quietEnabled: true, quietStart: 22, quietEnd: 7, followUpDays: 7, maxPerHour: 6 });
+    expect(p).toMatchObject({ quietEnabled: true, quietStart: 22, quietEnd: 7, followUpDays: 10, maxPerHour: 6 });
   });
 });
 

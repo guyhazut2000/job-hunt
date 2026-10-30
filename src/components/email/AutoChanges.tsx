@@ -19,6 +19,8 @@ export type AutoLabels = {
   autoCreated: string;
   autoMoved: string;
   source: Record<string, string>;
+  /** "Follow-up #{n} sent" — timeline label for follow-ups the user marked as sent. */
+  followUpSent?: string;
 };
 
 /** One-click undo for an automatic email change. */
@@ -82,10 +84,11 @@ export function AutoBadge({ label }: { label: string }) {
 }
 
 export function describeChange(
-  e: { from: string | null; to: string },
+  e: { from: string | null; to: string; followUp?: number },
   labels: AutoLabels,
   statusLabels: Record<string, string>,
 ) {
+  if (e.followUp && labels.followUpSent) return labels.followUpSent.replace("{n}", String(e.followUp));
   return e.from
     ? labels.autoMoved.replace("{from}", statusLabels[e.from] ?? e.from).replace("{to}", statusLabels[e.to] ?? e.to)
     : labels.autoCreated.replace("{status}", statusLabels[e.to] ?? e.to);
@@ -112,7 +115,7 @@ export function StatusTimeline({
             <span className="text-foreground font-semibold">{describeChange(e, labels, statusLabels)}</span>
             <span className="text-muted-foreground">
               {labels.source[e.source] ?? e.source}
-              {e.confidence != null && e.source !== "MANUAL" ? ` · ${e.confidence}%` : ""} · {e.at}
+              {e.confidence != null && e.source !== "MANUAL" && e.source !== "FOLLOW_UP" ? ` · ${e.confidence}%` : ""} · {e.at}
               {e.undone ? ` · ${labels.undone}` : ""}
             </span>
           </li>

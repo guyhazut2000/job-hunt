@@ -23,7 +23,7 @@ export interface EffectivePrefs extends QuietPrefs {
 export const DEFAULT_PREFS: EffectivePrefs = {
   ...DEFAULT_QUIET,
   followUpEnabled: true,
-  followUpDays: 7,
+  followUpDays: 10,
   maxPerHour: 6,
   overrides: {},
   modes: {},

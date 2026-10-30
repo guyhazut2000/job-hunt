@@ -5,33 +5,29 @@ import { notify, sentDedupeKeys } from "./create";
 import { CONTENT_FIELDS, type ContentField } from "@/lib/jobs/content-hash";
 import { entriesToAnnounce, entryText, WHATS_NEW_URL } from "@/lib/whats-new";
 import { toEffective } from "./prefs";
+import { followUpDedupeKey, followUpState } from "@/lib/followup/timing";
+import { emailResponses } from "@/lib/followup/server";
 
 const DAY = 86_400_000;
 
-/** Whole days between two instants (floor). */
-export const daysBetween = (a: Date, b: Date) => Math.floor((b.getTime() - a.getTime()) / DAY);
-
-/**
- * Whether an application is due a follow-up reminder: status APPLIED (no reply yet), applied at least
- * `days` ago and not touched since then.
- */
-export function followUpDue(
-  app: { status: string; appliedAt: Date | null; updatedAt: Date; createdAt: Date },
-  days: number,
-  now: Date,
-): boolean {
-  if (app.status !== "APPLIED") return false;
-  const applied = app.appliedAt ?? app.createdAt;
-  const lastTouch = app.updatedAt > applied ? app.updatedAt : applied;
-  return daysBetween(applied, now) >= days && daysBetween(lastTouch, now) >= days;
-}
+export { daysBetween, followUpDue } from "@/lib/followup/timing";
 
 const localeOf = (l: string | null | undefined): Locale => (l === "en" ? "en" : "he");
 
+/**
+ * Follow-up reminders (docs/notifications.md#follow-up-reminders). Idempotent: every reminder has a
+ * dedupe key per application + round + timer anchor, so re-running the cron never duplicates.
+ * Instant vs. digest and quiet hours are applied by notify().
+ */
 export async function runFollowUpReminders(now = new Date()): Promise<{ reminded: number }> {
-  // Upper bound with the smallest allowed setting (1 day); exact per-user days are checked below.
+  // Upper bound with the smallest allowed setting (1 day); exact per-user rules are checked below.
   const apps = await db.application.findMany({
-    where: { status: "APPLIED", updatedAt: { lte: new Date(now.getTime() - DAY) } },
+    where: {
+      status: "APPLIED",
+      followUpOff: false,
+      noResponseAt: null,
+      createdAt: { lte: new Date(now.getTime() - DAY) },
+    },
     select: {
       id: true,
       userId: true,
@@ -39,29 +35,37 @@ export async function runFollowUpReminders(now = new Date()): Promise<{ reminded
       company: true,
       status: true,
       appliedAt: true,
-      updatedAt: true,
       createdAt: true,
+      statusChangedAt: true,
+      followUpCount: true,
+      lastFollowUpAt: true,
+      followUpSnoozedUntil: true,
+      followUpOff: true,
+      noResponseAt: true,
       jobId: true,
       user: { select: { locale: true, notificationPrefs: true } },
     },
     take: 2000,
   });
+  const replied = await emailResponses(apps);
   let reminded = 0;
   for (const a of apps) {
     const prefs = toEffective(a.user.notificationPrefs);
-    if (!prefs.followUpEnabled || !followUpDue(a, prefs.followUpDays, now)) continue;
+    const state = followUpState(a, prefs, now, { emailResponse: replied.has(a.id) });
+    const dedupeKey = followUpDedupeKey(a, state);
+    if (!dedupeKey || (state.kind !== "due" && state.kind !== "ghost")) continue;
     const s = notificationStrings(localeOf(a.user.locale));
-    const days = daysBetween(a.appliedAt ?? a.createdAt, now);
+    const vars = { title: a.title, company: a.company, days: state.days };
+    const ghost = state.kind === "ghost";
     const created = await notify(
       a.userId,
       {
         kind: "FOLLOW_UP",
-        title: fill(s.followTitle, { title: a.title }),
-        body: fill(s.followBody, { company: a.company, days }),
-        url: a.jobId ? `/jobs/${a.jobId}` : "/dashboard",
-        data: { applicationId: a.id },
-        // One reminder per application per "applied" date.
-        dedupeKey: `followup:${a.id}:${(a.appliedAt ?? a.createdAt).toISOString().slice(0, 10)}`,
+        title: fill(ghost ? s.followGhostTitle : state.round === 2 ? s.followTitle2 : s.followTitle, vars),
+        body: fill(ghost ? s.followGhostBody : s.followBody, vars),
+        url: `/dashboard?followup=${a.id}#app-${a.id}`,
+        data: { applicationId: a.id, round: ghost ? "ghost" : state.round },
+        dedupeKey,
       },
       { now },
     );
