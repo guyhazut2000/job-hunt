@@ -68,7 +68,11 @@ export function CvList({ t, rows, dateLocale }: { t: Dictionary["pv2"]; rows: Cv
                       {s}
                     </li>
                   ))}
-                  {r.skills.length > 8 && <li className="chip">+{r.skills.length - 8}</li>}
+                  {r.skills.length > 8 && (
+                    <li dir="ltr" className="chip">
+                      +{r.skills.length - 8}
+                    </li>
+                  )}
                 </ul>
               )}
             </div>

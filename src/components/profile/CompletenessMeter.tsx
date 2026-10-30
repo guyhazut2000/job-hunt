@@ -39,7 +39,7 @@ export function CompletenessMeter({
                   href={legacyProfileHref(m.tab)}
                   className="hover:border-primary hover:text-primary inline-flex min-h-11 items-center gap-1.5 rounded-md border border-dashed px-3 text-sm transition-colors"
                 >
-                  <span aria-hidden className="text-primary font-mono text-xs">
+                  <span aria-hidden dir="ltr" className="text-primary font-mono text-xs">
                     +{m.weight}
                   </span>
                   {t.items[m.key]}

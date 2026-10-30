@@ -107,7 +107,11 @@ export function JobCard({
                 {s}
               </li>
             ))}
-            {job.techStack.length > 6 && <li className="chip bg-transparent">+{job.techStack.length - 6}</li>}
+            {job.techStack.length > 6 && (
+              <li dir="ltr" className="chip bg-transparent">
+                +{job.techStack.length - 6}
+              </li>
+            )}
           </ul>
         )}
         <LinkedinJobInlineLink link={linkedinLinkFor(job)} jobId={job.id} s={linkedinStrings(localeOf(t))} />

@@ -22,7 +22,7 @@ export default async function DataStructuresPage() {
             <li
               key={d.id}
               id={d.id}
-              className="bg-card flex scroll-mt-24 flex-col gap-3 rounded-xl border p-4 sm:p-5"
+              className="bg-card flex min-w-0 scroll-mt-24 flex-col gap-3 rounded-xl border p-4 sm:p-5"
               data-testid="ds-card"
             >
               <div className="flex flex-col gap-1">
@@ -47,10 +47,7 @@ export default async function DataStructuresPage() {
                         </span>
                         {o.note && <span className="text-muted-foreground block text-xs">{tr(o.note, locale)}</span>}
                       </td>
-                      <td
-                        dir="ltr"
-                        className="py-1.5 text-start font-mono font-semibold whitespace-nowrap rtl:text-end"
-                      >
+                      <td dir="ltr" className="py-1.5 text-start font-mono font-semibold break-words rtl:text-end">
                         {o.cost}
                       </td>
                     </tr>

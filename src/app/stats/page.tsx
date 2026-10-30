@@ -145,6 +145,7 @@ export default async function StatsPage() {
             <Kpi
               label={s.ttr}
               value={st.timeToResponse.medianDays === null ? "—" : days(st.timeToResponse.medianDays)}
+              unit={st.timeToResponse.medianDays === null ? undefined : s.ttrUnit}
               hint={
                 st.timeToResponse.n
                   ? fill(s.ttrRange, {
@@ -171,14 +172,11 @@ export default async function StatsPage() {
                   <li key={k} className="flex flex-col gap-1">
                     <div className="flex items-baseline justify-between gap-2 text-sm">
                       <span className="font-semibold">{stepLabel[k]}</span>
-                      <span className="text-muted-foreground">
+                      {/* flex items keep each figure in its own bidi run (RTL: "7" and "64%" never merge) */}
+                      <span className="text-muted-foreground inline-flex flex-wrap items-baseline justify-end gap-x-2">
                         <span className="text-foreground font-mono text-base font-bold">{n}</span>
-                        {i > 0 && !st.smallData && (
-                          <span className="ms-2">{fill(s.ofApplied, { p: pct(n / st.counts.applied) })}</span>
-                        )}
-                        {step?.rate != null && (
-                          <span className="ms-2">· {fill(s.stepRate, { p: pct(step.rate) })}</span>
-                        )}
+                        {i > 0 && !st.smallData && <span>{fill(s.ofApplied, { p: pct(n / st.counts.applied) })}</span>}
+                        {step?.rate != null && <span>· {fill(s.stepRate, { p: pct(step.rate) })}</span>}
                       </span>
                     </div>
                     <div className="bg-muted h-3 overflow-hidden rounded-full">
@@ -310,11 +308,26 @@ export default async function StatsPage() {
   );
 }
 
-function Kpi({ label, value, hint, testid }: { label: string; value: string; hint?: string; testid?: string }) {
+function Kpi({
+  label,
+  value,
+  unit,
+  hint,
+  testid,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  hint?: string;
+  testid?: string;
+}) {
   return (
     <div className="card flex flex-col gap-1" data-testid={testid}>
       <span className="text-muted-foreground text-sm">{label}</span>
-      <span className="font-mono text-2xl font-bold">{value}</span>
+      <span className="flex items-baseline gap-1.5">
+        <span className="font-mono text-2xl font-bold">{value}</span>
+        {unit && <span className="text-muted-foreground text-sm">{unit}</span>}
+      </span>
       {hint && <span className="text-muted-foreground text-xs leading-snug">{hint}</span>}
     </div>
   );

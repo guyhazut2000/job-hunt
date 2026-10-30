@@ -17,7 +17,7 @@ const he = {
     TECH: { name: "מושגים טכניים", hint: "שאלות על הטכנולוגיות במשרה ועל המושגים שלך, כולל system design קליל." },
     PROBLEM: {
       name: "פתרון בעיות",
-      hint: "שאלות אלגוריתמיות מהשיטה ב-/learn: מסבירים גישה, pattern וסיבוכיות. בלי עורך קוד.",
+      hint: "שאלות אלגוריתמיות לפי שיטת פתרון הבעיות שבאזור הלמידה: מסבירים גישה, pattern וסיבוכיות. בלי עורך קוד.",
     },
   } satisfies Record<InterviewMode, { name: string; hint: string }>,
   language: "שפת הראיון",
@@ -109,7 +109,7 @@ const en: Strings = {
     },
     PROBLEM: {
       name: "Problem solving",
-      hint: "Algorithm questions from the /learn method: explain the approach, pattern and complexity. No code editor.",
+      hint: "Algorithm questions using the problem-solving method: explain the approach, pattern and complexity. No code editor.",
     },
   },
   language: "Interview language",

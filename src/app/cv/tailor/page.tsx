@@ -30,10 +30,21 @@ export default async function TailorStartPage({
       <div className="flex flex-col gap-4">
         <p className="kicker">{t.kicker}</p>
         <h1 className="font-heading text-title font-black">{t.title}</h1>
-        <p className="text-muted-foreground">{t.notFound}</p>
-        <Link href="/dashboard" className="text-primary font-semibold underline underline-offset-4">
-          /dashboard
-        </Link>
+        <p className="text-muted-foreground">{job || app ? t.notFound : t.pickTarget}</p>
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
+          <Link
+            href="/dashboard"
+            className="text-primary inline-flex min-h-10 items-center font-semibold underline underline-offset-4"
+          >
+            {t.toDashboard}
+          </Link>
+          <Link
+            href="/jobs"
+            className="text-primary inline-flex min-h-10 items-center font-semibold underline underline-offset-4"
+          >
+            {t.toJobs}
+          </Link>
+        </div>
       </div>
     );
   }
