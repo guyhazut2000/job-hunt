@@ -1,9 +1,12 @@
 import type { EmailProvider, EmailSyncSettings, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { analyzeMessage, type Analysis, type AnalyzeContext } from "./analyze";
+import { analyzeMessage, findApplication, type Analysis, type AnalyzeContext, type AppLike } from "./analyze";
+import { AlreadyHandled, autoCreate, autoUpdate, loadApps, type AutoChange } from "./auto-apply";
+import { notifyAutoChanges } from "./auto-notify";
 import { decryptSecret } from "./crypto";
 import { classify, isAtsSender, parseFrom, type MailMessage } from "./parse";
 import { getProvider, messageUrl, ProviderAuthError } from "./providers";
+import { clampThreshold, isStaleEmail, nextStatus, type AutoApply } from "./score";
 
 export type ScanSummary = {
   trigger: "manual" | "cron" | "fixture";
@@ -13,6 +16,8 @@ export type ScanSummary = {
   pending: number;
   duplicates: number;
   skipped: number;
+  /** Earlier review items that now meet the auto-apply threshold and were applied. */
+  fromReview?: number;
   durationMs: number;
 };
 
@@ -22,9 +27,14 @@ const MAX_BODY_FETCHES = 25;
 export const DEFAULT_SETTINGS = {
   lookbackDays: 7,
   frequency: "MANUAL",
-  confidence: "BALANCED",
   detectStatusUpdates: true,
+  autoApplyEnabled: true,
+  autoApplyThreshold: 60,
 } as const;
+
+export function autoApplyOf(settings: Pick<EmailSyncSettings, "autoApplyEnabled" | "autoApplyThreshold">): AutoApply {
+  return { enabled: settings.autoApplyEnabled, threshold: clampThreshold(settings.autoApplyThreshold) };
+}
 
 export async function getSettings(userId: string): Promise<EmailSyncSettings> {
   return db.emailSyncSettings.upsert({ where: { userId }, update: {}, create: { userId } });
@@ -34,13 +44,10 @@ async function loadContext(userId: string, settings: EmailSyncSettings): Promise
   const [companies, jobs, applications] = await Promise.all([
     db.company.findMany({ select: { id: true, name: true, slug: true, website: true } }),
     db.job.findMany({ select: { id: true, title: true, companyId: true, isActive: true } }),
-    db.application.findMany({
-      where: { userId },
-      select: { id: true, jobId: true, company: true, title: true, status: true },
-    }),
+    loadApps(userId),
   ]);
   return {
-    confidence: settings.confidence,
+    autoApply: autoApplyOf(settings),
     detectStatusUpdates: settings.detectStatusUpdates,
     companies,
     jobs,
@@ -77,8 +84,9 @@ export async function processMessages(
   provider: EmailProvider,
   messages: MailMessage[],
   settings: EmailSyncSettings,
-  opts: { fetchBody?: (id: string) => Promise<string | null> } = {},
+  opts: { fetchBody?: (id: string) => Promise<string | null>; changes?: AutoChange[] } = {},
 ): Promise<Omit<ScanSummary, "trigger" | "durationMs">> {
+  const changes: AutoChange[] = [];
   const sum = { scanned: messages.length, created: 0, updated: 0, pending: 0, duplicates: 0, skipped: 0 };
   const seen = new Set(
     (
@@ -124,42 +132,49 @@ export async function processMessages(
       sum.pending++;
     } else if (a.action === "update" && a.applicationId && a.newStatus) {
       const app = ctx.applications.find((x) => x.id === a.applicationId);
-      await db.$transaction([
-        db.application.update({
-          where: { id: a.applicationId },
-          data: {
-            status: a.newStatus,
-            statusChangedAt: new Date(),
-            ...(app?.status === "SAVED" ? { appliedAt: m.date } : {}),
-          },
-        }),
-        db.emailCandidate.create({ data: { ...data, status: "AUTO_ADDED" } }),
-      ]);
-      if (app) app.status = a.newStatus;
-      sum.updated++;
-    } else if (a.action === "create" && a.company) {
+      if (!app) continue;
       try {
-        const app = await db.application.create({
-          data: {
-            userId,
-            jobId: a.matchedJobId,
-            title: a.title ?? "—",
-            company: a.company,
-            url: a.matchedJobId ? null : link,
-            status: "APPLIED",
-            appliedAt: m.date,
-            source: "EMAIL",
-            emailMessageId: m.id,
-          },
+        const ch = await autoUpdate({
+          userId,
+          app,
+          to: a.newStatus,
+          confidence: a.confidence,
+          emailDate: m.date,
+          candidate: { create: data },
         });
-        await db.emailCandidate.create({ data: { ...data, applicationId: app.id, status: "AUTO_ADDED" } });
+        app.status = a.newStatus;
+        app.statusAt = m.date;
+        changes.push(ch);
+        sum.updated++;
+      } catch (e) {
+        if (!(e instanceof AlreadyHandled)) throw e;
+        await db.emailCandidate.create({ data: { ...data, status: "PENDING" } }).catch(() => null);
+        sum.pending++;
+      }
+    } else if (a.action === "create" && a.company && a.newStatus) {
+      try {
+        const ch = await autoCreate({
+          userId,
+          provider,
+          messageId: m.id,
+          company: a.company,
+          title: a.title,
+          jobId: a.matchedJobId,
+          url: link,
+          status: a.newStatus,
+          confidence: a.confidence,
+          emailDate: m.date,
+          candidate: { create: data },
+        });
         ctx.applications.push({
-          id: app.id,
-          jobId: app.jobId,
-          company: app.company,
-          title: app.title,
-          status: app.status,
+          id: ch.applicationId,
+          jobId: a.matchedJobId,
+          company: ch.company,
+          title: ch.title,
+          status: ch.toStatus,
+          statusAt: m.date,
         });
+        changes.push(ch);
         sum.created++;
       } catch (e) {
         if ((e as { code?: string }).code !== "P2002") throw e;
@@ -168,7 +183,90 @@ export async function processMessages(
       }
     }
   }
+  opts.changes?.push(...changes);
   return sum;
+}
+
+/**
+ * Re-check review items against the current auto-apply settings: anything at/above the threshold is
+ * applied now (oldest email first), exactly as a fresh scan would. Items without a company, or whose
+ * email is older than the application's current later-stage status, stay in review.
+ */
+export async function applyPendingCandidates(
+  userId: string,
+  settings: Pick<EmailSyncSettings, "autoApplyEnabled" | "autoApplyThreshold" | "detectStatusUpdates">,
+  opts: { apps?: AppLike[] } = {},
+): Promise<AutoChange[]> {
+  const auto = autoApplyOf(settings);
+  if (!auto.enabled) return [];
+  const pending = await db.emailCandidate.findMany({
+    where: { userId, status: "PENDING", confidence: { gte: auto.threshold } },
+    orderBy: { receivedAt: "asc" },
+    take: 100,
+  });
+  if (!pending.length) return [];
+  const apps = opts.apps ?? (await loadApps(userId));
+  const out: AutoChange[] = [];
+  for (const c of pending) {
+    if (!c.company) continue;
+    if (c.kind === "STATUS_UPDATE" && !settings.detectStatusUpdates) continue;
+    const detected = c.kind === "APPLICATION" ? "APPLIED" : c.detectedStatus;
+    if (!detected) continue;
+    const ref = { pendingId: c.id, receivedAt: c.receivedAt };
+    const existing = findApplication(apps, c.company, c.title, c.matchedJobId);
+    try {
+      if (existing) {
+        const to = nextStatus(existing.app.status, detected);
+        if (!to) {
+          // Already reflected on the board (or would move backwards): nothing left to review.
+          await db.emailCandidate.updateMany({
+            where: { id: c.id, status: "PENDING" },
+            data: { status: "DUPLICATE", applicationId: existing.app.id },
+          });
+          continue;
+        }
+        if (isStaleEmail(existing.app.status, existing.app.statusAt, c.receivedAt)) continue;
+        const ch = await autoUpdate({
+          userId,
+          app: existing.app,
+          to,
+          confidence: c.confidence,
+          emailDate: c.receivedAt,
+          candidate: ref,
+        });
+        existing.app.status = to;
+        existing.app.statusAt = c.receivedAt;
+        out.push(ch);
+      } else {
+        const ch = await autoCreate({
+          userId,
+          provider: c.provider,
+          messageId: c.messageId,
+          company: c.company,
+          title: c.title,
+          jobId: c.matchedJobId,
+          url: messageUrl(c.provider, c.messageId),
+          status: detected,
+          confidence: c.confidence,
+          emailDate: c.receivedAt,
+          candidate: ref,
+        });
+        apps.push({
+          id: ch.applicationId,
+          jobId: c.matchedJobId,
+          company: ch.company,
+          title: ch.title,
+          status: ch.toStatus,
+          statusAt: c.receivedAt,
+        });
+        out.push(ch);
+      }
+    } catch (e) {
+      if (e instanceof AlreadyHandled || (e as { code?: string }).code === "P2002") continue;
+      throw e;
+    }
+  }
+  return out;
 }
 
 async function finish(userId: string, summary: ScanSummary | null, error: string | null) {
@@ -201,11 +299,24 @@ export async function scanUser(
       statusUpdates: settings.detectStatusUpdates,
       max: MAX_MESSAGES,
     });
+    const changes: AutoChange[] = [];
     const counts = await processMessages(userId, account.provider, messages, settings, {
       fetchBody: provider.fetchBodyText ? (id) => provider.fetchBodyText!(accessToken, id) : undefined,
+      changes,
     });
-    const summary: ScanSummary = { trigger, ...counts, durationMs: Date.now() - started };
+    const fromReview = await applyPendingCandidates(userId, settings);
+    changes.push(...fromReview);
+    const summary: ScanSummary = {
+      trigger,
+      ...counts,
+      pending: Math.max(0, counts.pending - fromReview.length),
+      fromReview: fromReview.length,
+      durationMs: Date.now() - started,
+    };
     await finish(userId, summary, null);
+    await notifyAutoChanges(userId, changes).catch((e) =>
+      console.error("[email-sync] notify failed", { userId, name: (e as Error).name }),
+    );
     return summary;
   } catch (e) {
     const code = e instanceof ProviderAuthError ? "reconnect_required" : "scan_failed";

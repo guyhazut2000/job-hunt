@@ -1,8 +1,19 @@
-import type { ApplicationStatus, EmailConfidence } from "@prisma/client";
+import type { ApplicationStatus } from "@prisma/client";
 
-export const AUTO_THRESHOLD: Record<EmailConfidence, number> = { STRICT: 85, BALANCED: 70, AGGRESSIVE: 50 };
 /** Below this we don't even show the email in the review queue. */
 export const REVIEW_FLOOR = 40;
+/** Default per-user auto-apply threshold (EmailSyncSettings.autoApplyThreshold). */
+export const DEFAULT_AUTO_THRESHOLD = 60;
+export const MIN_AUTO_THRESHOLD = REVIEW_FLOOR;
+export const MAX_AUTO_THRESHOLD = 100;
+
+/** Per-user automation settings, as used by the analyzer. */
+export type AutoApply = { enabled: boolean; threshold: number };
+
+export function clampThreshold(n: number | null | undefined): number {
+  if (typeof n !== "number" || !Number.isFinite(n)) return DEFAULT_AUTO_THRESHOLD;
+  return Math.min(MAX_AUTO_THRESHOLD, Math.max(MIN_AUTO_THRESHOLD, Math.round(n)));
+}
 
 export const COMPANY_MATCH = 0.85;
 export const JOB_MATCH = 0.6;
@@ -36,11 +47,12 @@ export function scoreCandidate(i: ScoreInput): { score: number; reasons: string[
   return { score: Math.min(100, s), reasons };
 }
 
-export function shouldAutoApply(score: number, level: EmailConfidence): boolean {
-  return score >= AUTO_THRESHOLD[level];
+/** Apply without review when automation is on and the score reaches the user's threshold. */
+export function shouldAutoApply(score: number, auto: AutoApply): boolean {
+  return auto.enabled && score >= clampThreshold(auto.threshold);
 }
 
-const RANK: Record<ApplicationStatus, number> = {
+export const RANK: Record<ApplicationStatus, number> = {
   SAVED: 0,
   APPLIED: 1,
   SCREENING: 2,
@@ -55,4 +67,15 @@ export function nextStatus(current: ApplicationStatus, detected: ApplicationStat
   if (current === "REJECTED") return null;
   if (detected === "REJECTED") return current === "OFFER" ? null : "REJECTED";
   return RANK[detected] > RANK[current] ? detected : null;
+}
+
+/**
+ * Email ordering guard. `statusAt` is when the application's current status took effect (email date
+ * for email-driven changes). An email older than that may not move an application that has already
+ * progressed (screening / interview / offer): e.g. an old rejection must not overwrite a later
+ * interview. Those go to review instead.
+ */
+export function isStaleEmail(current: ApplicationStatus, statusAt: Date | null | undefined, emailDate: Date): boolean {
+  if (!statusAt) return false;
+  return RANK[current] >= RANK.SCREENING && current !== "REJECTED" && emailDate.getTime() < statusAt.getTime();
 }

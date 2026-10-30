@@ -1,11 +1,13 @@
 import { MailCheck, MapPinned, Plus } from "lucide-react";
 import Link from "next/link";
 import { addManualApplication } from "@/app/actions";
+import { AutoChangesPanel, type AutoLabels } from "@/components/email/AutoChanges";
 import { ReviewQueue } from "@/components/email/ReviewQueue";
 import { Kanban } from "@/components/Kanban";
 import { ContactList } from "@/components/outreach/ContactList";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
+import { getStatusHistory } from "@/lib/email/history";
 import { getReviewItems } from "@/lib/email/review";
 import { getDictionary } from "@/lib/i18n";
 import { emailSyncStrings } from "@/lib/i18n/email-sync";
@@ -56,8 +58,23 @@ export default async function DashboardPage() {
     if (c.status === "REFERRED") e.referred++;
     byJob.set(c.jobId, e);
   }
+  const history = await getStatusHistory(user.id, apps, locale);
+  const autoLabels: AutoLabels = {
+    badge: es.autoBadge,
+    undo: es.undo,
+    undone: es.undone,
+    undoConflict: es.undoConflict,
+    undoAria: es.undoAria,
+    timeline: es.timeline,
+    created: es.created,
+    autoCreated: es.autoCreated,
+    autoMoved: es.autoMoved,
+    source: es.source,
+  };
   const items = apps.map(({ interviewAt, interviewNote, ...a }) => ({
     ...a,
+    history: history.timeline.get(a.id),
+    auto: history.auto.get(a.id) ?? null,
     contacts: a.jobId ? byJob.get(a.jobId) : undefined,
     interview: interviewAt
       ? {
@@ -128,6 +145,17 @@ export default async function DashboardPage() {
         </span>
       </Link>
 
+      {history.recent.length > 0 && (
+        <AutoChangesPanel
+          items={history.recent}
+          labels={autoLabels}
+          statusLabels={t.status}
+          title={es.autoTitle}
+          lead={es.autoLead}
+          confidenceLabel={es.confidenceLabel}
+        />
+      )}
+
       {review.length > 0 && (
         <section aria-labelledby="email-review-h" className="flex flex-col gap-3">
           <div>
@@ -178,6 +206,7 @@ export default async function DashboardPage() {
         removeLabel={t.dashboard.remove}
         statusLabel={t.ui.status}
         emptyLabel={t.ui.emptyColumn}
+        autoLabels={autoLabels}
         contactsLabel={{ count: t.people.trackerCount, referred: t.people.trackerReferred }}
         interviewLabels={{
           set: rs.interviewSet,

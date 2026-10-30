@@ -6,19 +6,22 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/email/crypto";
 import { getProvider, messageUrl } from "@/lib/email/providers";
-import { getSettings, scanUser, type ScanSummary } from "@/lib/email/scan";
-import { nextStatus } from "@/lib/email/score";
+import { logStatusChange, undoAutoChange } from "@/lib/email/auto-apply";
+import { notifyAutoChanges } from "@/lib/email/auto-notify";
+import { applyPendingCandidates, getSettings, scanUser, type ScanSummary } from "@/lib/email/scan";
+import { MAX_AUTO_THRESHOLD, MIN_AUTO_THRESHOLD, nextStatus } from "@/lib/email/score";
 import { requireUser } from "@/lib/session";
 
 const settingsSchema = z.object({
   lookback: z.string(),
   customDays: z.coerce.number().int().min(1).max(365).optional(),
   frequency: z.enum(["MANUAL", "DAILY", "EVERY_6H"]),
-  confidence: z.enum(["STRICT", "BALANCED", "AGGRESSIVE"]),
+  autoApplyThreshold: z.coerce.number().int().min(MIN_AUTO_THRESHOLD).max(MAX_AUTO_THRESHOLD),
+  autoApplyEnabled: z.string().optional(),
   detectStatusUpdates: z.string().optional(),
 });
 
-export type EmailFormState = { ok?: boolean; error?: string } | undefined;
+export type EmailFormState = { ok?: boolean; error?: string; applied?: number } | undefined;
 
 export async function saveEmailSettings(_: EmailFormState, formData: FormData): Promise<EmailFormState> {
   const user = await requireUser();
@@ -29,17 +32,24 @@ export async function saveEmailSettings(_: EmailFormState, formData: FormData): 
   const lookbackDays = d.lookback === "custom" ? d.customDays : Number(d.lookback);
   if (!lookbackDays || lookbackDays < 1 || lookbackDays > 365) return { error: "invalid_days" };
   await getSettings(user.id);
-  await db.emailSyncSettings.update({
+  const settings = await db.emailSyncSettings.update({
     where: { userId: user.id },
     data: {
       lookbackDays,
       frequency: d.frequency,
-      confidence: d.confidence,
+      autoApplyEnabled: d.autoApplyEnabled === "on",
+      autoApplyThreshold: d.autoApplyThreshold,
       detectStatusUpdates: d.detectStatusUpdates === "on",
     },
   });
+  // A lower threshold (or turning automation on) applies waiting review items right away.
+  const applied = await applyPendingCandidates(user.id, settings);
+  if (applied.length) {
+    await notifyAutoChanges(user.id, applied).catch(() => null);
+    revalidatePath("/dashboard");
+  }
   revalidatePath("/settings/email");
-  return { ok: true };
+  return { ok: true, applied: applied.length };
 }
 
 export async function scanEmailNow(): Promise<ScanSummary | { error: string }> {
@@ -87,6 +97,13 @@ export async function approveEmailCandidate(formData: FormData): Promise<{ error
   const c = await db.emailCandidate.findFirst({ where: { id: f.id, userId: user.id, status: "PENDING" } });
   if (!c) return { error: "not_found" };
   const target: ApplicationStatus = c.kind === "APPLICATION" ? "APPLIED" : (c.detectedStatus ?? "APPLIED");
+  const review = {
+    userId: user.id,
+    source: "EMAIL_REVIEW" as const,
+    emailCandidateId: c.id,
+    emailDate: c.receivedAt,
+    confidence: c.confidence,
+  };
 
   let applicationId: string;
   if (f.mode === "app") {
@@ -94,8 +111,16 @@ export async function approveEmailCandidate(formData: FormData): Promise<{ error
     if (!app) return { error: "not_found" };
     // The user explicitly approved: apply the detected status unless it would move backwards.
     const next = nextStatus(app.status, target) ?? (app.status === target ? null : target);
-    if (next)
+    if (next) {
       await db.application.update({ where: { id: app.id }, data: { status: next, statusChangedAt: new Date() } });
+      await logStatusChange(db, {
+        ...review,
+        applicationId: app.id,
+        from: app.status,
+        to: next,
+        prevStatusChangedAt: app.statusChangedAt,
+      });
+    }
     applicationId = app.id;
   } else if (f.mode === "job") {
     const job = await db.job.findUnique({
@@ -106,11 +131,19 @@ export async function approveEmailCandidate(formData: FormData): Promise<{ error
     const existing = await db.application.findUnique({ where: { userId_jobId: { userId: user.id, jobId: job.id } } });
     if (existing) {
       const next = nextStatus(existing.status, target);
-      if (next)
+      if (next) {
         await db.application.update({
           where: { id: existing.id },
           data: { status: next, statusChangedAt: new Date() },
         });
+        await logStatusChange(db, {
+          ...review,
+          applicationId: existing.id,
+          from: existing.status,
+          to: next,
+          prevStatusChangedAt: existing.statusChangedAt,
+        });
+      }
       applicationId = existing.id;
     } else {
       const app = await db.application.create({
@@ -121,10 +154,12 @@ export async function approveEmailCandidate(formData: FormData): Promise<{ error
           company: job.company.name,
           status: target,
           appliedAt: c.receivedAt,
+          statusChangedAt: new Date(),
           source: "EMAIL",
           emailMessageId: c.messageId,
         },
       });
+      await logStatusChange(db, { ...review, applicationId: app.id, from: null, to: target });
       applicationId = app.id;
     }
   } else {
@@ -139,10 +174,12 @@ export async function approveEmailCandidate(formData: FormData): Promise<{ error
         url: messageUrl(c.provider, c.messageId),
         status: target,
         appliedAt: c.receivedAt,
+        statusChangedAt: new Date(),
         source: "EMAIL",
         emailMessageId: c.messageId,
       },
     });
+    await logStatusChange(db, { ...review, applicationId: app.id, from: null, to: target });
     applicationId = app.id;
   }
   await db.emailCandidate.update({ where: { id: c.id }, data: { status: "APPROVED", applicationId } });
@@ -157,4 +194,13 @@ export async function dismissEmailCandidate(id: string) {
     data: { status: "DISMISSED" },
   });
   revalidatePath("/dashboard");
+}
+
+/** One-click undo of an automatic email change (restores the previous status, or removes an app it added). */
+export async function undoEmailAutoChange(changeId: string): Promise<{ result: string }> {
+  const user = await requireUser();
+  if (typeof changeId !== "string" || !changeId) return { result: "not_found" };
+  const result = await undoAutoChange(user.id, changeId);
+  revalidatePath("/dashboard");
+  return { result };
 }

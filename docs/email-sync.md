@@ -7,8 +7,8 @@ less certain goes to a **pending-review queue** on `/dashboard`, where the user 
 (choosing a job, an existing application, or a custom title and company) or dismisses it.
 
 Settings live at `/settings/email`: connect/disconnect, lookback (7/14/30/90 days or custom 1–365),
-frequency (manual / daily / every 6 h), confidence level (strict 85 / balanced 70 / aggressive 50
-points), a status-updates toggle, and **Scan now** with the last scan's time (Israel time) and a summary.
+frequency (manual / daily / every 6 h), **automatic updates** (on/off, default on) with a
+**confidence threshold** (40–100 %, default 60 %), a status-updates toggle, and **Scan now** with the last scan's time (Israel time) and a summary.
 
 ## How detection works
 
@@ -29,7 +29,22 @@ points), a status-updates toggle, and **Scan now** with the last scan's time (Is
      linked to the job, or `url` = the Gmail message link for a custom job). For a status update, the
      existing application's status moves forward only: it never goes backwards, never leaves
      REJECTED, and OFFER is never overwritten by REJECTED.
-   - Between 40 and the threshold, the item goes to the review queue. Below 40 it is skipped.
+   - **Email-date ordering**: an email older than the application's current status (the date of the
+     email/change that set it) never moves it, so a late-arriving old rejection cannot overwrite a
+     newer interview or offer. Such emails go to review (`older_than_status`). Messages are processed
+     oldest first.
+   - Between 40 and the threshold (or when automatic updates are off), the item goes to the review
+     queue. Below 40 it is skipped. When the threshold is lowered or automatic updates are turned on,
+     pending items at or above the new threshold are applied on save and on the next scan.
+   - Every status change is logged in `ApplicationStatusChange` (source `EMAIL_AUTO`, `EMAIL_REVIEW`
+     or `MANUAL`) with the source email candidate, confidence, email date and previous status. The
+     board shows a "עודכן אוטומטית מהמייל" badge, a per-application timeline, and **one-click undo**
+     (restores the previous status, or deletes an application the email created, and marks the email
+     dismissed so re-scans don't re-apply it). Undo is refused if the status changed since.
+   - Re-scans are idempotent: a message is processed once (unique per user + provider + message, and
+     one log row per candidate), and claiming a pending candidate is guarded by its status.
+   - Automatic changes trigger one `EMAIL_UPDATE` notification (bell / push / Telegram) per scan and
+     appear in the daily digest.
    - Duplicates are recorded as `DUPLICATE`: the same message seen again (unique per
      user + provider + message) or an application that already exists for the job or company + title.
 

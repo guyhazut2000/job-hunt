@@ -8,6 +8,7 @@ export const NOTIFICATION_KINDS = [
   "LEARNING",
   "DIGEST",
   "SCAN_FAILED",
+  "EMAIL_UPDATE",
   "SYSTEM",
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -44,6 +45,7 @@ const DEFAULT_ON: Record<NotificationKind, Record<ExternalChannel, boolean>> = {
   LEARNING: { push: true, telegram: true },
   DIGEST: { push: false, telegram: true },
   SCAN_FAILED: { push: false, telegram: true },
+  EMAIL_UPDATE: { push: true, telegram: true },
   SYSTEM: { push: false, telegram: false },
 };
 

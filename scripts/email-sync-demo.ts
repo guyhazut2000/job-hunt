@@ -54,7 +54,7 @@ async function main() {
   const pick = ["greenhouse", "unknownCompany", "offer", "interviewHebrew", "weak", "marketing"] as const;
   const messages = [...extra, ...pick.map((k) => ({ ...FIXTURE_EMAILS[k], date: new Date(now - 3 * 86_400_000) }))];
   const settings = await getSettings(user.id);
-  const sum = await processMessages(user.id, "GMAIL", messages, { ...settings, confidence: "BALANCED" });
+  const sum = await processMessages(user.id, "GMAIL", messages, settings);
   await db.emailSyncSettings.update({
     where: { userId: user.id },
     data: {

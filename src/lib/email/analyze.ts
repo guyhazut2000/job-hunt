@@ -1,12 +1,29 @@
-import type { ApplicationStatus, EmailConfidence } from "@prisma/client";
+import type { ApplicationStatus } from "@prisma/client";
 import { bestCompany, bestJob, companySimilarity, titleSimilarity, type CompanyLike, type JobLike } from "./match";
 import { classify, companyFromDomain, extract, isAtsSender, parseFrom, statusForKind, type MailMessage } from "./parse";
-import { COMPANY_MATCH, JOB_MATCH, REVIEW_FLOOR, nextStatus, scoreCandidate, shouldAutoApply } from "./score";
+import {
+  COMPANY_MATCH,
+  JOB_MATCH,
+  REVIEW_FLOOR,
+  isStaleEmail,
+  nextStatus,
+  scoreCandidate,
+  shouldAutoApply,
+  type AutoApply,
+} from "./score";
 
-export type AppLike = { id: string; jobId: string | null; company: string; title: string; status: ApplicationStatus };
+export type AppLike = {
+  id: string;
+  jobId: string | null;
+  company: string;
+  title: string;
+  status: ApplicationStatus;
+  /** When the current status took effect (email date for email-driven changes); see isStaleEmail. */
+  statusAt?: Date | null;
+};
 
 export type AnalyzeContext = {
-  confidence: EmailConfidence;
+  autoApply: AutoApply;
   detectStatusUpdates: boolean;
   companies: CompanyLike[];
   jobs: JobLike[];
@@ -14,7 +31,7 @@ export type AnalyzeContext = {
 };
 
 export type Action =
-  | "create" // new Application (auto)
+  | "create" // new Application (auto), with newStatus (APPLIED, or the detected status for status emails)
   | "update" // existing Application status change (auto)
   | "review" // goes to the pending review queue
   | "duplicate" // already on the board, nothing to do
@@ -100,16 +117,21 @@ export function analyzeMessage(msg: MailMessage, ctx: AnalyzeContext): Analysis 
     confidence: score,
     reasons,
   };
-  const auto = shouldAutoApply(score, ctx.confidence);
+  const auto = shouldAutoApply(score, ctx.autoApply);
 
   if (existing) {
     // "Applied" confirmation for something already saved on the board moves it to APPLIED.
     const target = nextStatus(existing.app.status, detectedStatus);
     if (!target) return { ...base, newStatus: null, action: "duplicate" };
+    // An email older than the application's current (later-stage) status never overrides it automatically.
+    if (msg.date && isStaleEmail(existing.app.status, existing.app.statusAt, msg.date)) {
+      reasons.push("older_than_status");
+      return { ...base, newStatus: target, action: "review" };
+    }
     return { ...base, newStatus: target, action: auto ? "update" : "review" };
   }
   if (score < REVIEW_FLOOR || !company)
     return { ...base, newStatus: null, action: score < REVIEW_FLOOR ? "skip" : "review" };
-  if (isStatus) return { ...base, newStatus: detectedStatus, action: "review" };
-  return { ...base, newStatus: "APPLIED", action: auto ? "create" : "review" };
+  // A confident status email (e.g. a rejection) for something not on the board yet: add it with that status.
+  return { ...base, newStatus: isStatus ? detectedStatus : "APPLIED", action: auto ? "create" : "review" };
 }

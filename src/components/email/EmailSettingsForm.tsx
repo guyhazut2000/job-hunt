@@ -9,7 +9,8 @@ import type { EmailSyncStrings } from "@/lib/i18n/email-sync";
 type Values = {
   lookbackDays: number;
   frequency: "MANUAL" | "DAILY" | "EVERY_6H";
-  confidence: "STRICT" | "BALANCED" | "AGGRESSIVE";
+  autoApplyEnabled: boolean;
+  autoApplyThreshold: number;
   detectStatusUpdates: boolean;
 };
 
@@ -20,7 +21,8 @@ export function EmailSettingsForm({ initial, s }: { initial: Values; s: EmailSyn
   const [lookback, setLookback] = useState(preset ? String(initial.lookbackDays) : "custom");
   const [customDays, setCustomDays] = useState(preset ? "" : String(initial.lookbackDays));
   const [frequency, setFrequency] = useState(initial.frequency);
-  const [confidence, setConfidence] = useState(initial.confidence);
+  const [autoOn, setAutoOn] = useState(initial.autoApplyEnabled);
+  const [threshold, setThreshold] = useState(initial.autoApplyThreshold);
   const [statusUpdates, setStatusUpdates] = useState(initial.detectStatusUpdates);
   const [state, setState] = useState<EmailFormState>();
   const [pending, start] = useTransition();
@@ -93,28 +95,45 @@ export function EmailSettingsForm({ initial, s }: { initial: Values; s: EmailSyn
         <p className="text-muted-foreground text-xs">{s.freqHint}</p>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="label">{s.confidence}</legend>
-        <div className="grid gap-2 sm:grid-cols-3">
-          {(["STRICT", "BALANCED", "AGGRESSIVE"] as const).map((v) => (
-            <label
-              key={v}
-              className="has-[:checked]:border-foreground has-[:checked]:bg-muted has-[:focus-visible]:ring-primary/40 bg-card flex cursor-pointer flex-col gap-1 rounded-md border p-3 has-[:focus-visible]:ring-3"
+      <fieldset className="flex flex-col gap-3" data-auto-apply>
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            name="autoApplyEnabled"
+            className="accent-foreground mt-1 size-4 shrink-0"
+            checked={autoOn}
+            onChange={(e) => setAutoOn(e.target.checked)}
+          />
+          <span className="flex flex-col gap-0.5">
+            <span className="font-semibold">{s.autoApply}</span>
+            <span className="text-muted-foreground text-xs leading-relaxed">{s.autoApplyHint}</span>
+          </span>
+        </label>
+        <div className={autoOn ? "flex flex-col gap-1.5 ps-7" : "flex flex-col gap-1.5 ps-7 opacity-50"}>
+          <label htmlFor="autoApplyThreshold" className="label flex items-center justify-between gap-3">
+            <span>{s.threshold}</span>
+            <output
+              htmlFor="autoApplyThreshold"
+              className="font-heading text-foreground text-base font-bold tabular-nums"
             >
-              <span className="flex items-center gap-2 font-semibold">
-                <input
-                  type="radio"
-                  name="confidence"
-                  value={v}
-                  className="accent-foreground size-4"
-                  checked={confidence === v}
-                  onChange={() => setConfidence(v)}
-                />
-                {s.conf[v].label}
-              </span>
-              <span className="text-muted-foreground text-xs leading-relaxed">{s.conf[v].hint}</span>
-            </label>
-          ))}
+              {s.thresholdValue.replace("{n}", String(threshold))}
+            </output>
+          </label>
+          <input
+            id="autoApplyThreshold"
+            name="autoApplyThreshold"
+            type="range"
+            min={40}
+            max={100}
+            step={5}
+            value={threshold}
+            disabled={!autoOn}
+            onChange={(e) => setThreshold(Number(e.target.value))}
+            className="accent-foreground w-full max-w-md"
+          />
+          {/* Disabled inputs aren't submitted; keep the saved value when automation is off. */}
+          {!autoOn && <input type="hidden" name="autoApplyThreshold" value={threshold} />}
+          <p className="text-muted-foreground text-xs leading-relaxed">{s.thresholdHint}</p>
         </div>
       </fieldset>
 
@@ -139,6 +158,7 @@ export function EmailSettingsForm({ initial, s }: { initial: Values; s: EmailSyn
         {state?.ok && !pending && (
           <span role="status" className="text-fit inline-flex items-center gap-1 text-sm font-semibold">
             <Check className="size-4" aria-hidden /> {s.saved}
+            {state.applied ? ` · ${s.appliedN.replace("{n}", String(state.applied))}` : ""}
           </span>
         )}
         {state?.error && (

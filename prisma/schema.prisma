@@ -94,16 +94,16 @@ enum ApplicationStatus {
 }
 
 model User {
-  id                   String                  @id @default(cuid())
-  email                String                  @unique
+  id                   String                    @id @default(cuid())
+  email                String                    @unique
   name                 String?
   passwordHash         String
-  role                 Role                    @default(USER)
+  role                 Role                      @default(USER)
   /// DEPRECATED: unused since pricing was removed; kept for additive-only migrations.
-  plan                 Plan                    @default(FREE)
-  locale               String                  @default("he")
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @updatedAt
+  plan                 Plan                      @default(FREE)
+  locale               String                    @default("he")
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
   profile              Profile?
   resumes              Resume[]
   applications         Application[]
@@ -113,6 +113,7 @@ model User {
   emailSync            EmailSyncSettings?
   emailAccounts        EmailAccount[]
   emailCandidates      EmailCandidate[]
+  statusChanges        ApplicationStatusChange[]
   skillProgress        SkillProgress[]
   savedPlaces          SavedPlace[]
   documents            Document[]
@@ -406,20 +407,20 @@ model Job {
 }
 
 model Application {
-  id              String            @id @default(cuid())
+  id              String                    @id @default(cuid())
   userId          String
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   jobId           String?
-  job             Job?              @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  job             Job?                      @relation(fields: [jobId], references: [id], onDelete: SetNull)
   // For applications tracked manually (jobs found outside the platform)
   title           String
   company         String
   url             String?
-  status          ApplicationStatus @default(SAVED)
+  status          ApplicationStatus         @default(SAVED)
   notes           String?
   appliedAt       DateTime?
   // How it got onto the board; EMAIL = detected by email sync (see emailMessageId)
-  source          ApplicationSource @default(APP)
+  source          ApplicationSource         @default(APP)
   emailMessageId  String?
   /// Hiring-process stage the user marked as current (a STAGE_KINDS key, see src/lib/hiring/kinds.ts).
   currentStage    String?
@@ -429,8 +430,9 @@ model Application {
   /// Next scheduled interview (reminders ~24h and ~2h before) and a free-text note (link, place, who).
   interviewAt     DateTime?
   interviewNote   String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  statusChanges   ApplicationStatusChange[]
 
   @@unique([userId, jobId])
   @@index([userId, status])
@@ -601,6 +603,38 @@ enum EmailConfidence {
   AGGRESSIVE
 }
 
+/// Who/what changed an application's status (see ApplicationStatusChange).
+enum StatusChangeSource {
+  EMAIL_AUTO
+  EMAIL_REVIEW
+  MANUAL
+}
+
+/// Status history of an application. Every automatic change from the email scan is logged here
+/// (source email, score, previous status) so it can be shown on the timeline and undone.
+model ApplicationStatusChange {
+  id                  String             @id @default(cuid())
+  userId              String
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationId       String
+  application         Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  /// null = the change created the application
+  fromStatus          ApplicationStatus?
+  toStatus            ApplicationStatus
+  source              StatusChangeSource
+  /// The email candidate that caused it (one change per email at most).
+  emailCandidateId    String?            @unique
+  confidence          Int?
+  /// Date of the source email; ordering of email-driven changes uses this, not the scan time.
+  emailDate           DateTime?
+  prevStatusChangedAt DateTime?
+  undoneAt            DateTime?
+  createdAt           DateTime           @default(now())
+
+  @@index([applicationId, createdAt])
+  @@index([userId, createdAt])
+}
+
 enum EmailCandidateKind {
   APPLICATION
   STATUS_UPDATE
@@ -620,8 +654,13 @@ model EmailSyncSettings {
   user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   lookbackDays        Int                @default(7)
   frequency           EmailScanFrequency @default(MANUAL)
+  /// DEPRECATED: replaced by autoApplyThreshold (kept: migrations are additive-only).
   confidence          EmailConfidence    @default(BALANCED)
   detectStatusUpdates Boolean            @default(true)
+  /// Apply detected applications / status changes without review when the match score reaches the threshold.
+  autoApplyEnabled    Boolean            @default(true)
+  /// 0–100 match score needed for an automatic change (clamped to 40–100 on use).
+  autoApplyThreshold  Int                @default(60)
   lastScanAt          DateTime?
   lastScanSummary     Json?
   lastScanError       String?
