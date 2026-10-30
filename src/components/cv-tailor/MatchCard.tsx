@@ -1,4 +1,5 @@
-import { CircleCheck, CircleDashed, Lightbulb } from "lucide-react";
+import { Lightbulb } from "lucide-react";
+import { SkillChipList } from "@/components/skills/SkillChipList";
 import type { Suggestion } from "@/lib/cv-tailor/tailor";
 import type { MatchSummary, Requirement } from "@/lib/cv-tailor/types";
 import { type CvTailorStrings, requirementLabel } from "@/lib/i18n/cv-tailor";
@@ -34,35 +35,37 @@ export function MatchCard({ match, t }: { match: MatchSummary; t: CvTailorString
           </div>
           {match.covered.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <h3 className="kicker">{t.covered}</h3>
-              <ul className="flex flex-wrap gap-1.5" data-testid="cvt-covered">
-                {match.covered.map((r) => (
-                  <li
-                    key={r.kind + r.label}
-                    title={evidence(t, r) ?? undefined}
-                    className="bg-fit-soft text-fit inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
-                  >
-                    <CircleCheck className="size-3" aria-hidden />
-                    <span dir="auto">{requirementLabel(t, r.kind, r.label)}</span>
-                  </li>
-                ))}
-              </ul>
+              <h3 className="kicker">
+                {t.covered} <span className="font-normal tracking-normal">{match.covered.length}</span>
+              </h3>
+              <SkillChipList
+                testId="cvt-covered"
+                label={t.covered}
+                more={t.moreItems}
+                less={t.lessItems}
+                items={match.covered.map((r) => ({
+                  label: requirementLabel(t, r.kind, r.label),
+                  tone: "have" as const,
+                  title: evidence(t, r) ?? undefined,
+                }))}
+              />
             </div>
           )}
           {match.missing.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <h3 className="kicker">{t.missing}</h3>
-              <ul className="flex flex-wrap gap-1.5" data-testid="cvt-missing">
-                {match.missing.map((r) => (
-                  <li
-                    key={r.kind + r.label}
-                    className="bg-caution-soft text-caution inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
-                  >
-                    <CircleDashed className="size-3" aria-hidden />
-                    <span dir="auto">{requirementLabel(t, r.kind, r.label)}</span>
-                  </li>
-                ))}
-              </ul>
+              <h3 className="kicker">
+                {t.missing} <span className="font-normal tracking-normal">{match.missing.length}</span>
+              </h3>
+              <SkillChipList
+                testId="cvt-missing"
+                label={t.missing}
+                more={t.moreItems}
+                less={t.lessItems}
+                items={match.missing.map((r) => ({
+                  label: requirementLabel(t, r.kind, r.label),
+                  tone: "missing" as const,
+                }))}
+              />
             </div>
           )}
         </>

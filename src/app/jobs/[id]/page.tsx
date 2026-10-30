@@ -1,3 +1,4 @@
+import { SkillChipList } from "@/components/skills/SkillChipList";
 import { Suspense } from "react";
 import { GapPlan } from "@/components/learning/GapPlan";
 import Link from "next/link";
@@ -139,26 +140,32 @@ export default async function JobPage({
       <MatchReasons t={t.match} reasons={match.reasons} />
       {match.matchedSkills.length > 0 && (
         <div>
-          <h3 className="mb-1.5 text-sm font-bold">{t.jobs.matchedSkills}</h3>
-          <ul className="flex flex-wrap gap-1" dir="ltr">
-            {match.matchedSkills.map((s) => (
-              <li key={s} className="chip bg-fit-soft text-accent-foreground">
-                ✓ {s}
-              </li>
-            ))}
-          </ul>
+          <h3 className="mb-1.5 text-sm font-bold">
+            {t.jobs.matchedSkills}{" "}
+            <span className="text-muted-foreground font-mono text-xs font-normal">{match.matchedSkills.length}</span>
+          </h3>
+          <SkillChipList
+            testId="job-matched-skills"
+            label={t.jobs.matchedSkills}
+            more={t.jobs.moreSkills}
+            less={t.jobs.lessSkills}
+            items={match.matchedSkills.map((s) => ({ label: s, tone: "have" as const }))}
+          />
         </div>
       )}
       {match.missingSkills.length > 0 && (
         <div>
-          <h3 className="mb-1.5 text-sm font-bold">{t.jobs.missingSkills}</h3>
-          <ul className="flex flex-wrap gap-1" dir="ltr">
-            {match.missingSkills.map((s) => (
-              <li key={s} className="chip bg-caution-soft text-caution">
-                {s}
-              </li>
-            ))}
-          </ul>
+          <h3 className="mb-1.5 text-sm font-bold">
+            {t.jobs.missingSkills}{" "}
+            <span className="text-muted-foreground font-mono text-xs font-normal">{match.missingSkills.length}</span>
+          </h3>
+          <SkillChipList
+            testId="job-missing-skills"
+            label={t.jobs.missingSkills}
+            more={t.jobs.moreSkills}
+            less={t.jobs.lessSkills}
+            items={match.missingSkills.map((s) => ({ label: s, tone: "missing" as const }))}
+          />
         </div>
       )}
     </section>
@@ -213,13 +220,16 @@ export default async function JobPage({
               <JobCommute job={job} userId={userId} from={from} locale={locale} />
             </Suspense>
             {job.techStack.length > 0 && (
-              <ul className="flex flex-wrap gap-1.5" dir="ltr" aria-label={t.jobs.tech}>
-                {job.techStack.map((s) => (
-                  <li key={s} className="chip">
-                    {s}
-                  </li>
-                ))}
-              </ul>
+              <SkillChipList
+                testId="job-tech"
+                label={t.jobs.tech}
+                more={t.jobs.moreSkills}
+                less={t.jobs.lessSkills}
+                items={job.techStack.map((s) => ({
+                  label: s,
+                  tone: match?.matchedSkills.includes(s) ? ("have" as const) : ("neutral" as const),
+                }))}
+              />
             )}
             {/* mobile: the action bar keeps only the primary apply button */}
             <div className="flex flex-col gap-2 pt-1 sm:max-w-sm lg:hidden">

@@ -9,12 +9,13 @@ import type { Dictionary } from "@/lib/i18n/dictionaries";
 import {
   EDUCATION_KINDS,
   LANGUAGE_LEVELS,
-  SKILL_CATEGORIES,
   SKILL_LEVELS,
   type Professional,
   type SkillCategory,
   categorizeSkill,
 } from "@/lib/profile/schema";
+import { skillKey } from "@/lib/profile/skills-view";
+import { SkillsEditor } from "./SkillsEditor";
 
 type T = Dictionary["pv2"];
 type Keyed<X> = X & { _k: number };
@@ -175,7 +176,6 @@ export function ProfessionalForm({
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(saveProfessional, undefined);
   const [u, setU] = useState<Ui>(() => toUi(initial));
-  const [newSkill, setNewSkill] = useState("");
   const id = useId();
   const payload = useMemo(() => JSON.stringify(toPayload(u)), [u]);
 
@@ -188,26 +188,14 @@ export function ProfessionalForm({
   const remove = (key: "experience" | "skills" | "education" | "languages", i: number) =>
     setU((p) => ({ ...p, [key]: (p[key] as unknown[]).filter((_, j) => j !== i) }));
 
-  const addSkill = () => {
-    const names = newSkill
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (!names.length) return;
+  const addSkills = (names: string[]) =>
     setU((p) => {
-      const have = new Set(p.skills.map((s) => s.name.toLowerCase()));
+      const have = new Set(p.skills.map((s) => skillKey(s.name)));
       const add = names
-        .filter((n) => !have.has(n.toLowerCase()))
+        .filter((n) => !have.has(skillKey(n)))
         .map((name) => k<SkillUi>({ name, level: "GOOD", years: "", category: categorizeSkill(name) }));
       return { ...p, skills: [...p.skills, ...add] };
     });
-    setNewSkill("");
-  };
-
-  const grouped = SKILL_CATEGORIES.map((c) => ({
-    c,
-    items: u.skills.map((s, i) => ({ s, i })).filter(({ s }) => s.category === c),
-  })).filter((g) => g.items.length);
 
   return (
     <form action={action} className="flex flex-col gap-10" noValidate>
@@ -392,131 +380,14 @@ export function ProfessionalForm({
         <div id={`${id}-skills`}>
           <SectionHead title={t.skills} count={u.skills.length} />
         </div>
-        <div className="flex gap-2">
-          <label htmlFor={`${id}-newskill`} className="sr-only">
-            {t.addSkill}
-          </label>
-          <input
-            id={`${id}-newskill`}
-            className="input font-mono"
-            dir="ltr"
-            placeholder="Go, Kafka, Terraform"
-            value={newSkill}
-            onChange={(e) => setNewSkill(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addSkill();
-              }
-            }}
-          />
-          <Button type="button" variant="outline" onClick={addSkill}>
-            <Plus data-icon="inline-start" />
-            {t.addSkill}
-          </Button>
-        </div>
-        {grouped.length === 0 && <p className="text-muted-foreground text-sm">{t.empty}</p>}
-        <div className="flex flex-col gap-6">
-          {grouped.map(({ c, items }) => (
-            <fieldset key={c} className="flex flex-col gap-2">
-              <legend className="kicker mb-2">{t.categories[c]}</legend>
-              <ul className="divide-border bg-card divide-y rounded-lg border">
-                {items.map(({ s, i }) => {
-                  const p = `${id}-s${s._k}`;
-                  return (
-                    <li
-                      key={s._k}
-                      data-skill-item
-                      className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:gap-3"
-                    >
-                      <div className="flex min-w-0 items-center gap-2 sm:w-80 sm:shrink-0">
-                        <label htmlFor={`${p}-name`} className="sr-only">
-                          {t.skillName}
-                        </label>
-                        <input
-                          id={`${p}-name`}
-                          dir="ltr"
-                          className="input min-w-0 flex-1 font-mono font-semibold"
-                          value={s.name}
-                          onChange={(e) => patch("skills", i, { name: e.target.value })}
-                        />
-                        <label htmlFor={`${p}-cat`} className="sr-only">
-                          {t.category}
-                        </label>
-                        <select
-                          id={`${p}-cat`}
-                          className="select-native w-32 shrink-0 text-sm sm:w-36"
-                          value={s.category}
-                          onChange={(e) => patch("skills", i, { category: e.target.value as SkillCategory })}
-                        >
-                          {SKILL_CATEGORIES.map((cc) => (
-                            <option key={cc} value={cc}>
-                              {t.categories[cc]}
-                            </option>
-                          ))}
-                        </select>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive sm:hidden"
-                          onClick={() => remove("skills", i)}
-                          aria-label={`${t.remove}: ${s.name}`}
-                        >
-                          <Trash2 />
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-2 sm:flex-1">
-                        <div
-                          role="radiogroup"
-                          aria-label={`${t.level}: ${s.name}`}
-                          className="bg-muted inline-flex flex-1 rounded-md p-0.5 sm:flex-none"
-                        >
-                          {SKILL_LEVELS.map((lv) => (
-                            <button
-                              key={lv}
-                              type="button"
-                              role="radio"
-                              aria-checked={s.level === lv}
-                              onClick={() => patch("skills", i, { level: lv })}
-                              className="aria-checked:bg-foreground aria-checked:text-background focus-visible:ring-primary/40 min-h-10 flex-1 rounded px-3 text-xs font-semibold transition-colors outline-none focus-visible:ring-3"
-                            >
-                              {t.levels[lv]}
-                            </button>
-                          ))}
-                        </div>
-                        <label className="flex items-center gap-1.5 text-sm">
-                          <span className="text-muted-foreground">{t.years}</span>
-                          <input
-                            className="input w-18 font-mono"
-                            dir="ltr"
-                            type="number"
-                            min={0}
-                            max={45}
-                            step={0.5}
-                            inputMode="decimal"
-                            value={s.years}
-                            onChange={(e) => patch("skills", i, { years: e.target.value })}
-                          />
-                        </label>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hidden sm:inline-flex"
-                        onClick={() => remove("skills", i)}
-                        aria-label={`${t.remove}: ${s.name}`}
-                      >
-                        <Trash2 />
-                      </Button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </fieldset>
-          ))}
-        </div>
+        <SkillsEditor
+          t={t}
+          id={id}
+          skills={u.skills}
+          onAdd={addSkills}
+          onPatch={(i, v) => patch("skills", i, v)}
+          onRemove={(i) => remove("skills", i)}
+        />
       </section>
 
       {/* ── Education, courses & service ── */}
