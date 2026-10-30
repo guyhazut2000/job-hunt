@@ -16,6 +16,7 @@ import { MatchMeter } from "@/components/MatchMeter";
 import { People } from "@/components/outreach/People";
 import { SalarySection } from "@/components/salary/SalarySection";
 import { HiringProcessSection } from "@/components/hiring/HiringProcessSection";
+import { JobPrepLinks } from "@/components/JobPrepLinks";
 import { SaveJobButton } from "@/components/SaveJobButton";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
@@ -228,6 +229,7 @@ export default async function JobPage({
 
           {/* Mobile: match + AI suggestions right after the header instead of below the whole description. */}
           <div className="flex flex-col gap-4 lg:hidden" data-testid="job-insights-mobile">
+            {userId && <JobPrepLinks jobId={job.id} locale={locale} />}
             {userId && <CvTips jobId={job.id} label={t.jobs.generate} title={t.jobs.cvTips} id="cv-tips-m" />}
             {matchPanel}
           </div>
@@ -292,6 +294,7 @@ export default async function JobPage({
             {userId && (
               <SaveJobButton jobId={job.id} saved={!!application} label={t.jobs.save} savedLabel={t.jobs.saved} />
             )}
+            {userId && <JobPrepLinks jobId={job.id} locale={locale} />}
           </div>
 
           {userId && <CvTips jobId={job.id} label={t.jobs.generate} title={t.jobs.cvTips} id="cv-tips" />}

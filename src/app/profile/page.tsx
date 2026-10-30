@@ -8,6 +8,7 @@ import type { DocumentRow } from "@/components/documents/types";
 import { CompletenessMeter } from "@/components/profile/CompletenessMeter";
 import { CvList } from "@/components/profile/CvList";
 import { CvUploadForm } from "@/components/profile/CvUploadForm";
+import { TailoredCvList } from "@/components/cv-tailor/TailoredCvList";
 import { PreferencesForm } from "@/components/profile/PreferencesForm";
 import { ProfessionalForm } from "@/components/profile/ProfessionalForm";
 import { Progress } from "@/components/ui/progress";
@@ -146,7 +147,15 @@ export default async function ProfilePage({
           </aside>
         </div>
       ) : (
-        <DocumentsTab userId={user.id} p={p} ds={ds} dateLocale={t.dateLocale} resumes={resumes} docs={docs} />
+        <DocumentsTab
+          userId={user.id}
+          p={p}
+          ds={ds}
+          dateLocale={t.dateLocale}
+          resumes={resumes}
+          docs={docs}
+          locale={locale}
+        />
       )}
     </div>
   );
@@ -173,7 +182,9 @@ function DocumentsTab({
   dateLocale,
   resumes,
   docs,
+  locale,
 }: {
+  locale: "he" | "en";
   userId: string;
   p: Dict["pv2"];
   ds: ReturnType<typeof documentStrings>;
@@ -227,6 +238,11 @@ function DocumentsTab({
           <CvUploadForm t={p} showOptions={resumes.length > 0} />
           <p className="text-muted-foreground text-xs">{p.storageNote}</p>
         </section>
+      </div>
+
+      {/* CV versions tailored to specific jobs (docs/cv-tailor.md). */}
+      <div className="border-rule border-t-2 pt-8">
+        <TailoredCvList userId={userId} locale={locale} />
       </div>
 
       {/* Everything else: the document vault. */}
