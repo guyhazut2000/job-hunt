@@ -43,6 +43,21 @@ function retryAfterMs(res: Response): number | null {
 }
 
 export async function requestJson<T>(url: string, label: string, options: RequestOptions = {}): Promise<T> {
+  return request(url, label, options, "application/json", async (res) => (await res.json()) as T);
+}
+
+/** Same politeness as `requestJson`, for public HTML pages (career sites without a JSON API). */
+export async function requestText(url: string, label: string, options: RequestOptions = {}): Promise<string> {
+  return request(url, label, options, "text/html,application/xhtml+xml", (res) => res.text());
+}
+
+async function request<T>(
+  url: string,
+  label: string,
+  options: RequestOptions,
+  accept: string,
+  parse: (res: Response) => Promise<T>,
+): Promise<T> {
   const { method = "GET", body, fetchImpl = fetch } = options;
   const { timeoutMs, retries, minIntervalMs } = { ...DEFAULTS, ...stripUndefined(options) };
   const host = new URL(url).host;
@@ -56,7 +71,7 @@ export async function requestJson<T>(url: string, label: string, options: Reques
         method,
         headers: {
           "user-agent": USER_AGENT,
-          accept: "application/json",
+          accept,
           ...(body !== undefined ? { "content-type": "application/json" } : {}),
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -66,7 +81,7 @@ export async function requestJson<T>(url: string, label: string, options: Reques
       lastError = e instanceof Error ? e.name : "network error";
       continue;
     }
-    if (res.ok) return (await res.json()) as T;
+    if (res.ok) return parse(res);
     lastError = `HTTP ${res.status}`;
     if (res.status !== 429 && res.status < 500) break;
     const ra = retryAfterMs(res);

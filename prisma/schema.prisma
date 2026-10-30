@@ -82,6 +82,7 @@ enum AtsProvider {
   ORACLE_HCM
   JIBE
   AMAZON
+  SUCCESSFACTORS
 }
 
 enum ApplicationStatus {

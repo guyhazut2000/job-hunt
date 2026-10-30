@@ -23,6 +23,8 @@ import { ESTABLISHED_SOURCES, withoutHub } from "../companies/established";
  *    (Oracle Recruiting Cloud candidate experience; filtered by the site's "Israel" location facet)
  *  - JIBE: "<host>" → <host>/api/jobs?location=Israel (iCIMS Jibe careers sites)
  *  - AMAZON: ISO-3 country code ("ISR") → www.amazon.jobs/en/search.json
+ *  - SUCCESSFACTORS: "<host>" → <host>/search/?locationsearch=Israel + job pages (SAP Career Site Builder;
+ *    public HTML on robots-allowed paths only, details fetched once per new posting)
  *
  * Only Israel-located (or Israel-remote) postings are ingested; see `isIsraelLocation`.
  */
