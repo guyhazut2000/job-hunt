@@ -844,6 +844,7 @@ export const FEATURES: Feature[] = [
     routes: ["/settings/notifications", "/notifications"],
     href: "/settings/notifications",
     added: "2026-10-30",
+    prs: [64],
     issue: 41,
     keywords: ["saved job changed", "stage", "digest mode", "what's new"],
   },
