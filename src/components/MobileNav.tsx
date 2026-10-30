@@ -24,6 +24,7 @@ type Labels = Record<
   | "learnMine"
   | "digest"
   | "admin"
+  | "features"
   | "language"
   | "account",
   string
@@ -117,6 +118,11 @@ export function MobileNav({ user, labels, locale }: { user: { role: string } | n
                     </Button>
                   </SheetClose>
                 )}
+                <SheetClose asChild>
+                  <Button asChild variant="outline" className="justify-start">
+                    <Link href="/features">{labels.features}</Link>
+                  </Button>
+                </SheetClose>
                 {user?.role === "ADMIN" && (
                   <SheetClose asChild>
                     <Button asChild variant="outline" className="justify-start">

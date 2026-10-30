@@ -6,7 +6,13 @@ AI CV suggestions and an application tracker. Hebrew-first (RTL) with English su
 > A non-commercial practice project, open source under the [MIT License](LICENSE). No pricing, plans or
 > payments: every feature is available to every user. See [docs/product-spec.md](docs/product-spec.md).
 
-## Features (MVP)
+## Features
+
+The full, always-current list is in the app at **`/features`** ("מה המערכת יודעת לעשות"), generated from
+[`src/features/registry.ts`](src/features/registry.ts). Every feature change must update it — see
+[docs/features.md](docs/features.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### MVP
 
 - **Job feed** with filters (text, role, seniority, location, work mode, tech) and pagination
 - **Real Israeli hi-tech jobs** — 45 curated companies on public Greenhouse/Lever boards, filtered to Israel, synced daily (Comeet adapter included)

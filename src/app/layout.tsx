@@ -78,6 +78,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 learnMine: learningHubStrings(locale).navMine,
                 digest: reminderStrings(locale).nav,
                 admin: t.nav.admin,
+                features: t.nav.features,
                 language: t.nav.language,
                 account: t.ui.account,
               }}

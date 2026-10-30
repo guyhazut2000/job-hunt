@@ -11,6 +11,7 @@ const en = {
     register: "Sign up",
     logout: "Log out",
     language: "עברית",
+    features: "What the app can do",
   },
   home: {
     title: "Find your next tech job in Israel — faster.",
@@ -522,6 +523,7 @@ const he: Dictionary = {
     register: "הרשמה",
     logout: "התנתקות",
     language: "English",
+    features: "מה המערכת יודעת לעשות",
   },
   home: {
     title: "המשרה הבאה שלך בהייטק, מהר יותר.",
