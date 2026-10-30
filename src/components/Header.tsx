@@ -42,6 +42,7 @@ export async function Header() {
         ]
       : []),
     { href: "/features", label: t.nav.features, priority: "more" as const },
+    { href: "/whats-new", label: ns.whatsNewNav, priority: "more" as const },
     ...(user?.role === "ADMIN" ? [{ href: "/admin", label: t.nav.admin, priority: "more" as const }] : []),
   ];
   return (

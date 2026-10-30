@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { GRAPH } from "@/lib/learning/graph";
 import { learningStats } from "@/lib/learning/progress";
 import { followUpDue, daysBetween } from "@/lib/notifications/reminders";
+import { HELD_FOR_DIGEST } from "@/lib/notifications/create";
 import { learningSnapshot } from "@/lib/notifications/learning";
 import type { EffectivePrefs } from "@/lib/notifications/prefs";
 import { hasScorableProfile, scoreMatch, toCandidate } from "@/lib/profile/score";
@@ -19,7 +20,7 @@ export async function collectDigestData(
   now: Date,
 ): Promise<DigestData> {
   const d = emptyDigestData(day, since, now);
-  const [alerts, apps, profile, searches, runs, learningPrefs, hasLearning] = await Promise.all([
+  const [alerts, apps, profile, searches, runs, learningPrefs, hasLearning, held] = await Promise.all([
     db.notification.findMany({
       where: { userId, kind: { in: ["JOB_MATCH", "COMPANY_JOBS"] }, createdAt: { gt: since, lte: now } },
       select: { data: true },
@@ -53,7 +54,20 @@ export async function collectDigestData(
     }),
     db.learningPrefs.findUnique({ where: { userId } }),
     db.stageProgress.findFirst({ where: { userId }, select: { id: true } }),
+    // Kinds the user set to "digest" (new-job alerts are already counted in the jobs section).
+    db.notification.findMany({
+      where: {
+        userId,
+        createdAt: { gt: since, lte: now },
+        kind: { notIn: ["JOB_MATCH", "COMPANY_JOBS", "DIGEST"] },
+        data: { path: ["delivery"], equals: HELD_FOR_DIGEST },
+      },
+      select: { id: true, kind: true, title: true, url: true },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    }),
   ]);
+  d.held = held;
 
   // New jobs: saved-search and followed-company alerts in the window…
   const bySearch = new Map<string, number>();

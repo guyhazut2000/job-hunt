@@ -8,7 +8,11 @@ import {
   CalendarClock,
   CheckCheck,
   Clock,
+  FilePenLine,
+  Flag,
   GraduationCap,
+  Mail,
+  Megaphone,
   Newspaper,
   Settings,
   Sparkles,
@@ -34,10 +38,14 @@ const ICONS: Record<string, LucideIcon> = {
   COMPANY_JOBS: Building2,
   SCAN_FAILED: AlertTriangle,
   SAVED_JOB_CLOSED: XCircle,
+  SAVED_JOB_UPDATED: FilePenLine,
+  STAGE_CHANGE: Flag,
   FOLLOW_UP: Clock,
   INTERVIEW: CalendarClock,
   LEARNING: GraduationCap,
   DIGEST: Newspaper,
+  EMAIL_UPDATE: Mail,
+  WHATS_NEW: Megaphone,
   SYSTEM: Sparkles,
 };
 
@@ -72,6 +80,12 @@ export default async function NotificationsPage() {
               <Link href="/digest">
                 <Newspaper data-icon="inline-start" aria-hidden />
                 {reminderStrings(locale).nav}
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/whats-new">
+                <Megaphone data-icon="inline-start" aria-hidden />
+                {s.whatsNewNav}
               </Link>
             </Button>
             <Button asChild variant="ghost" size="sm">

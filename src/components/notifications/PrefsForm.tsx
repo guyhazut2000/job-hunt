@@ -5,7 +5,13 @@ import { saveNotificationPrefs, type PrefsFormState } from "@/app/notification-a
 import { Button } from "@/components/ui/button";
 import type { NotificationStrings } from "@/lib/i18n/notifications";
 import type { ReminderStrings } from "@/lib/i18n/reminders";
-import { channelEnabled, EXTERNAL_CHANNELS, NOTIFICATION_KINDS } from "@/lib/notifications/kinds";
+import {
+  channelEnabled,
+  deliveryMode,
+  EXTERNAL_CHANNELS,
+  INSTANT_ONLY,
+  NOTIFICATION_KINDS,
+} from "@/lib/notifications/kinds";
 import type { EffectivePrefs } from "@/lib/notifications/prefs";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
@@ -38,6 +44,9 @@ export function PrefsForm({ prefs, s, r }: { prefs: EffectivePrefs; s: Notificat
                     {s[ch]}
                   </th>
                 ))}
+                <th scope="col" className="px-2 py-2 font-semibold">
+                  {s.modeCol}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -67,11 +76,33 @@ export function PrefsForm({ prefs, s, r }: { prefs: EffectivePrefs; s: Notificat
                       />
                     </td>
                   ))}
+                  <td className="px-1 text-center sm:px-2">
+                    {INSTANT_ONLY.includes(kind) ? (
+                      <span className="text-muted-foreground text-xs whitespace-nowrap">{s.modeLocked}</span>
+                    ) : (
+                      <select
+                        name={`mode.${kind}`}
+                        defaultValue={deliveryMode(prefs.modes, kind)}
+                        aria-label={`${s.kinds[kind]} — ${s.modeCol}`}
+                        className={`${selectCls} h-9 text-xs`}
+                        data-testid={`mode-${kind}`}
+                      >
+                        <option value="instant">{s.modeInstant}</option>
+                        <option value="digest">{s.modeDigest}</option>
+                      </select>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        <p className="text-muted-foreground text-xs">{s.modeHint}</p>
+        {!prefs.digestEnabled && Object.values(prefs.modes).includes("digest") ? (
+          <p className="text-caution text-xs font-semibold" role="note" data-testid="mode-digest-off">
+            {s.modeDigestOff}
+          </p>
+        ) : null}
       </section>
 
       <section aria-labelledby="quiet-h" className="card flex flex-col gap-3">
@@ -228,6 +259,7 @@ export function PrefsForm({ prefs, s, r }: { prefs: EffectivePrefs; s: Notificat
             ))}
           </select>
         </label>
+        <p className="text-muted-foreground text-xs">{s.emailDigestNote}</p>
       </section>
 
       <div className="flex items-center gap-3">

@@ -392,6 +392,11 @@ model Job {
   /// What the geo was computed from (location + company HQ/office), so changes trigger a re-geocode.
   geoSource         String?
   geocodedAt        DateTime?
+  /// Per-field digest of title/location/work mode/pay/description (src/lib/jobs/content-hash.ts).
+  contentHash       String?
+  /// Last time a later scan saw one of those fields change, and which ones (saved-job updates, #41).
+  contentChangedAt  DateTime?
+  changedFields     String[]        @default([])
 
   @@unique([source, externalId])
   @@index([roleCategory, seniority])
@@ -1172,6 +1177,8 @@ model NotificationPreference {
   followUpDays        Int       @default(7)
   /// Per-kind overrides: { "JOB_MATCH": { "push": false, "telegram": true }, ... }. Missing = default on.
   channels            Json      @default("{}")
+  /// Per-kind delivery for push/Telegram: { "JOB_MATCH": "digest", ... }. Missing = "instant".
+  modes               Json      @default("{}")
   /// Max push/Telegram messages per hour; the rest stay in-app only.
   maxPerHour          Int       @default(6)
   /// One-time code for linking Telegram (/start <code>), hashed, short-lived.
