@@ -838,15 +838,19 @@ export const FEATURES: Feature[] = [
   },
   {
     id: "notifications-rest",
-    name: "השלמת ההתראות",
+    name: "עדכונים על משרות שמורות, שלבי גיוס ומיידי או בסיכום",
     description:
-      "התראה כשמשרה ששמרת משתנה או נסגרת, שינוי שלב גיוס, הודעת 'מה חדש', ובחירה לכל סוג התראה אם הוא מיידי או בסיכום היומי.",
+      "התראה כשמשרה ששמרת או שהגשת אליה נסגרת או משתנה (כותרת, מיקום, שכר, תיאור), כשמועמדות עוברת לסינון, ראיון או הצעה (עם השלב הבא בתהליך של החברה), הודעה על חידושים באתר, ובחירה לכל סוג התראה אם הוא נשלח מיד או נאסף לסיכום היומי.",
+    howTo: "ב'הגדרות התראות' בוחרים בעמודה 'מתי' מיידי או 'בסיכום היומי' לכל סוג.",
     category: "notifications",
-    status: "planned",
+    status: "live",
     audience: "user",
-    routes: [],
+    routes: ["/settings/notifications", "/notifications"],
+    href: "/settings/notifications",
     added: "2026-10-30",
+    prs: [64],
     issue: 41,
+    keywords: ["saved job changed", "stage", "digest mode", "what's new"],
   },
   {
     id: "auto-apply",

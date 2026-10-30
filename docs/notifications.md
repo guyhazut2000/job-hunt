@@ -6,23 +6,66 @@ alert on new jobs, scan-failure alerts, follow-up reminders, and two optional ou
 
 ## What triggers a notification
 
-| Kind               | When                                                                                      | Dedupe key                      |
-| ------------------ | ----------------------------------------------------------------------------------------- | ------------------------------- |
-| `JOB_MATCH`        | A saved search has new jobs (`Job.createdAt` after the search's `lastCheckedAt`).         | `search:<id>:<iso>`             |
-| `COMPANY_JOBS`     | A company you follow published new jobs (not already sent to you by a saved search).      | `company:<followId>:<iso>`      |
-| `SCAN_FAILED`      | A company's feed failed 3 scans in a row — once per outage. Push off by default.          | `scanfail:<companyId>:<streak>` |
-| `SAVED_JOB_CLOSED` | A job you saved (application status `SAVED`) became inactive in the last 3 days.          | `closed:<applicationId>`        |
-| `FOLLOW_UP`        | An application is still `APPLIED` and untouched for N days (default 7, 1–60).             | `followup:<id>:<date>`          |
-| `INTERVIEW`        | ~24h and ~2h before an `Application.interviewAt` you set on the tracker.                  | `interview:<id>:<iso>:<stage>`  |
-| `LEARNING`         | In your study slot, if you haven't studied today: streak, reviews, stalled stage.         | `learning:<day>`                |
-| `DIGEST`           | Once a day after your digest hour — see [digest.md](digest.md). Telegram only by default. | `digest:<day>`                  |
-| `SYSTEM`           | Test notifications from the settings page. In-site only by default.                       | —                               |
+| Kind                | When                                                                                                                                                                    | Dedupe key                      |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `JOB_MATCH`         | A saved search has new jobs (`Job.createdAt` after the search's `lastCheckedAt`).                                                                                       | `search:<id>:<iso>`             |
+| `COMPANY_JOBS`      | A company you follow published new jobs (not already sent to you by a saved search).                                                                                    | `company:<followId>:<iso>`      |
+| `SCAN_FAILED`       | A company's feed failed 3 scans in a row — once per outage. Push off by default.                                                                                        | `scanfail:<companyId>:<streak>` |
+| `SAVED_JOB_CLOSED`  | A job you saved or applied to (`SAVED`/`APPLIED`/`SCREENING`/`INTERVIEW`) became inactive in the last 3 days.                                                           | `closed:<applicationId>`        |
+| `SAVED_JOB_UPDATED` | The employer edited such a job (title, location, work mode, pay or description) in the last 3 days.                                                                     | `updated:<applicationId>:<iso>` |
+| `STAGE_CHANGE`      | An application moved to `SCREENING`/`INTERVIEW`/`OFFER`, or you marked a new hiring stage; adds the next stage of the company's published process. Push off by default. | `stage:<applicationId>:<status  | stage>:<key>` |
+| `WHATS_NEW`         | A `src/lib/whats-new.ts` entry flagged `announce`, within 7 days of its date. In-site only by default.                                                                  | `whatsnew:<entryId>`            |
+| `FOLLOW_UP`         | An application is still `APPLIED` and untouched for N days (default 7, 1–60).                                                                                           | `followup:<id>:<date>`          |
+| `INTERVIEW`         | ~24h and ~2h before an `Application.interviewAt` you set on the tracker.                                                                                                | `interview:<id>:<iso>:<stage>`  |
+| `LEARNING`          | In your study slot, if you haven't studied today: streak, reviews, stalled stage.                                                                                       | `learning:<day>`                |
+| `DIGEST`            | Once a day after your digest hour — see [digest.md](digest.md). Telegram only by default.                                                                               | `digest:<day>`                  |
+| `SYSTEM`            | Test notifications from the settings page. In-site only by default.                                                                                                     | —                               |
 
 Saved searches with a "match ≥" / fit filter only alert on jobs scoring at or above it (default 65)
 when the user has a scorable profile. One new job links straight to the job; several are grouped
 into one notification that links to the search sorted by newest.
 
 Kinds and channels are stored as strings, so adding a new kind needs no enum migration.
+
+### Saved-job updates (`SAVED_JOB_CLOSED`, `SAVED_JOB_UPDATED`)
+
+Every ingest computes `Job.contentHash` (`src/lib/jobs/content-hash.ts`): a short per-field SHA-1 of
+the normalized title, location, work mode, pay and description, so whitespace/case-only edits don't
+count and no old text is stored. When a re-scan sees a different hash, `upsertJob` stamps
+`Job.contentChangedAt` and `Job.changedFields`; the notify cron (`runSavedJobUpdated`) then tells
+everyone with that job saved or in progress, naming the fields ("pay, description"). The first hash
+on an existing row is a baseline, not a change. List-only sources (Workday, SmartRecruiters…) only
+re-read details for new postings, so their edits are not detected — closures are.
+
+### Hiring-stage changes (`STAGE_CHANGE`)
+
+The hourly cron (`runStageChanges`, `src/lib/notifications/stage-change.ts`) looks back 26h at
+`ApplicationStatusChange` rows to `SCREENING`/`INTERVIEW`/`OFFER` that still hold (not undone or
+overwritten) and at applications whose `currentStage` was set. The body says what comes next in the
+company's official hiring process (job-level, else company-level; `nextStage()`) and points at the job
+page to prepare. Changes made by the email scan (`EMAIL_AUTO`) already get an `EMAIL_UPDATE` notice, so
+they are not repeated.
+
+### What's new (`WHATS_NEW`)
+
+The changelog itself is the "מה חדש" section of `/features` (from `src/features/registry.ts`, see
+[features.md](features.md)); `/notifications` links to it. For a change worth a notification, also add an
+entry with `announce: true` to `src/lib/whats-new.ts`. The notify cron sends each announced entry once per
+user within 7 days of its date (skipping users who joined after it); the notice links to the changelog.
+
+### Instant or daily digest, per kind
+
+Each kind has an "instant / in the daily digest" select in `/settings/notifications`
+(`NotificationPreference.modes`, `{ "<KIND>": "digest" }`; default instant). A kind set to digest is
+still written in-site at once, but gets no push/Telegram delivery (`data.delivery = "digest"`); the next
+daily digest lists it in a "🔔 Held for the digest" section. New-job kinds (`JOB_MATCH`, `COMPANY_JOBS`)
+are already summed in the digest's jobs section, so they are not listed twice. `INTERVIEW` and `DIGEST`
+are always instant. If the digest itself is off, held kinds are only in-site (the settings page warns).
+
+**No email digest.** The app's Gmail access is read-only (`gmail.readonly`, for status detection), and
+sending mail would need an SMTP/transactional provider (an extra account, domain verification/DNS,
+and a sender reputation to maintain) — not "free and simple". The digest goes to the site and Telegram
+(and web push) instead.
 
 ### Followed companies (`COMPANY_JOBS`)
 
@@ -73,11 +116,12 @@ channel with `nextAttemptAt` pushed past quiet hours. `processDeliveries()`:
   flushes deliveries.
 - `/api/cron/scan` — the **fast scan**, every 15 min in the daytime from GitHub Actions (below).
 - `/api/cron/notify` at `30 5 * * *` and `0 15 * * *` UTC (07:30 / 17:00 Israel in winter) — runs
-  searches, followed companies, scan failures, follow-ups, closed-job alerts and flushes deliveries
+  searches, followed companies, scan failures, follow-ups, saved-job closed/updated alerts, what's-new
+  announcements and flushes deliveries
   deferred by quiet hours.
 
 - `/api/cron/hourly` — listed 24 times in `vercel.json` (`0 H * * *` for each hour; a Hobby cron may
-  run once a day, so one entry per hour). Runs interview reminders, study reminders, daily digests and
+  run once a day, so one entry per hour). Runs interview reminders, hiring-stage changes, study reminders, daily digests and
   flushes deliveries.
 
 All require `Authorization: Bearer $CRON_SECRET` (`/api/cron/scan` also accepts

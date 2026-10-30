@@ -1,6 +1,6 @@
 import type { NotificationPreference } from "@prisma/client";
 import { db } from "@/lib/db";
-import { parseOverrides, type ChannelOverrides } from "./kinds";
+import { parseModes, parseOverrides, type ChannelOverrides, type ModeOverrides } from "./kinds";
 import { DEFAULT_QUIET, type QuietPrefs } from "./quiet";
 
 export interface EffectivePrefs extends QuietPrefs {
@@ -8,6 +8,8 @@ export interface EffectivePrefs extends QuietPrefs {
   followUpDays: number;
   maxPerHour: number;
   overrides: ChannelOverrides;
+  /** Per-kind instant / daily-digest delivery for push and Telegram. */
+  modes: ModeOverrides;
   learningEnabled: boolean;
   learningHour: number;
   /** Israel weekdays, 0 = Sunday. */
@@ -24,6 +26,7 @@ export const DEFAULT_PREFS: EffectivePrefs = {
   followUpDays: 7,
   maxPerHour: 6,
   overrides: {},
+  modes: {},
   learningEnabled: true,
   learningHour: 19,
   learningDays: [0, 1, 2, 3, 4],
@@ -50,6 +53,7 @@ export function toEffective(p: NotificationPreference | null | undefined): Effec
     followUpDays: p.followUpDays,
     maxPerHour: p.maxPerHour,
     overrides: parseOverrides(p.channels),
+    modes: parseModes((p as { modes?: unknown }).modes),
     learningEnabled: p.learningEnabled ?? DEFAULT_PREFS.learningEnabled,
     learningHour: p.learningHour ?? DEFAULT_PREFS.learningHour,
     learningDays: p.learningDays ? cleanWeekdays(p.learningDays) : DEFAULT_PREFS.learningDays,

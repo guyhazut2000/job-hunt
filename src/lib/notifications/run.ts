@@ -1,5 +1,5 @@
 import { processDeliveries } from "./deliver";
-import { runFollowUpReminders, runSavedJobClosed } from "./reminders";
+import { runFollowUpReminders, runSavedJobClosed, runSavedJobUpdated, runWhatsNew } from "./reminders";
 import { runFollowedCompanyAlerts } from "./company-follow";
 import { runSavedSearchAlerts } from "./saved-search";
 import { runScanFailureAlerts } from "./scan-failures";
@@ -12,6 +12,8 @@ export async function runNotifications(now = new Date()) {
   const scanFailures = await safe(runScanFailureAlerts(now));
   const followUps = await safe(runFollowUpReminders(now));
   const closed = await safe(runSavedJobClosed(now));
+  const updated = await safe(runSavedJobUpdated(now));
+  const whatsNew = await safe(runWhatsNew(now));
   const deliveries = await safe(processDeliveries({ now }));
-  return { searches, companies, scanFailures, followUps, closed, deliveries };
+  return { searches, companies, scanFailures, followUps, closed, updated, whatsNew, deliveries };
 }

@@ -57,6 +57,8 @@ export interface DigestData {
     stuckScreening: number;
   };
   savedSearches: number;
+  /** Notifications of kinds set to "digest" (held from push/Telegram) in the window, newest first. */
+  held?: { id: string; kind: string; title: string; url: string | null }[];
 }
 
 export interface DigestItem {
@@ -64,7 +66,7 @@ export interface DigestItem {
   url?: string;
 }
 
-export type SectionKey = "jobs" | "status" | "followups" | "interviews" | "learning" | "scans";
+export type SectionKey = "held" | "jobs" | "status" | "followups" | "interviews" | "learning" | "scans";
 
 export interface DigestSection {
   key: SectionKey;
@@ -134,6 +136,7 @@ export function digestIsEmpty(d: DigestData): boolean {
     !d.interviews.length &&
     d.interviewsMissingDate === 0 &&
     d.scans.failed === 0 &&
+    !d.held?.length &&
     !(d.learning && (d.learning.reviewsDue > 0 || d.learning.minutesThisWeek > 0 || d.learning.streak > 0))
   );
 }
@@ -191,7 +194,17 @@ export function digestSections(d: DigestData, locale: Locale): DigestSection[] {
       ]
     : [];
 
-  const sections: DigestSection[] = [
+  const held = d.held ?? [];
+  const sections: DigestSection[] = [];
+  if (held.length)
+    sections.push({
+      key: "held",
+      icon: "🔔",
+      title: s.dgHeld,
+      count: held.length,
+      items: held.slice(0, ITEMS + 3).map((h) => ({ text: h.title, url: h.url ?? "/notifications" })),
+    });
+  sections.push(
     { key: "jobs", icon: "🔎", title: s.dgJobs, count: newJobs, items: jobs, empty: s.dgJobsEmpty },
     { key: "status", icon: "🔄", title: s.dgStatus, count: d.statusChanges.length, items: status, empty: s.dgNone },
     { key: "followups", icon: "✉️", title: s.dgFollow, count: d.followUps.length, items: followups, empty: s.dgNone },
@@ -203,7 +216,7 @@ export function digestSections(d: DigestData, locale: Locale): DigestSection[] {
       items: interviews,
       empty: s.dgInterviewsEmpty,
     },
-  ];
+  );
   if (d.learning)
     sections.push({ key: "learning", icon: "📚", title: s.dgLearning, count: learning.length, items: learning });
   sections.push({
@@ -229,6 +242,7 @@ export function digestSummary(d: DigestData, locale: Locale): string {
   if (d.learning?.reviewsDue) parts.push(fill(s.sumReviews, { n: d.learning.reviewsDue }));
   if (d.interviewsMissingDate) parts.push(fill(s.sumNoDate, { n: d.interviewsMissingDate }));
   if (d.scans.failed) parts.push(fill(s.sumScans, { n: d.scans.failed }));
+  if (d.held?.length) parts.push(fill(s.sumHeld, { n: d.held.length }));
   if (!parts.length && d.learning?.streak) parts.push(fill(s.sumStreak, { n: d.learning.streak }));
   else if (!parts.length && d.learning?.minutesThisWeek)
     parts.push(fill(s.sumMinutes, { n: d.learning.minutesThisWeek }));
@@ -327,6 +341,7 @@ export function parseDigestData(raw: unknown): DigestData | null {
     newJobs: { ...empty.newJobs, ...r.newJobs },
     scans: { ...empty.scans, ...r.scans },
     pipeline: { ...empty.pipeline, ...r.pipeline },
+    held: Array.isArray(r.held) ? r.held : [],
   } as DigestData;
 }
 
@@ -354,6 +369,7 @@ export function emptyDigestData(day: string, since: Date, now: Date): DigestData
       stuckScreening: 0,
     },
     savedSearches: 0,
+    held: [],
   };
 }
 

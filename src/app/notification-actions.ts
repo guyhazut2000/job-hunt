@@ -9,7 +9,14 @@ import { notificationStrings } from "@/lib/i18n/notifications";
 import { hashLinkCode } from "@/lib/notifications/telegram";
 import { processDeliveries } from "@/lib/notifications/deliver";
 import { isPushConfigured, isTelegramConfigured, telegramBotUsername } from "@/lib/notifications/config";
-import { CHANNEL_TYPES, EXTERNAL_CHANNELS, NOTIFICATION_KINDS, type ChannelOverrides } from "@/lib/notifications/kinds";
+import {
+  CHANNEL_TYPES,
+  EXTERNAL_CHANNELS,
+  INSTANT_ONLY,
+  NOTIFICATION_KINDS,
+  type ChannelOverrides,
+  type ModeOverrides,
+} from "@/lib/notifications/kinds";
 import {
   defaultSearchName,
   MAX_SAVED_SEARCHES,
@@ -59,6 +66,10 @@ export async function saveNotificationPrefs(_: PrefsFormState, formData: FormDat
   for (const kind of NOTIFICATION_KINDS) {
     channels[kind] = Object.fromEntries(EXTERNAL_CHANNELS.map((ch) => [ch, on(`ch.${kind}.${ch}`)]));
   }
+  const modes: ModeOverrides = {};
+  for (const kind of NOTIFICATION_KINDS) {
+    if (!INSTANT_ONLY.includes(kind) && formData.get(`mode.${kind}`) === "digest") modes[kind] = "digest";
+  }
   const data = {
     ...parsed.data,
     quietEnabled: on("quietEnabled"),
@@ -69,6 +80,7 @@ export async function saveNotificationPrefs(_: PrefsFormState, formData: FormDat
     interviewEnabled: on("interviewEnabled"),
     digestEnabled: on("digestEnabled"),
     channels,
+    modes,
   };
   await db.notificationPreference.upsert({
     where: { userId: user.id },
