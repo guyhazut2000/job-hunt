@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Daily digest" };
 
 export default async function DigestListPage() {
-  const user = await requireUser();
+  const user = await requireUser("/digest");
   const locale = await getLocale();
   const r = reminderStrings(locale);
   const n = notificationStrings(locale);

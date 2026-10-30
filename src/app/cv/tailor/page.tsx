@@ -19,7 +19,7 @@ export default async function TailorStartPage({
 }: {
   searchParams: Promise<{ job?: string; app?: string }>;
 }) {
-  const user = await requireUser();
+  const user = await requireUser("/cv/tailor");
   const locale = await getLocale();
   const t = cvTailorStrings(locale);
   const { job, app } = await searchParams;

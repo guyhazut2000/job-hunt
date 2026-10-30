@@ -31,10 +31,10 @@ export default async function TailoredCvPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ reverted?: string; limit?: string }>;
 }) {
-  const user = await requireUser();
+  const { id } = await params;
+  const user = await requireUser(`/cv/tailor/${id}`);
   const locale = await getLocale();
   const t = cvTailorStrings(locale);
-  const { id } = await params;
   const sp = await searchParams;
   const row = await db.tailoredCv.findFirst({ where: { id, userId: user.id } });
   if (!row) notFound();

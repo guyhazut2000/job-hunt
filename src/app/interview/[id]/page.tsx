@@ -29,10 +29,10 @@ export default async function InterviewSessionPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ limit?: string }>;
 }) {
-  const user = await requireUser();
+  const { id } = await params;
+  const user = await requireUser(`/interview/${id}`);
   const locale = await getLocale();
   const t = interviewStrings(locale);
-  const { id } = await params;
   const sp = await searchParams;
   const limit = LIMITS.find((l) => l === sp.limit);
   const [s, remaining] = await Promise.all([loadSession(user.id, id), aiRemaining(user.id)]);

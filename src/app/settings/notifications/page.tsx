@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Notification settings" };
 
 export default async function NotificationSettingsPage() {
-  const user = await requireUser();
+  const user = await requireUser("/settings/notifications");
   const locale = await getLocale();
   const s = notificationStrings(locale);
   const [prefsRow, channels, searches, follows] = await Promise.all([

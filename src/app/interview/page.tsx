@@ -19,7 +19,7 @@ export default async function InterviewPage({
 }: {
   searchParams: Promise<{ job?: string; app?: string; mode?: string }>;
 }) {
-  const user = await requireUser();
+  const user = await requireUser("/interview");
   const locale = await getLocale();
   const t = interviewStrings(locale);
   const { job, app, mode } = await searchParams;

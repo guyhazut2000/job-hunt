@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  const user = await requireUser();
+  const user = await requireUser("/dashboard");
   const { t, locale } = await getDictionary();
   const es = emailSyncStrings[locale];
   const ss = statsStrings(locale);

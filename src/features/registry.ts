@@ -690,6 +690,12 @@ export const FEATURES: Feature[] = [
     added: "2026-10-27",
     prs: [1],
     keywords: ["login", "register", "auth"],
+    updates: [
+      {
+        date: "2026-10-30",
+        text: "אחרי התחברות חוזרים לעמוד שניסיתם לפתוח (למשל קישור לסיכום יומי או לראיון מטלגרם), במקום לעמוד המשרות",
+      },
+    ],
   },
   {
     id: "saved-places",

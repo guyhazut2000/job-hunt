@@ -82,7 +82,7 @@ function Stat({
 }
 
 export default async function MyLearningPage({ searchParams }: { searchParams: Promise<{ track?: string }> }) {
-  const user = await requireUser();
+  const user = await requireUser("/learn/me");
   const { track } = await searchParams;
   const [{ locale }, data] = await Promise.all([getDictionary(), getHubData(user.id)]);
   const s = learningStrings(locale);

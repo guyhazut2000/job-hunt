@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import type { ApplicationStatus, AtsProvider } from "@prisma/client";
 import { signIn, signOut } from "@/auth";
+import { safeNextPath } from "@/lib/safe-next";
 import { guardedLLM } from "@/lib/ai";
 import { generateCvSuggestions } from "@/lib/ai/cv-suggestions";
 import type { CvSuggestion } from "@/lib/ai/types";
@@ -60,7 +61,7 @@ export async function login(_: FormState, formData: FormData): Promise<FormState
     await signIn("credentials", {
       email: String(formData.get("email") ?? "").toLowerCase(),
       password: String(formData.get("password") ?? ""),
-      redirectTo: String(formData.get("next") || "/jobs"),
+      redirectTo: safeNextPath(String(formData.get("next") ?? "")) ?? "/jobs",
     });
   } catch (e) {
     if (e instanceof AuthError) return { error: t.auth.invalid };

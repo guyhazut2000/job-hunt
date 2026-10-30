@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Saved places" };
 
 export default async function PlacesSettingsPage() {
-  const user = await requireUser();
+  const user = await requireUser("/settings/places");
   const s = jobsMapStrings(await getLocale());
   const places = await db.savedPlace.findMany({
     where: { userId: user.id },

@@ -8,9 +8,9 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Review CV" };
 
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireUser();
-  const { t } = await getDictionary();
   const { id } = await params;
+  const user = await requireUser(`/profile/review/${id}`);
+  const { t } = await getDictionary();
   const data = await loadReview(user.id, id);
   if (!data) notFound();
   const p = t.pv2;

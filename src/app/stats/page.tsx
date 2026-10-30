@@ -41,7 +41,7 @@ const fill = (tpl: string, vars: Record<string, string | number>) =>
   tpl.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? ""));
 
 export default async function StatsPage() {
-  const user = await requireUser();
+  const user = await requireUser("/stats");
   const locale = await getLocale();
   const s = statsStrings(locale);
   const rows = await db.application.findMany({
