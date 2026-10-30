@@ -10,7 +10,7 @@ import { nextStatus, scoreCandidate, shouldAutoApply } from "@/lib/email/score";
 import { isDue } from "@/lib/email/schedule";
 
 const ctx = (over: Partial<AnalyzeContext> = {}): AnalyzeContext => ({
-  confidence: "BALANCED",
+  autoApply: { enabled: true, threshold: 60 },
   detectStatusUpdates: true,
   companies: FIXTURE_COMPANIES,
   jobs: FIXTURE_JOBS,
@@ -114,9 +114,10 @@ describe("scoring & thresholds", () => {
       jobMatch: 0,
     });
     expect(weak.score).toBe(25);
-    expect(shouldAutoApply(70, "STRICT")).toBe(false);
-    expect(shouldAutoApply(70, "BALANCED")).toBe(true);
-    expect(shouldAutoApply(50, "AGGRESSIVE")).toBe(true);
+    expect(shouldAutoApply(70, { enabled: true, threshold: 85 })).toBe(false);
+    expect(shouldAutoApply(60, { enabled: true, threshold: 60 })).toBe(true);
+    expect(shouldAutoApply(59, { enabled: true, threshold: 60 })).toBe(false);
+    expect(shouldAutoApply(100, { enabled: false, threshold: 60 })).toBe(false);
   });
   it("never downgrades or leaves rejected", () => {
     expect(nextStatus("INTERVIEW", "APPLIED")).toBeNull();
@@ -129,7 +130,7 @@ describe("scoring & thresholds", () => {
 
 describe("analyzeMessage", () => {
   it("auto-creates a high-confidence application matched to a job", () => {
-    const a = analyzeMessage(E.greenhouse, ctx({ confidence: "STRICT" }))!;
+    const a = analyzeMessage(E.greenhouse, ctx({ autoApply: { enabled: true, threshold: 85 } }))!;
     expect(a).toMatchObject({ action: "create", matchedJobId: "j_orion_fe", company: "Orion Payments" });
     expect(a.confidence).toBeGreaterThanOrEqual(85);
   });
@@ -138,11 +139,15 @@ describe("analyzeMessage", () => {
     expect(a).toMatchObject({ action: "create", matchedJobId: "j_tavor_fs" });
   });
   it("sends unknown companies to review under strict, auto-adds under aggressive", () => {
-    expect(analyzeMessage(E.unknownCompany, ctx({ confidence: "STRICT" }))!.action).toBe("review");
-    expect(analyzeMessage(E.unknownCompany, ctx({ confidence: "AGGRESSIVE" }))!.action).toBe("create");
+    expect(analyzeMessage(E.unknownCompany, ctx({ autoApply: { enabled: true, threshold: 85 } }))!.action).toBe(
+      "review",
+    );
+    expect(analyzeMessage(E.unknownCompany, ctx({ autoApply: { enabled: true, threshold: 50 } }))!.action).toBe(
+      "create",
+    );
   });
   it("skips weak newsletter matches", () => {
-    const a = analyzeMessage(E.weak, ctx({ confidence: "AGGRESSIVE" }));
+    const a = analyzeMessage(E.weak, ctx({ autoApply: { enabled: true, threshold: 50 } }));
     expect(a === null || a.action === "skip").toBe(true);
   });
   it("dedupes against an existing application", () => {
@@ -192,9 +197,13 @@ describe("analyzeMessage", () => {
       applicationId: "a2",
     });
   });
-  it("puts status updates without a matching application into review", () => {
+  it("adds confident status updates without a matching application, reviews the rest", () => {
     expect(analyzeMessage(E.offer, ctx())!).toMatchObject({
       kind: "STATUS_UPDATE",
+      action: "create",
+      newStatus: "OFFER",
+    });
+    expect(analyzeMessage(E.offer, ctx({ autoApply: { enabled: true, threshold: 100 } }))!).toMatchObject({
       action: "review",
       detectedStatus: "OFFER",
     });

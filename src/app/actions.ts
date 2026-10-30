@@ -12,6 +12,7 @@ import { generateCvSuggestions } from "@/lib/ai/cv-suggestions";
 import type { CvSuggestion } from "@/lib/ai/types";
 import { track } from "@/lib/analytics";
 import { db } from "@/lib/db";
+import { logStatusChange } from "@/lib/email/auto-apply";
 import { getDictionary, LOCALE_COOKIE } from "@/lib/i18n";
 import { aiLimitMessage } from "@/lib/i18n/ai";
 import { SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
@@ -90,9 +91,23 @@ const STATUSES: ApplicationStatus[] = ["SAVED", "APPLIED", "SCREENING", "INTERVI
 export async function updateApplicationStatus(id: string, status: ApplicationStatus) {
   const user = await requireUser();
   if (!STATUSES.includes(status)) throw new Error("Invalid status");
+  const prev = await db.application.findFirst({
+    where: { id, userId: user.id },
+    select: { status: true, statusChangedAt: true },
+  });
+  if (!prev) return;
   await db.application.updateMany({
     where: { id, userId: user.id },
     data: { status, statusChangedAt: new Date(), ...(status === "APPLIED" ? { appliedAt: new Date() } : {}) },
+  });
+  // Timeline entry; also makes later, older emails unable to override this manual change.
+  await logStatusChange(db, {
+    userId: user.id,
+    applicationId: id,
+    from: prev.status,
+    to: status,
+    source: "MANUAL",
+    prevStatusChangedAt: prev.statusChangedAt,
   });
   track("application_status_changed", { status });
   revalidatePath("/dashboard");

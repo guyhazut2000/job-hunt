@@ -27,12 +27,13 @@ const he = {
   frequency: "תדירות",
   freq: { MANUAL: "ידני בלבד", DAILY: "פעם ביום", EVERY_6H: "כל 6 שעות" },
   freqHint: "סריקה אוטומטית רצה פעם ביום בבוקר (שעון ישראל). תדירות של כל 6 שעות דורשת תוכנית Vercel Pro.",
-  confidence: "רמת ביטחון להוספה אוטומטית",
-  conf: {
-    STRICT: { label: "שמרני", hint: "מוסיף אוטומטית רק התאמות ודאיות (85%+). כל השאר — לבדיקה." },
-    BALANCED: { label: "מאוזן", hint: "מוסיף התאמות חזקות (70%+). מומלץ." },
-    AGGRESSIVE: { label: "נועז", hint: "מוסיף גם התאמות סבירות (50%+). פחות בדיקה ידנית, יותר טעויות." },
-  },
+  autoApply: "ביצוע עדכונים אוטומטית",
+  autoApplyHint:
+    "כשהביטחון בזיהוי המייל עובר את הסף, נעדכן את הלוח בעצמנו: דחייה תסומן כנדחתה, אישור הגשה יוסיף מועמדות. מתחת לסף — המייל יחכה לאישורך.",
+  threshold: "סף ביטחון לעדכון אוטומטי",
+  thresholdValue: "{n}%",
+  thresholdHint: "ברירת מחדל 60%. סף נמוך = פחות בדיקה ידנית ויותר טעויות; כל שינוי אוטומטי מתועד וניתן לביטול בלחיצה.",
+  appliedN: "{n} פריטים שחיכו לבדיקה עודכנו עכשיו",
   statusUpdates: "זיהוי עדכוני סטטוס",
   statusUpdatesHint: "דחייה, זימון לראיון והצעת עבודה יעדכנו את המועמדות הקיימת. סטטוס אף פעם לא חוזר אחורה.",
   save: "שמירת הגדרות",
@@ -73,7 +74,7 @@ const he = {
   ],
   // review queue (dashboard)
   reviewTitle: "ממתינים לאישור מהמייל",
-  reviewLead: "זיהינו מיילים שנראים קשורים למועמדויות, אבל לא היינו בטוחים מספיק כדי להוסיף אוטומטית.",
+  reviewLead: "זיהינו מיילים שנראים קשורים למועמדויות, אבל הביטחון היה מתחת לסף שהגדרת, או שהמייל ישן מהסטטוס הנוכחי.",
   reviewEmpty: "אין פריטים לבדיקה.",
   openEmail: "פתיחת המייל",
   kindApp: "הגשת מועמדות",
@@ -91,6 +92,19 @@ const he = {
   emailSettings: "סנכרון מייל",
   emailSettingsHint: "זיהוי אוטומטי של מועמדויות מהמייל",
   addedFromEmail: "נוסף מהמייל",
+  // automatic changes (board / dashboard)
+  autoBadge: "עודכן אוטומטית מהמייל",
+  autoTitle: "עודכן אוטומטית מהמייל",
+  autoLead: "שינויים שסריקת המייל ביצעה בעצמה. משהו לא נכון? ביטול מחזיר את המצב הקודם.",
+  autoCreated: "נוספה כ„{status}”",
+  autoMoved: "{from} ← {to}",
+  undo: "ביטול",
+  undone: "בוטל",
+  undoConflict: "המועמדות השתנתה מאז — שנו את הסטטוס ידנית.",
+  undoAria: "ביטול העדכון האוטומטי של {company}",
+  timeline: "היסטוריית סטטוס",
+  source: { EMAIL_AUTO: "אוטומטי מהמייל", EMAIL_REVIEW: "אושר מהמייל", MANUAL: "ידני" } as Record<string, string>,
+  created: "נוצרה",
 };
 
 type Strings = typeof he;
@@ -120,12 +134,14 @@ const en: Strings = {
   frequency: "Frequency",
   freq: { MANUAL: "Manual only", DAILY: "Daily", EVERY_6H: "Every 6 hours" },
   freqHint: "Automatic scans run once a day in the morning (Israel time). Every-6-hours needs a Vercel Pro plan.",
-  confidence: "Auto-add confidence",
-  conf: {
-    STRICT: { label: "Strict", hint: "Only auto-adds near-certain matches (85%+). Everything else goes to review." },
-    BALANCED: { label: "Balanced", hint: "Auto-adds strong matches (70%+). Recommended." },
-    AGGRESSIVE: { label: "Aggressive", hint: "Also auto-adds plausible matches (50%+). Less review, more mistakes." },
-  },
+  autoApply: "Apply updates automatically",
+  autoApplyHint:
+    "When we're confident enough about an email, we update the board ourselves: a rejection is marked rejected, a confirmation adds the application. Below the threshold, the email waits for your approval.",
+  threshold: "Auto-update confidence threshold",
+  thresholdValue: "{n}%",
+  thresholdHint:
+    "Default 60%. Lower = less manual review and more mistakes; every automatic change is logged and can be undone in one click.",
+  appliedN: "{n} items waiting for review were applied now",
   statusUpdates: "Detect status updates",
   statusUpdatesHint:
     "Rejections, interview invites and offers update the existing application. Status never moves backwards.",
@@ -166,7 +182,8 @@ const en: Strings = {
     "The access token is encrypted at rest (AES-256-GCM). Disconnecting deletes it and revokes access.",
   ],
   reviewTitle: "Pending review from email",
-  reviewLead: "These emails look application-related, but we weren't sure enough to add them automatically.",
+  reviewLead:
+    "These emails look application-related, but confidence was below your threshold, or the email is older than the current status.",
   reviewEmpty: "Nothing to review.",
   openEmail: "Open email",
   kindApp: "Application",
@@ -184,6 +201,18 @@ const en: Strings = {
   emailSettings: "Email sync",
   emailSettingsHint: "Auto-detect applications from email",
   addedFromEmail: "Added from email",
+  autoBadge: "Auto-updated from email",
+  autoTitle: "Updated automatically from email",
+  autoLead: "Changes the email scan made on its own. Something wrong? Undo restores the previous state.",
+  autoCreated: "Added as “{status}”",
+  autoMoved: "{from} → {to}",
+  undo: "Undo",
+  undone: "Undone",
+  undoConflict: "The application changed since — change the status manually.",
+  undoAria: "Undo the automatic update for {company}",
+  timeline: "Status history",
+  source: { EMAIL_AUTO: "Auto from email", EMAIL_REVIEW: "Approved from email", MANUAL: "Manual" },
+  created: "Created",
 };
 
 export const emailSyncStrings: Record<Locale, Strings> = { he, en } as Record<Locale, Strings>;

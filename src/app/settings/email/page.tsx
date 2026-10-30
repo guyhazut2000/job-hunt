@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { isGmailConfigured, isOutlookConfigured } from "@/lib/email/config";
 import { formatIsraelTime } from "@/lib/email/format";
 import { getSettings, type ScanSummary } from "@/lib/email/scan";
+import { clampThreshold } from "@/lib/email/score";
 import { getLocale } from "@/lib/i18n";
 import { emailSyncStrings } from "@/lib/i18n/email-sync";
 import { requireUser } from "@/lib/session";
@@ -154,7 +155,8 @@ export default async function EmailSettingsPage({
           initial={{
             lookbackDays: settings.lookbackDays,
             frequency: settings.frequency,
-            confidence: settings.confidence,
+            autoApplyEnabled: settings.autoApplyEnabled,
+            autoApplyThreshold: clampThreshold(settings.autoApplyThreshold),
             detectStatusUpdates: settings.detectStatusUpdates,
           }}
         />

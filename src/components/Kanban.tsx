@@ -1,12 +1,14 @@
 "use client";
 
 import { useOptimistic, useRef, useTransition } from "react";
+import { AutoBadge, AutoUndoButton, StatusTimeline, type AutoLabels } from "./email/AutoChanges";
 import { InterviewDate, type InterviewDateLabels } from "./InterviewDate";
 import { TruncatedText } from "./TruncatedText";
 import type { ApplicationStatus } from "@prisma/client";
 import { ExternalLink, GripVertical, Trash2, Users } from "lucide-react";
 import { removeApplication, updateApplicationStatus } from "@/app/actions";
 import { Button } from "@/components/ui/button";
+import type { AutoInfo, TimelineEntry } from "@/lib/email/history";
 import { cn } from "@/lib/utils";
 
 export interface KanbanItem {
@@ -20,6 +22,9 @@ export interface KanbanItem {
   contacts?: { total: number; referred: number };
   /** Interview date (Israel wall time for the input + a formatted label), when set. */
   interview?: { value: string; display: string; note: string | null } | null;
+  /** Status history (oldest first) and, when the current status came from an email automatically, undo info. */
+  history?: TimelineEntry[];
+  auto?: AutoInfo | null;
 }
 
 const COLUMNS: ApplicationStatus[] = ["SAVED", "APPLIED", "SCREENING", "INTERVIEW", "OFFER", "REJECTED"];
@@ -40,6 +45,7 @@ export function Kanban({
   emptyLabel,
   contactsLabel,
   interviewLabels,
+  autoLabels,
 }: {
   items: KanbanItem[];
   labels: Record<string, string>;
@@ -48,6 +54,7 @@ export function Kanban({
   emptyLabel: string;
   contactsLabel?: { count: string; referred: string };
   interviewLabels?: InterviewDateLabels;
+  autoLabels?: AutoLabels;
 }) {
   const [, start] = useTransition();
   const board = useRef<HTMLDivElement>(null);
@@ -167,6 +174,19 @@ export function Kanban({
                                 display={i.interview?.display ?? null}
                                 labels={interviewLabels}
                               />
+                            </div>
+                          )}
+                          {autoLabels && i.auto && (
+                            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                              <AutoBadge label={autoLabels.badge} />
+                              {i.auto.canUndo && (
+                                <AutoUndoButton changeId={i.auto.changeId} company={i.company} labels={autoLabels} />
+                              )}
+                            </div>
+                          )}
+                          {autoLabels && i.history && i.history.length > 0 && (
+                            <div className="mt-1">
+                              <StatusTimeline entries={i.history} labels={autoLabels} statusLabels={labels} />
                             </div>
                           )}
                         </div>
