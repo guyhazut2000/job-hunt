@@ -27,7 +27,7 @@ export const maxDuration = 300;
 export const generateMetadata = localizedTitle("admin");
 
 export default async function AdminPage() {
-  await requireAdmin();
+  await requireAdmin("/admin");
   const { t, locale } = await getDictionary();
   const [users, jobs, companies, applications, runs, perSource, companyList, manualList, autoList, discovery] =
     await Promise.all([

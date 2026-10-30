@@ -23,7 +23,7 @@ export const generateMetadata = localizedTitle("digest");
 
 export default async function DigestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await requireUser();
+  const user = await requireUser(`/digest/${id}`);
   const locale = await getLocale();
   const r = reminderStrings(locale);
   const row = await db.digest.findFirst({ where: { id, userId: user.id } });

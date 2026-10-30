@@ -45,7 +45,7 @@ export default async function OnboardingPage({
 }: {
   searchParams: Promise<{ step?: string; cv?: string }>;
 }) {
-  const user = await requireUser();
+  const user = await requireUser("/onboarding");
   const { t } = await getDictionary();
   const p = t.pv2;
   const o = p.onboarding;
