@@ -231,7 +231,7 @@ describe("drafts", () => {
     store.llm = {
       name: "gemini",
       complete: async () => {
-        throw new AiLimitError("daily");
+        throw new AiLimitError("user_daily");
       },
     };
     expect((await generateDraft("u1", facts, "en", null)).source).toBe("limited");
