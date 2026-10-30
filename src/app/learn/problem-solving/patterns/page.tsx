@@ -5,8 +5,9 @@ import { PROBLEMS } from "@/lib/algo/problems";
 import { FAMILIES, tr } from "@/lib/algo/types";
 import { getLocale } from "@/lib/i18n";
 import { problemSolvingStrings } from "@/lib/i18n/problem-solving";
+import { localizedTitle } from "@/lib/i18n/titles";
 
-export const metadata = { title: "Patterns" };
+export const generateMetadata = localizedTitle("psPatterns");
 
 export default async function PatternsPage() {
   const locale = await getLocale();

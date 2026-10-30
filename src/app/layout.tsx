@@ -14,6 +14,7 @@ import { learningStrings } from "@/lib/i18n/learning";
 import { learningHubStrings } from "@/lib/i18n/learning-hub";
 import { auth } from "@/auth";
 import { cn } from "@/lib/utils";
+import { siteUrl } from "@/lib/notifications/config";
 import "./globals.css";
 
 const body = Assistant({ subsets: ["hebrew", "latin"], variable: "--font-body", display: "swap" });
@@ -25,9 +26,19 @@ const display = Frank_Ruhl_Libre({
 });
 const data = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-data", display: "swap" });
 
+const DESCRIPTION = "משרות הייטק בישראל עם ציון התאמה מוסבר, מעקב מועמדויות והצעות AI לקורות החיים.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: { default: "job-hunt — משרות הייטק בישראל", template: "%s · job-hunt" },
-  description: "Tech jobs in Israel with an explainable match score and AI CV suggestions.",
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: "job-hunt",
+    locale: "he_IL",
+    title: "job-hunt — משרות הייטק בישראל",
+    description: DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {

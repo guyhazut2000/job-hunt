@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import type { Company, Job } from "@prisma/client";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
@@ -58,9 +57,10 @@ import { formatDateTime } from "@/lib/format";
 import { SaveSearchButton } from "@/components/notifications/SaveSearchButton";
 import { notificationStrings } from "@/lib/i18n/notifications";
 import { alertFilters, defaultSearchName } from "@/lib/notifications/saved-search";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Jobs" };
+export const generateMetadata = localizedTitle("jobs");
 
 export default async function JobsPage({
   searchParams,

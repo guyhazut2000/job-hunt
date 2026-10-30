@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { BarChart3, Briefcase, KanbanSquare, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,9 +15,10 @@ import {
   type StatsApp,
 } from "@/lib/stats/search-stats";
 import { cn } from "@/lib/utils";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Search statistics" };
+export const generateMetadata = localizedTitle("stats");
 
 const PROVIDERS: Record<string, string> = {
   GREENHOUSE: "Greenhouse",

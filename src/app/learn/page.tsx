@@ -27,9 +27,10 @@ import { hasScorableProfile, toCandidate } from "@/lib/profile/score";
 import { cn } from "@/lib/utils";
 import { conceptStrings } from "@/lib/i18n/concepts";
 import { interviewStrings } from "@/lib/i18n/interview";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Learn" };
+export const generateMetadata = localizedTitle("learn");
 
 const SCORE_SELECT = { techStack: true, roleCategory: true, seniority: true, location: true, workMode: true } as const;
 /** Jobs sampled for "recommended for you" impact (newest active). Bounded to keep the page fast. */

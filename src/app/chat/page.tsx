@@ -3,8 +3,9 @@ import { auth } from "@/auth";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { getDictionary } from "@/lib/i18n";
 import { chatStrings } from "@/lib/i18n/chat";
+import { localizedTitle } from "@/lib/i18n/titles";
 
-export const metadata = { title: "Assistant" };
+export const generateMetadata = localizedTitle("chat");
 
 export default async function ChatPage({ searchParams }: { searchParams: Promise<{ thread?: string | string[] }> }) {
   const [{ locale }, session, sp] = await Promise.all([getDictionary(), auth(), searchParams]);

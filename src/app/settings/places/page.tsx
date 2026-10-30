@@ -8,9 +8,10 @@ import { db } from "@/lib/db";
 import { getLocale } from "@/lib/i18n";
 import { jobsMapStrings } from "@/lib/i18n/jobs-map";
 import { requireUser } from "@/lib/session";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Saved places" };
+export const generateMetadata = localizedTitle("places");
 
 export default async function PlacesSettingsPage() {
   const user = await requireUser();

@@ -25,9 +25,10 @@ import { formatInterviewTime } from "@/lib/notifications/interviews";
 import { toIsraelLocalInput } from "@/lib/notifications/israel-time";
 import { getPrefs } from "@/lib/notifications/prefs";
 import { requireUser } from "@/lib/session";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Dashboard" };
+export const generateMetadata = localizedTitle("dashboard");
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ followup?: string }> }) {
   const user = await requireUser();

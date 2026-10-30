@@ -5,8 +5,9 @@ import { COMPLEXITY_TABLE, GUIDE } from "@/lib/algo/checklist";
 import { tr } from "@/lib/algo/types";
 import { getLocale } from "@/lib/i18n";
 import { problemSolvingStrings } from "@/lib/i18n/problem-solving";
+import { localizedTitle } from "@/lib/i18n/titles";
 
-export const metadata = { title: "Problem-solving checklist" };
+export const generateMetadata = localizedTitle("psChecklist");
 
 // Print: hide site chrome so the checklist fits one A4 page.
 const PRINT_CSS = `@media print {

@@ -205,7 +205,7 @@ function RefLink({ kind, n }: { kind: "pull" | "issues"; n: number }) {
       href={`${REPO}/${kind}/${n}`}
       target="_blank"
       rel="noreferrer"
-      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5 font-mono text-xs"
+      className="text-muted-foreground hover:text-foreground inline-flex min-h-6 min-w-6 items-center justify-center gap-0.5 font-mono text-xs"
       dir="ltr"
     >
       #{n}

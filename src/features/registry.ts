@@ -792,6 +792,12 @@ export const FEATURES: Feature[] = [
     routes: ["/"],
     added: "2026-10-27",
     prs: [1, 3],
+    updates: [
+      {
+        date: "2026-10-30",
+        text: "כותרות הלשוניות בדפדפן בעברית (או באנגלית לפי שפת הממשק), תיאור ותצוגה מקדימה בשיתוף קישור, ו-robots/sitemap למנועי חיפוש",
+      },
+    ],
   },
   {
     id: "features-page",
