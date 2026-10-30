@@ -163,7 +163,7 @@ export function digestSections(d: DigestData, locale: Locale): DigestSection[] {
   }));
   const followups = d.followUps.slice(0, ITEMS).map((a) => ({
     text: fill(s.dgFollowLine, { title: a.title, company: a.company, days: a.days }),
-    url: a.jobId ? `/jobs/${a.jobId}` : "/dashboard",
+    url: `/dashboard?followup=${a.id}#app-${a.id}`,
   }));
   const interviews: DigestItem[] = d.interviews.slice(0, ITEMS).map((i) => ({
     text: `${formatInterviewAt(i.at, locale)} — ${i.title} · ${i.company}`,

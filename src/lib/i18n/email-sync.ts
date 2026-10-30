@@ -103,7 +103,13 @@ const he = {
   undoConflict: "המועמדות השתנתה מאז — שנו את הסטטוס ידנית.",
   undoAria: "ביטול העדכון האוטומטי של {company}",
   timeline: "היסטוריית סטטוס",
-  source: { EMAIL_AUTO: "אוטומטי מהמייל", EMAIL_REVIEW: "אושר מהמייל", MANUAL: "ידני" } as Record<string, string>,
+  source: {
+    EMAIL_AUTO: "אוטומטי מהמייל",
+    EMAIL_REVIEW: "אושר מהמייל",
+    MANUAL: "ידני",
+    FOLLOW_UP: "פולואפ ששלחת",
+  } as Record<string, string>,
+  followUpSent: "נשלח פולואפ #{n}",
   created: "נוצרה",
 };
 
@@ -211,7 +217,13 @@ const en: Strings = {
   undoConflict: "The application changed since — change the status manually.",
   undoAria: "Undo the automatic update for {company}",
   timeline: "Status history",
-  source: { EMAIL_AUTO: "Auto from email", EMAIL_REVIEW: "Approved from email", MANUAL: "Manual" },
+  source: {
+    EMAIL_AUTO: "Auto from email",
+    EMAIL_REVIEW: "Approved from email",
+    MANUAL: "Manual",
+    FOLLOW_UP: "Follow-up you sent",
+  },
+  followUpSent: "Follow-up #{n} sent",
   created: "Created",
 };
 

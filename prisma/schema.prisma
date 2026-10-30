@@ -136,6 +136,7 @@ model User {
   concepts             Concept[]
   tailoredCvs          TailoredCv[]
   interviewSessions    InterviewSession[]
+  applicationFollowUps ApplicationFollowUp[]
 }
 
 model Profile {
@@ -254,7 +255,7 @@ model Company {
   /// Hebrew display name for bilingual search and cards ("אינטל" for Intel); see docs/bilingual-search.md.
   nameHe        String?
   /// Extra search aliases in any script (other Hebrew spellings, abbreviations, former names).
-  aliases       String[]           @default([])
+  aliases       String[] @default([])
   /// Where nameHe/aliases came from: "curated", "gemini" (one-time batch, reviewed) or "admin".
   aliasesSource String?
 
@@ -405,7 +406,7 @@ model Job {
   contentHash       String?
   /// Last time a later scan saw one of those fields change, and which ones (saved-job updates, #41).
   contentChangedAt  DateTime?
-  changedFields     String[]        @default([])
+  changedFields     String[]           @default([])
 
   @@unique([source, externalId])
   @@index([roleCategory, seniority])
@@ -424,34 +425,48 @@ model Job {
 }
 
 model Application {
-  id              String                    @id @default(cuid())
-  userId          String
-  user            User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jobId           String?
-  job             Job?                      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  id                   String                    @id @default(cuid())
+  userId               String
+  user                 User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId                String?
+  job                  Job?                      @relation(fields: [jobId], references: [id], onDelete: SetNull)
   // For applications tracked manually (jobs found outside the platform)
-  title           String
-  company         String
-  url             String?
-  status          ApplicationStatus         @default(SAVED)
-  notes           String?
-  appliedAt       DateTime?
+  title                String
+  company              String
+  url                  String?
+  status               ApplicationStatus         @default(SAVED)
+  notes                String?
+  appliedAt            DateTime?
   // How it got onto the board; EMAIL = detected by email sync (see emailMessageId)
-  source          ApplicationSource         @default(APP)
-  emailMessageId  String?
+  source               ApplicationSource         @default(APP)
+  emailMessageId       String?
   /// Hiring-process stage the user marked as current (a STAGE_KINDS key, see src/lib/hiring/kinds.ts).
-  currentStage    String?
-  currentStageAt  DateTime?
+  currentStage         String?
+  currentStageAt       DateTime?
   /// When the status last changed (set by every status update; null for rows from before it existed).
-  statusChangedAt DateTime?
+  statusChangedAt      DateTime?
   /// Next scheduled interview (reminders ~24h and ~2h before) and a free-text note (link, place, who).
-  interviewAt     DateTime?
-  interviewNote   String?
-  createdAt       DateTime                  @default(now())
-  updatedAt       DateTime                  @updatedAt
-  statusChanges   ApplicationStatusChange[]
-  tailoredCvs     TailoredCv[]
-  interviews      InterviewSession[]
+  interviewAt          DateTime?
+  interviewNote        String?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  statusChanges        ApplicationStatusChange[]
+  tailoredCvs          TailoredCv[]
+  interviews           InterviewSession[]
+  /// Follow-up emails the user marked as sent (max 2; see src/lib/followup/timing.ts).
+  followUpCount        Int                       @default(0)
+  lastFollowUpAt       DateTime?
+  /// "Remind me later": no follow-up reminder before this moment.
+  followUpSnoozedUntil DateTime?
+  /// "Don't remind me" for this application (e.g. withdrew, or contacted another way).
+  followUpOff          Boolean                   @default(false)
+  /// Marked "no response / ghosted" — stops follow-up reminders; status is left as is.
+  noResponseAt         DateTime?
+  /// Recipient for the follow-up draft (typed by the user or taken from the Gmail scan).
+  followUpTo           String?
+  /// FollowUpDraft JSON (src/lib/followup/types.ts) for the current round — generated once, then edited.
+  followUpDraft        Json?
+  followUps            ApplicationFollowUp[]
 
   @@unique([userId, jobId])
   @@index([userId, status])
@@ -1184,7 +1199,7 @@ model NotificationPreference {
   /// Also quiet from Friday quietStartShabbat (16:00) to Saturday night (20:00).
   quietShabbat        Boolean   @default(false)
   followUpEnabled     Boolean   @default(true)
-  followUpDays        Int       @default(7)
+  followUpDays        Int       @default(10)
   /// Per-kind overrides: { "JOB_MATCH": { "push": false, "telegram": true }, ... }. Missing = default on.
   channels            Json      @default("{}")
   /// Per-kind delivery for push/Telegram: { "JOB_MATCH": "digest", ... }. Missing = "instant".
@@ -1474,4 +1489,25 @@ model InterviewMessage {
   createdAt     DateTime         @default(now())
 
   @@index([sessionId, createdAt])
+}
+
+/// A follow-up email the user sent HIMSELF (the app never sends mail) and marked as sent.
+/// Shown in the application's status timeline; resets the follow-up timer.
+model ApplicationFollowUp {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  /// 1 or 2
+  round         Int
+  /// "he" | "en"
+  language      String
+  subject       String?
+  /// Where the draft came from: ai | template | limited | edited
+  source        String?
+  sentAt        DateTime    @default(now())
+
+  @@unique([applicationId, round])
+  @@index([userId, sentAt])
 }
