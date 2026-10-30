@@ -125,7 +125,13 @@ export default async function InterviewSessionPage({
           {done && (s.jobId || s.applicationId) && (
             <div className="flex flex-col gap-2" data-testid="interview-again">
               <p className="text-sm font-semibold">{t.again}</p>
-              <StartForm preset={{ job: s.jobId, app: s.applicationId }} defaultMode={mode} defaultLang={lang} compact t={t} />
+              <StartForm
+                preset={{ job: s.jobId, app: s.applicationId }}
+                defaultMode={mode}
+                defaultLang={lang}
+                compact
+                t={t}
+              />
             </div>
           )}
           <div className="flex flex-col gap-1">
