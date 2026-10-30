@@ -13,6 +13,7 @@ import { matchCompanies, rankJob, type CompanyLike } from "@/lib/jobs/search";
 import { planGaps } from "@/lib/learning/graph";
 import { hasScorableProfile, scoreMatch, toCandidate, type Candidate } from "@/lib/profile/score";
 import { parseSearchQuery } from "@/lib/search/query";
+import { loadCompanyLexicon } from "@/lib/search/lexicon-server";
 import type { ChatJobCard, CompanyInfoOutput, ExplainMatchOutput, SearchJobsOutput } from "./types";
 
 /**
@@ -116,7 +117,9 @@ async function loadCandidate(userId: string): Promise<Candidate | null> {
 }
 
 async function allCompanies(): Promise<(CompanyLike & { slug: string })[]> {
-  return db.company.findMany({ select: { id: true, slug: true, name: true, website: true, industry: true } });
+  return db.company.findMany({
+    select: { id: true, slug: true, name: true, website: true, industry: true, nameHe: true, aliases: true },
+  });
 }
 
 /** A city / place name → point (offline gazetteer; no network). */
@@ -150,14 +153,18 @@ async function originFor(ctx: ChatContext, from: string | undefined) {
 export async function searchJobs(input: SearchJobsInput, ctx: ChatContext): Promise<SearchJobsOutput> {
   const limit = Math.min(Math.max(input.limit ?? 5, 1), CHAT_MAX_JOBS);
   const q = clip(input.query, 100) || undefined;
-  const terms = parseSearchQuery(q);
-  const companies = await allCompanies();
+  const [companies, lexicon] = await Promise.all([allCompanies(), loadCompanyLexicon()]);
+  const terms = parseSearchQuery(q, { companies: lexicon });
   const companyMatches = terms.length ? matchCompanies(terms, companies) : undefined;
 
   let companyIds: string[] | undefined;
   let companySlugs: string[] = [];
   if (input.company?.trim()) {
-    const ids = new Set(Object.values(matchCompanies(parseSearchQuery(clip(input.company, 80)), companies)).flat());
+    const ids = new Set(
+      Object.values(
+        matchCompanies(parseSearchQuery(clip(input.company, 80), { companies: lexicon }), companies),
+      ).flat(),
+    );
     const hit = companies.filter((c) => ids.has(c.id));
     if (!hit.length) return emptySearch(input, { unknownCompany: clip(input.company, 80) });
     companyIds = hit.map((c) => c.id);
@@ -176,7 +183,7 @@ export async function searchJobs(input: SearchJobsInput, ctx: ChatContext): Prom
     hide: [],
     page: 1,
   };
-  const where = filtersToWhere(filters, { userId: ctx.userId, companyMatches });
+  const where = filtersToWhere(filters, { userId: ctx.userId, companyMatches, terms });
   const and: Prisma.JobWhereInput[] = where.AND ? (Array.isArray(where.AND) ? where.AND : [where.AND]) : [];
   if (companyIds) and.push({ companyId: { in: companyIds } });
   const city = placeFromText(input.city);
@@ -348,12 +355,12 @@ export async function explainMatch(
 /** Resolve a company by slug or (fuzzy) name; the one with the most open jobs wins among several hits. */
 async function findCompany(query: string) {
   const q = clip(query, 80);
-  const companies = await allCompanies();
+  const [companies, lexicon] = await Promise.all([allCompanies(), loadCompanyLexicon()]);
   const lower = q.toLowerCase();
   const exact = companies.filter((c) => c.slug === lower || c.name.toLowerCase() === lower);
   const ids = exact.length
     ? exact.map((c) => c.id)
-    : [...new Set(Object.values(matchCompanies(parseSearchQuery(q), companies)).flat())];
+    : [...new Set(Object.values(matchCompanies(parseSearchQuery(q, { companies: lexicon }), companies)).flat())];
   if (!ids.length) return { company: null, alternatives: [] };
   const counts = await db.job.groupBy({
     by: ["companyId"],

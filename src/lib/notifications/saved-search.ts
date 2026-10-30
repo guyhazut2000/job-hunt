@@ -6,6 +6,7 @@ import { filtersToQuery, filtersToWhere, parseFilters, type JobFilters } from "@
 import { matchCompanies } from "@/lib/jobs/search";
 import { hasScorableProfile, scoreMatch, toCandidate } from "@/lib/profile/score";
 import { parseSearchQuery } from "@/lib/search/query";
+import { loadCompanyLexicon } from "@/lib/search/lexicon-server";
 import { notify } from "./create";
 
 export const MAX_SAVED_SEARCHES = 20;
@@ -102,13 +103,16 @@ export async function runSavedSearchAlerts(now = new Date()): Promise<SavedSearc
     await db.savedSearch.updateMany({ where: { id: { in: searches.map((s) => s.id) } }, data: { lastCheckedAt: now } });
     return summary;
   }
-  const companies = await db.company.findMany({ select: { id: true, slug: true, name: true, website: true } });
+  const [companies, lexicon] = await Promise.all([
+    db.company.findMany({ select: { id: true, slug: true, name: true, website: true, nameHe: true, aliases: true } }),
+    loadCompanyLexicon(),
+  ]);
 
   for (const s of searches) {
     const f = parseStoredQuery(s.query);
-    const terms = parseSearchQuery(f.q);
+    const terms = parseSearchQuery(f.q, { companies: lexicon });
     const companyMatches = terms.length ? matchCompanies(terms, companies) : undefined;
-    const where = filtersToWhere(f, { userId: s.userId, companyMatches, now });
+    const where = filtersToWhere(f, { userId: s.userId, companyMatches, terms, now });
     let jobs = await db.job.findMany({
       where: { AND: [where, { createdAt: { gt: s.lastCheckedAt, lte: now } }] },
       include: { company: true },

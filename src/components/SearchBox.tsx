@@ -4,7 +4,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { Building2, Loader2, Search, Sparkles, X } from "lucide-react";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
-import { normalizeSearchText } from "@/lib/search/query";
+import { swapLayout } from "@/lib/search/layout";
+import { foldFinals, normalizeSearchText } from "@/lib/search/text";
 import { cn } from "@/lib/utils";
 
 export interface SearchSuggestion {
@@ -14,6 +15,8 @@ export interface SearchSuggestion {
   params: Record<string, string>;
   /** Extra text to match on (aliases, domain). */
   keywords?: string;
+  /** Second name shown next to the label (e.g. the company's Hebrew name). */
+  secondary?: string;
 }
 
 export interface SearchBoxStrings {
@@ -118,13 +121,19 @@ export function SearchBox({
   }, []);
 
   const matches = useMemo(() => {
-    const q = normalizeSearchText(value);
+    const fold = (v: string) => foldFinals(normalizeSearchText(v));
+    const q = fold(value);
     if (q.length < 2 || !suggestions.length) return [];
+    // Also try the text as if typed on the other keyboard layout (thbyk → אינטל, ןמאקך → intel).
+    const swapped = swapLayout(value);
+    const qs = swapped ? [q, fold(swapped)] : [q];
     const scored = suggestions
       .map((sg) => {
-        const label = normalizeSearchText(sg.label);
-        const extra = sg.keywords ? normalizeSearchText(sg.keywords) : "";
-        const rank = label.startsWith(q) ? 0 : label.includes(q) ? 1 : extra.includes(q) ? 2 : -1;
+        const label = fold(sg.label);
+        const extra = fold(`${sg.secondary ?? ""} ${sg.keywords ?? ""}`);
+        const rankOf = (x: string) => (label.startsWith(x) ? 0 : label.includes(x) ? 1 : extra.includes(x) ? 2 : -1);
+        const ranks = qs.map(rankOf).filter((r) => r >= 0);
+        const rank = ranks.length ? Math.min(...ranks) : -1;
         return { sg, rank };
       })
       .filter((x) => x.rank >= 0)
@@ -306,6 +315,11 @@ export function SearchBox({
                 <span dir="auto" className="truncate font-medium">
                   {sg.label}
                 </span>
+                {sg.secondary && sg.secondary !== sg.label && (
+                  <span dir="auto" className="text-muted-foreground truncate text-xs">
+                    {sg.secondary}
+                  </span>
+                )}
               </div>
             </li>
           );

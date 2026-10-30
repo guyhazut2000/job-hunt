@@ -24,6 +24,7 @@ const en = {
   clearSearch: "Clear search",
   clearFilters: "Clear all filters",
   resultsFor: "for “{q}”",
+  alsoShowing: "Also showing results for {q}",
   companiesFound: "companies",
 };
 
@@ -52,6 +53,7 @@ const he: SearchStrings = {
   clearSearch: "ניקוי החיפוש",
   clearFilters: "ניקוי כל הסינונים",
   resultsFor: "עבור „{q}”",
+  alsoShowing: "מציג גם תוצאות עבור {q}",
   companiesFound: "חברות",
 };
 

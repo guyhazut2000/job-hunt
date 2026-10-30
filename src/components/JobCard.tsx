@@ -45,6 +45,11 @@ export function JobCard({
           >
             <TruncatedText text={job.company.name} highlight={highlight} />
           </Link>
+          {job.company.nameHe && job.company.nameHe !== job.company.name && (
+            <span dir="rtl" className="hidden min-w-0 truncate text-xs sm:inline" data-testid="company-name-he">
+              {job.company.nameHe}
+            </span>
+          )}
           <span aria-hidden>·</span>
           <time dateTime={job.postedAt.toISOString()} className="shrink-0 font-mono text-xs">
             {formatAge(job.postedAt, t.dateLocale)}

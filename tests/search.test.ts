@@ -42,7 +42,9 @@ describe("search: query parsing", () => {
   });
   it("keeps quoted phrases and known multi-word Hebrew phrases together", () => {
     expect(raws('"site reliability" aws')).toEqual(["site reliability", "aws"]);
-    expect(raws("דבאופס בתל אביב")).toEqual(["תל אביב", "דבאופס"]);
+    // terms keep their typed order and form; the prefix-stripped phrase is a variant
+    expect(raws("דבאופס בתל אביב")).toEqual(["דבאופס", "בתל אביב"]);
+    expect(variants("דבאופס בתל אביב")).toEqual(expect.arrayContaining(["תל אביב", "tel aviv"]));
   });
   it("expands Hebrew roles and cities to their English equivalents", () => {
     expect(variants("דבאופס")).toContain("devops");

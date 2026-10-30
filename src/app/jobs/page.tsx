@@ -33,9 +33,12 @@ import {
 import { splitLocations } from "@/lib/jobs/facets";
 import { DOMAIN_LABELS, type JobDomain } from "@/lib/jobs/domains";
 import { matchCompanies, rankJob } from "@/lib/jobs/search";
-import { highlightTerms, parseSearchQuery } from "@/lib/search/query";
+import { expansionLabels, highlightTerms, parseSearchQuery } from "@/lib/search/query";
+import { loadCompanyLexicon } from "@/lib/search/lexicon-server";
+import { companyNameForms } from "@/lib/search/lexicon";
 import { fillQ, searchStrings } from "@/lib/i18n/search";
 import { SearchBox, type SearchSuggestion } from "@/components/SearchBox";
+import { SearchExpansionHint } from "@/components/SearchExpansionHint";
 import { List, Map as MapIcon } from "lucide-react";
 import { CommuteBar } from "@/components/map/CommuteBar";
 import { JobsMap } from "@/components/map/JobsMap";
@@ -90,7 +93,9 @@ export default async function JobsPage({
   const candidate = hasScorableProfile(profile) ? toCandidate(profile) : null;
   const hasProfile = !!candidate;
   const sort = effectiveSort(filters, hasProfile);
-  const terms = parseSearchQuery(filters.q);
+  // Bilingual search: company names/aliases (אינטל ↔ Intel), glossary, keyboard-layout fixes.
+  const terms = filters.q ? parseSearchQuery(filters.q, { companies: await loadCompanyLexicon() }) : [];
+  const alsoShowing = expansionLabels(terms);
   const href = (f: JobFilters) => `/jobs${filtersToQuery(f)}`;
 
   // Facet counts are over all open roles (cheap: a handful of grouped queries on ~600 rows).
@@ -109,11 +114,11 @@ export default async function JobsPage({
   ]);
   const companyRows = await db.company.findMany({
     where: { id: { in: companyG.map((c) => c.companyId) } },
-    select: { id: true, slug: true, name: true, website: true },
+    select: { id: true, slug: true, name: true, website: true, nameHe: true, aliases: true },
   });
   // Company names/domains are resolved to ids up front so the text search stays index-friendly.
   const companyMatches = terms.length ? matchCompanies(terms, companyRows) : undefined;
-  const baseWhere = filtersToWhere(filters, { userId, companyMatches });
+  const baseWhere = filtersToWhere(filters, { userId, companyMatches, terms });
   const departure = parseDeparture(filters.dep);
   const commuteOpts = origin ? { origin: origin.point, departure } : null;
 
@@ -146,7 +151,16 @@ export default async function JobsPage({
     workMode: count(modeG, "workMode"),
     cities: splitLocations(locRows.map((r) => r.location)).slice(0, 15),
     companies: companyRows
-      .map((c) => ({ slug: c.slug, name: c.name, count: companyCount[c.id] ?? 0 }))
+      .map((c) => {
+        const forms = companyNameForms(c);
+        return {
+          slug: c.slug,
+          name: c.name,
+          count: companyCount[c.id] ?? 0,
+          nameHe: forms.nameHe,
+          keywords: forms.aliases.join(" "),
+        };
+      })
       .sort((a, b) => a.name.localeCompare(b.name, "en")),
   };
 
@@ -317,7 +331,13 @@ export default async function JobsPage({
 
   const formProps = { t, s, filters, facets, hasProfile, signedIn: !!userId, clearHref };
   const suggestions: SearchSuggestion[] = [
-    ...facets.companies.map((c) => ({ kind: "company" as const, label: c.name, params: { company: c.slug } })),
+    ...facets.companies.map((c) => ({
+      kind: "company" as const,
+      label: c.name,
+      secondary: c.nameHe ?? undefined,
+      keywords: c.keywords,
+      params: { company: c.slug },
+    })),
     ...techRows.map((r) => ({ kind: "skill" as const, label: r.tag, params: { tech: r.tag } })),
   ];
   const clearSearchHref = href({ ...filters, q: undefined, page: 1 });
@@ -373,6 +393,7 @@ export default async function JobsPage({
         </header>
 
         <SearchBox s={ss.jobs} suggestions={suggestions} testId="jobs-search" />
+        {filters.q && <SearchExpansionHint labels={alsoShowing} template={ss.alsoShowing} />}
 
         <div className="flex flex-wrap items-center gap-2">
           <FilterSheet label={t.ui.filters} count={nFilters}>

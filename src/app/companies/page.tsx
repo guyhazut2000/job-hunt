@@ -19,7 +19,9 @@ import { linkedinStrings } from "@/lib/i18n/linkedin";
 import { BackToTop } from "@/components/BackToTop";
 import { cn } from "@/lib/utils";
 import { companyMatchesTerms } from "@/lib/companies/search";
-import { highlightTerms, MAX_QUERY_LENGTH, parseSearchQuery } from "@/lib/search/query";
+import { highlightTerms, MAX_QUERY_LENGTH, parseSearchQuery, expansionLabels } from "@/lib/search/query";
+import { loadCompanyLexicon } from "@/lib/search/lexicon-server";
+import { SearchExpansionHint } from "@/components/SearchExpansionHint";
 import { fillQ, searchStrings } from "@/lib/i18n/search";
 import { SearchBox } from "@/components/SearchBox";
 import { SuggestCompanyForm } from "@/components/SuggestCompanyForm";
@@ -47,7 +49,9 @@ export default async function CompaniesPage({
   const filter = parseCompanyFilter(sp.sync);
   const ss = searchStrings(locale);
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.trim().slice(0, MAX_QUERY_LENGTH) || undefined;
-  const terms = parseSearchQuery(q);
+  // Bilingual search: אינטל ↔ Intel (company aliases), glossary, keyboard-layout fixes.
+  const terms = q ? parseSearchQuery(q, { companies: await loadCompanyLexicon() }) : [];
+  const alsoShowing = expansionLabels(terms);
   const marks = highlightTerms(terms);
   const everything = await db.company.findMany({
     include: { _count: { select: { jobs: { where: { isActive: true } } } } },
@@ -141,6 +145,7 @@ export default async function CompaniesPage({
           <span dir="auto">{fillQ(ss.resultsFor, q)}</span>
         </p>
       )}
+      {q && <SearchExpansionHint labels={alsoShowing} template={ss.alsoShowing} />}
 
       {groups.length === 0 &&
         (q ? (
@@ -251,6 +256,15 @@ export default async function CompaniesPage({
                               lines={2}
                               className="font-heading group-hover:text-primary text-lg leading-tight font-bold"
                             />
+                            {c.nameHe && c.nameHe !== c.name && (
+                              <span
+                                dir="rtl"
+                                className="text-muted-foreground truncate text-sm"
+                                data-testid="company-name-he"
+                              >
+                                {c.nameHe}
+                              </span>
+                            )}
                             {meta && (
                               <TruncatedText
                                 text={meta}

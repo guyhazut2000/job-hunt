@@ -1,6 +1,6 @@
 import type { EmploymentType, JobLevel, Prisma, Seniority, WorkMode } from "@prisma/client";
 import { ROLE_CATEGORIES, SENIORITIES, WORK_MODES } from "../taxonomy";
-import { MAX_QUERY_LENGTH, parseSearchQuery } from "../search/query";
+import { MAX_QUERY_LENGTH, parseSearchQuery, type SearchTerm } from "../search/query";
 import { EMPLOYMENT_TYPES, JOB_FUNCTIONS, JOB_LEVELS } from "./classify";
 import { JOB_DOMAINS } from "./domains";
 import { MAX_COMMUTE_OPTIONS } from "../commute/filter";
@@ -169,6 +169,11 @@ export interface WhereContext {
   userId?: string;
   /** Company ids per search term, pre-resolved so the text search stays index-friendly. */
   companyMatches?: CompanyMatches;
+  /**
+   * The parsed query, when the caller already expanded it with the company lexicon (bilingual
+   * aliases). Must be the same terms `companyMatches` was built from.
+   */
+  terms?: SearchTerm[];
 }
 
 export function filtersToWhere(f: JobFilters, ctx: WhereContext = {}): Prisma.JobWhereInput {
@@ -194,7 +199,7 @@ export function filtersToWhere(f: JobFilters, ctx: WhereContext = {}): Prisma.Jo
       none: hideAll ? { userId: ctx.userId } : { userId: ctx.userId, status: { in: [...APPLIED_STATUSES] } },
     };
   }
-  if (f.q) and.push(...searchWhere(parseSearchQuery(f.q), ctx.companyMatches));
+  if (f.q) and.push(...searchWhere(ctx.terms ?? parseSearchQuery(f.q), ctx.companyMatches));
   if (and.length) where.AND = and;
   return where;
 }
