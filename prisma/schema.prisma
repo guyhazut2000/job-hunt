@@ -251,6 +251,13 @@ model Company {
   officeLng     Float?
   officeCity    String?
 
+  /// Hebrew display name for bilingual search and cards ("אינטל" for Intel); see docs/bilingual-search.md.
+  nameHe        String?
+  /// Extra search aliases in any script (other Hebrew spellings, abbreviations, former names).
+  aliases       String[]           @default([])
+  /// Where nameHe/aliases came from: "curated", "gemini" (one-time batch, reviewed) or "admin".
+  aliasesSource String?
+
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Company_name_trgm_idx")
 }
 

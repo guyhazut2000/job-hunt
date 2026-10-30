@@ -38,7 +38,13 @@ export const FEATURES: Feature[] = [
     href: "/jobs",
     added: "2026-10-28",
     prs: [23],
-    keywords: ["search", "q"],
+    keywords: ["search", "q", "bilingual", "עברית", "אנגלית", "aliases"],
+    updates: [
+      {
+        date: "2026-10-30",
+        text: "חיפוש דו-לשוני: אינטל ו-Intel (וגם מיקרוסופט/Microsoft, חיפה/Haifa, ריאקט/React) מחזירים אותן תוצאות, כולל תיקון מקלדת בשפה הלא נכונה (thbyk → אינטל), שמות בעברית ליד שם החברה, והודעה 'מציג גם תוצאות עבור…'. עובד בעמוד המשרות, במפה, בחברות, בצ'אט ובחיפושים שמורים.",
+      },
+    ],
   },
   {
     id: "jobs-filters",

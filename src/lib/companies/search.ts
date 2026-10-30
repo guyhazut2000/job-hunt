@@ -10,13 +10,19 @@ export interface SearchableCompany {
   hqLocation?: string | null;
   atsProvider?: string | null;
   addedVia?: string | null;
+  /** Hebrew name and aliases (bilingual search). */
+  nameHe?: string | null;
+  aliases?: string[] | null;
+  id?: string;
 }
 
-/** Everything a company can be found by: name, slug, website/careers domains, field, HQ and ATS. */
+/** Everything a company can be found by: name, Hebrew name/aliases, slug, website/careers domains, field, HQ and ATS. */
 export function companySearchText(c: SearchableCompany): string {
   return normalizeSearchText(
     [
       c.name,
+      c.nameHe,
+      ...(c.aliases ?? []),
       c.slug?.replace(/-/g, " "),
       domainOf(c.website),
       domainOf(c.careersUrl),
@@ -33,5 +39,5 @@ export function companySearchText(c: SearchableCompany): string {
 export function companyMatchesTerms(c: SearchableCompany, terms: SearchTerm[]): boolean {
   if (!terms.length) return true;
   const hay = companySearchText(c);
-  return terms.every((t) => t.variants.some((v) => hay.includes(v)));
+  return terms.every((t) => (c.id && t.companyIds?.includes(c.id)) || t.variants.some((v) => hay.includes(v)));
 }

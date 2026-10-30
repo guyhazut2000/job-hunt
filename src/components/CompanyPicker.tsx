@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
+import { swapLayout } from "@/lib/search/layout";
+import { foldFinals, normalizeSearchText } from "@/lib/search/text";
 
 const PAGE = 8;
 
@@ -9,7 +11,13 @@ export interface CompanyOption {
   slug: string;
   name: string;
   count: number;
+  /** Hebrew name, shown next to the name and searchable (אינטל finds Intel). */
+  nameHe?: string | null;
+  /** Other names to match on (aliases). */
+  keywords?: string;
 }
+
+const fold = (v: string) => foldFinals(normalizeSearchText(v));
 
 /** Searchable multi-select of companies. Plain checkboxes named `company`, so it submits with the GET form. */
 export function CompanyPicker({
@@ -34,9 +42,16 @@ export function CompanyPicker({
   const [shown, setShown] = useState(PAGE);
   const [checked, setChecked] = useState(() => new Set(selected));
   const list = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = fold(query);
+    // Also the text as if typed on the other keyboard layout (thbyk → אינטל).
+    const swapped = q ? swapLayout(query) : null;
+    const qs = swapped ? [q, fold(swapped)] : [q];
     return companies
-      .filter((c) => !q || c.name.toLowerCase().includes(q) || c.slug.includes(q))
+      .filter((c) => {
+        if (!q) return true;
+        const hay = fold(`${c.name} ${c.slug} ${c.nameHe ?? ""} ${c.keywords ?? ""}`);
+        return qs.some((x) => hay.includes(x));
+      })
       .sort((a, b) => Number(checked.has(b.slug)) - Number(checked.has(a.slug)) || a.name.localeCompare(b.name, "en"));
     // Keep the order stable while the user ticks boxes; re-sort only when the query changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,7 +98,14 @@ export function CompanyPicker({
                 }
                 className="accent-primary size-4 shrink-0"
               />
-              <span className="min-w-0 flex-1 truncate">{c.name}</span>
+              <span className="min-w-0 flex-1 truncate">
+                {c.name}
+                {c.nameHe && c.nameHe !== c.name && (
+                  <span dir="rtl" className="text-muted-foreground ms-1.5 text-xs">
+                    {c.nameHe}
+                  </span>
+                )}
+              </span>
               <span className="text-muted-foreground font-mono text-xs tabular-nums">{c.count}</span>
             </label>
           </li>

@@ -49,6 +49,9 @@ export interface CompanyLike {
   name: string;
   website?: string | null;
   industry?: string | null;
+  /** Hebrew name and aliases (bilingual search). */
+  nameHe?: string | null;
+  aliases?: string[] | null;
 }
 
 /** Hostname without www., e.g. "https://www.monday.com/careers" → "monday.com". */
@@ -61,13 +64,24 @@ export function domainOf(url: string | null | undefined): string | null {
   }
 }
 
-/** Resolve which companies each term names (by name or website domain). Pure; the caller loads companies. */
+/**
+ * Resolve which companies each term names: by name, Hebrew name/aliases or website domain, plus the
+ * companies the bilingual lexicon already recognized. Pure; the caller loads companies.
+ */
 export function matchCompanies(terms: SearchTerm[], companies: CompanyLike[]): CompanyMatches {
   const out: CompanyMatches = {};
   for (const term of terms) {
-    out[term.raw] = companies
-      .filter((c) => termMatches(term, c.name) || termMatches(term, domainOf(c.website)))
-      .map((c) => c.id);
+    const ids = new Set(term.companyIds ?? []);
+    for (const c of companies) {
+      if (
+        termMatches(term, c.name) ||
+        termMatches(term, domainOf(c.website)) ||
+        termMatches(term, c.nameHe) ||
+        (c.aliases ?? []).some((a) => termMatches(term, a))
+      )
+        ids.add(c.id);
+    }
+    out[term.raw] = [...ids];
   }
   return out;
 }

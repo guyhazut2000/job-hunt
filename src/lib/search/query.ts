@@ -1,191 +1,241 @@
 /**
- * Free-text search parsing shared by /jobs and /companies.
+ * Free-text search parsing shared by /jobs, the map, /companies, the assistant and saved searches.
  *
- * - Normalizes case, Latin diacritics (é → e), Hebrew niqqud/cantillation and geresh variants.
- * - Splits into terms (AND); each term carries variants (OR): Hebrew→English synonyms such as
- *   "דבאופס" → devops, "תל אביב" → tel aviv, and the ' / ׳ geresh spellings.
+ * Bilingual (Hebrew ↔ English) by design:
+ * - Normalizes case, Latin diacritics (é → e), Hebrew niqqud, final letters (ךםןףץ), geresh/quotes,
+ *   hyphens and spaces ("צ'ק פוינט" = "צק-פוינט" = "צקפוינט").
+ * - Splits into terms (AND); each term carries variants (OR). A recognized word or phrase brings its
+ *   whole cross-language group: a company's names and aliases ("אינטל" ↔ "Intel"), or a glossary
+ *   entry ("חיפה" ↔ "Haifa", "ריאקט" ↔ "React", "מפתח" → developer).
+ * - Fallbacks: a wrong keyboard layout ("thbyk" → "אינטל"), and a phonetic transliteration match
+ *   for Hebrew spellings of company names that are not in the alias lists ("אינטעל" → Intel).
  * - "Quoted phrases" stay one term.
  */
+import { TECH_KEYWORDS } from "../taxonomy";
+import { GLOSSARY, type GlossaryGroup } from "./glossary";
+import { swapLayout } from "./layout";
+import type { CompanyLexicon, LexiconEntry } from "./lexicon";
+import { phoneticKey } from "./phonetic";
+import { foldKey, hasHebrew, hasLatin, hebrewSkeleton, normalizeSearchText, spellingVariants } from "./text";
+
+export { normalizeSearchText } from "./text";
+
+export type ExpansionReason = "company" | "glossary" | "layout" | "phonetic";
+
+export interface TermExpansion {
+  /** What the query was also searched as, in the other language/layout ("Intel", "אינטל", "Haifa"). */
+  label: string;
+  reason: ExpansionReason;
+}
 
 export interface SearchTerm {
   /** The normalized term as typed (used for highlighting and the "no results for" message). */
   raw: string;
   /** Lower-cased alternatives; a record matches the term when any variant matches. */
   variants: string[];
+  /** Companies the term names (recognized through the company lexicon). */
+  companyIds?: string[];
+  /** Cross-language expansions, for the "also showing results for …" hint. */
+  also?: TermExpansion[];
+}
+
+export interface ParseOptions {
+  /** Company names/aliases; without it only the glossary is used (e.g. client-side). */
+  companies?: CompanyLexicon;
 }
 
 export const MAX_QUERY_LENGTH = 100;
 export const MAX_TERMS = 6;
 
-/** Hebrew (and a few transliterated) search words → the English forms used in most job posts. */
-const SYNONYMS: Record<string, string[]> = {
-  // roles
-  מפתח: ["developer", "engineer"],
-  מפתחת: ["developer", "engineer"],
-  מתכנת: ["developer", "programmer", "engineer"],
-  מתכנתת: ["developer", "programmer", "engineer"],
-  פיתוח: ["developer", "development", "engineer"],
-  מהנדס: ["engineer"],
-  מהנדסת: ["engineer"],
-  הנדסה: ["engineering"],
-  תוכנה: ["software"],
-  דבאופס: ["devops"],
-  "דב אופס": ["devops"],
-  דאטה: ["data"],
-  נתונים: ["data"],
-  אנליסט: ["analyst"],
-  אנליסטית: ["analyst"],
-  "מדען נתונים": ["data scientist"],
-  "בינה מלאכותית": ["ai", "artificial intelligence", "machine learning"],
-  "למידת מכונה": ["machine learning", "ml"],
-  בדיקות: ["qa", "test", "automation"],
-  בודק: ["qa", "tester"],
-  בודקת: ["qa", "tester"],
-  אוטומציה: ["automation"],
-  אבטחה: ["security"],
-  סייבר: ["cyber", "security"],
-  ענן: ["cloud"],
-  תשתיות: ["infrastructure", "platform"],
-  פרונטאנד: ["frontend", "front-end", "front end"],
-  פרונט: ["frontend", "front-end", "front end"],
-  בקאנד: ["backend", "back-end", "back end"],
-  בקנד: ["backend", "back-end", "back end"],
-  פולסטאק: ["full stack", "fullstack", "full-stack"],
-  "פול סטאק": ["full stack", "fullstack", "full-stack"],
-  פולסטק: ["full stack", "fullstack", "full-stack"],
-  מובייל: ["mobile", "ios", "android"],
-  מוצר: ["product"],
-  "מנהל מוצר": ["product manager"],
-  "מנהלת מוצר": ["product manager"],
-  "ניהול מוצר": ["product manager", "product management"],
-  מעצב: ["designer"],
-  מעצבת: ["designer"],
-  עיצוב: ["design"],
-  מכירות: ["sales", "account executive"],
-  שיווק: ["marketing"],
-  תמיכה: ["support"],
-  חומרה: ["hardware"],
-  שבבים: ["chip", "asic", "vlsi", "silicon"],
-  אלגוריתמים: ["algorithm"],
-  מנהל: ["manager"],
-  "ראש צוות": ["team lead", "team leader", "tech lead"],
-  סטודנט: ["student", "intern"],
-  סטודנטית: ["student", "intern"],
-  סטודנטים: ["student", "intern"],
-  התמחות: ["intern", "internship"],
-  "ג'וניור": ["junior", "entry"],
-  גוניור: ["junior", "entry"],
-  סניור: ["senior"],
-  בכיר: ["senior"],
-  בכירה: ["senior"],
-  "משרה חלקית": ["part time", "part-time"],
-  // work mode
-  היברידי: ["hybrid"],
-  היברידית: ["hybrid"],
-  מרחוק: ["remote"],
-  מהבית: ["remote"],
-  // places
-  "תל אביב": ["tel aviv", "tel-aviv", "tlv"],
-  ירושלים: ["jerusalem"],
-  חיפה: ["haifa"],
-  הרצליה: ["herzliya", "herzlia"],
-  רעננה: ["ra'anana", "raanana"],
-  "פתח תקווה": ["petah tikva", "petach tikva", "petah tiqva"],
-  "פתח תקוה": ["petah tikva", "petach tikva", "petah tiqva"],
-  "רמת גן": ["ramat gan"],
-  נתניה: ["netanya"],
-  "באר שבע": ["beer sheva", "be'er sheva", "beersheba"],
-  רחובות: ["rehovot"],
-  יקנעם: ["yokneam", "yoqneam"],
-  "הוד השרון": ["hod hasharon"],
-  "כפר סבא": ["kfar saba"],
-  "ראש העין": ["rosh haayin", "rosh ha'ayin"],
-  מודיעין: ["modiin", "modi'in"],
-  קיסריה: ["caesarea"],
-  "אור יהודה": ["or yehuda"],
-  "בני ברק": ["bnei brak"],
-  חולון: ["holon"],
-  ישראל: ["israel"],
-};
-
-const PHRASES = Object.keys(SYNONYMS)
-  .filter((k) => k.includes(" "))
-  .sort((a, b) => b.length - a.length);
-
-/** One-letter Hebrew prefixes (and, the, in, to, from, that) tried when a word is not a known synonym. */
-const HEBREW_PREFIXES = new Set(["ו", "ה", "ב", "ל", "מ", "ש"]);
-
-/**
- * Canonical text for matching: lower case, no Latin diacritics, no Hebrew niqqud/cantillation,
- * unified quotes/geresh, collapsed whitespace.
- */
-export function normalizeSearchText(input: string): string {
-  return input
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "") // Latin combining diacritics
-    .replace(/[\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7]/g, "") // Hebrew niqqud & cantillation
-    .replace(/[\u05f3\u2018\u2019\u00b4`]/g, "'") // geresh / curly apostrophes
-    .replace(/[\u05f4\u201c\u201d]/g, '"') // gershayim / curly quotes
-    .replace(/\u05be/g, "-") // maqaf
-    .normalize("NFC")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+interface GlossaryHit {
+  group: GlossaryGroup;
+  side: "he" | "en";
 }
+
+const GLOSSARY_INDEX = new Map<string, GlossaryHit[]>();
+let GLOSSARY_MAX_WORDS = 1;
+for (const group of GLOSSARY) {
+  for (const side of ["he", "en"] as const) {
+    for (const m of group[side]) {
+      const k = foldKey(m);
+      const list = GLOSSARY_INDEX.get(k) ?? [];
+      if (!list.some((h) => h.group === group)) list.push({ group, side });
+      GLOSSARY_INDEX.set(k, list);
+      GLOSSARY_MAX_WORDS = Math.max(GLOSSARY_MAX_WORDS, m.split(" ").length);
+    }
+  }
+}
+
+const TECH_KEYS = new Set(Object.keys(TECH_KEYWORDS).map(foldKey));
+
+/** One-letter Hebrew prefixes (and, the, in, to, from, that) tried when a word is not known as-is. */
+const HEBREW_PREFIXES = new Set(["ו", "ה", "ב", "ל", "מ", "ש", "כ"]);
 
 /** Strip punctuation around a token but keep the characters tech names rely on (c++, c#, node.js, .net). */
 function cleanToken(t: string): string {
   return t.replace(/^[^\p{L}\p{N}.#+]+/u, "").replace(/[^\p{L}\p{N}#+]+$/u, "");
 }
 
-const isHebrew = (s: string) => /[\u05d0-\u05ea]/.test(s);
+interface Lookup {
+  /** The phrase as found in the vocabulary (prefix-stripped when needed). */
+  matched: string;
+  glossary: GlossaryHit[];
+  companies: LexiconEntry[];
+}
 
-function variantsFor(token: string): string[] {
-  const out = new Set<string>([token]);
-  const add = (k: string) => (SYNONYMS[k] ?? []).forEach((v) => out.add(v));
-  add(token);
-  // "בתל אביב" / "והייטק": try without a one-letter prefix, only via the synonym table (no blind stripping).
-  if (out.size === 1 && isHebrew(token) && token.length >= 4 && HEBREW_PREFIXES.has(token[0])) {
-    const bare = token.slice(1);
-    if (SYNONYMS[bare]) {
-      out.add(bare);
-      add(bare);
-    }
+function exactLookup(phrase: string, lex?: CompanyLexicon): Lookup | null {
+  const tryKey = (p: string, stripped: boolean): Lookup | null => {
+    const k = foldKey(p);
+    if (k.length < 2) return null;
+    const glossary = GLOSSARY_INDEX.get(k) ?? [];
+    // A stripped prefix only reveals a company when what is left is distinctive ("באינטל", not "שנים").
+    const companies = stripped && k.length < 5 ? [] : (lex?.byKey.get(k) ?? []);
+    return glossary.length || companies.length ? { matched: p, glossary, companies } : null;
+  };
+  const direct = tryKey(phrase, false);
+  if (direct) return direct;
+  if (lex?.common.has(foldKey(phrase))) return null;
+  // "בתל אביב", "והייטק", "באינטל", "ובחיפה": up to two one-letter prefixes.
+  let p = phrase;
+  for (let i = 0; i < 2 && hasHebrew(p[0] ?? "") && foldKey(p).length >= 4 && HEBREW_PREFIXES.has(p[0]); i++) {
+    p = p.slice(1);
+    const hit = tryKey(p, true);
+    if (hit) return hit;
   }
-  // Apostrophe spellings: ג'וניור ↔ ג׳וניור (stored text may use either).
-  for (const v of [...out]) if (v.includes("'")) out.add(v.replace(/'/g, "\u05f3"));
-  return [...out];
+  return null;
+}
+
+/** "אינטעל" vs "אינטל", "מייקרוסופט" vs "מיקרוסופט": equal except one extra א/ע/ו/י. */
+function oneVowelLetterApart(a: string, b: string): boolean {
+  if (Math.abs(a.length - b.length) !== 1) return false;
+  const [long, short] = a.length > b.length ? [a, b] : [b, a];
+  for (let i = 0; i < long.length; i++) {
+    if (long[i] !== short[i]) return "אעוי".includes(long[i]) && long.slice(i + 1) === short.slice(i);
+  }
+  return false;
+}
+
+/**
+ * Spelling/transliteration fallback for Hebrew input: a near spelling of a stored Hebrew name
+ * ("אינטעל" ≈ "אינטל", "סלספורס" ≈ "סיילספורס"), or — for companies with no Hebrew name yet — the
+ * sound of the Latin name. Everyday words are never read as companies.
+ */
+function phoneticLookup(phrase: string, lex?: CompanyLexicon): Lookup | null {
+  if (!lex || !hasHebrew(phrase) || hasLatin(phrase)) return null;
+  if (phrase.split(" ").some((w) => lex.common.has(foldKey(w)))) return null;
+  const k = foldKey(phrase);
+  if (k.length < 5) return null;
+  const skeleton = hebrewSkeleton(k);
+  const found = new Set<LexiconEntry>();
+  for (const h of lex.hebrewNames) {
+    if ((skeleton.length >= 5 && h.skeleton === skeleton) || oneVowelLetterApart(k, h.folded)) found.add(h.entry);
+  }
+  for (const e of lex.byPhonetic.get(phoneticKey(phrase)) ?? []) found.add(e);
+  // Only an unambiguous match counts as a recognized name.
+  return found.size >= 1 && found.size <= 2 ? { matched: phrase, glossary: [], companies: [...found] } : null;
+}
+
+function layoutLookup(rawPhrase: string, lex?: CompanyLexicon): Lookup | null {
+  if (foldKey(rawPhrase).length < 3) return null;
+  const swapped = swapLayout(rawPhrase);
+  if (!swapped) return null;
+  const phrase = swapped.split(" ").map(cleanToken).filter(Boolean).join(" ");
+  if (!phrase) return null;
+  const hit = exactLookup(phrase, lex);
+  if (hit) return hit;
+  // Hebrew keys for an English tech word: "רקשבא" → "react".
+  if (!hasHebrew(phrase) && TECH_KEYS.has(foldKey(phrase))) return { matched: phrase, glossary: [], companies: [] };
+  return null;
+}
+
+function buildTerm(typed: string, hit: Lookup | null, reason: ExpansionReason | null): SearchTerm {
+  const variants = new Set<string>(spellingVariants(typed));
+  const also: TermExpansion[] = [];
+  const addLabel = (label: string | null | undefined, r: ExpansionReason) => {
+    if (!label) return;
+    if (foldKey(label) === foldKey(typed)) return;
+    if (!also.some((a) => foldKey(a.label) === foldKey(label))) also.push({ label, reason: r });
+  };
+  if (hit) {
+    spellingVariants(hit.matched).forEach((v) => variants.add(v));
+    const typedHebrew = hasHebrew(hit.matched);
+    for (const { group, side } of hit.glossary) {
+      const members = side === "he" ? [...group.he, ...group.en, ...(group.heOnly ?? [])] : [...group.en, ...group.he];
+      members.forEach((m) => spellingVariants(m).forEach((v) => variants.add(v)));
+      const other = side === "he" ? (group.en[0] ?? group.heOnly?.[0]) : group.he[0];
+      addLabel(reason === "layout" ? hit.matched : other, reason ?? "glossary");
+    }
+    for (const e of hit.companies) {
+      e.variants.forEach((v) => variants.add(v));
+      variants.add(normalizeSearchText(e.name));
+      const label =
+        reason === "layout" ? (typedHebrew ? (e.nameHe ?? e.name) : e.name) : typedHebrew ? e.name : e.nameHe;
+      addLabel(label, reason ?? "company");
+    }
+    if (!hit.glossary.length && !hit.companies.length) addLabel(hit.matched, reason ?? "layout");
+  }
+  const term: SearchTerm = { raw: typed, variants: [...variants] };
+  if (hit?.companies.length) term.companyIds = [...new Set(hit.companies.map((e) => e.id))];
+  if (also.length) term.also = also;
+  return term;
 }
 
 /** Parse a free-text query into AND-ed terms with OR-ed variants. Returns [] for an empty/blank query. */
-export function parseSearchQuery(q: string | undefined | null): SearchTerm[] {
+export function parseSearchQuery(q: string | undefined | null, opts: ParseOptions = {}): SearchTerm[] {
   if (!q) return [];
+  const lex = opts.companies;
   let text = normalizeSearchText(q.slice(0, MAX_QUERY_LENGTH));
   const terms: SearchTerm[] = [];
-  const push = (raw: string) => {
-    if (!raw || terms.some((t) => t.raw === raw)) return;
-    terms.push({ raw, variants: variantsFor(raw) });
+  const push = (term: SearchTerm) => {
+    if (!term.raw || terms.some((t) => t.raw === term.raw)) return;
+    terms.push(term);
   };
   // "exact phrases"
   text = text.replace(/"([^"]+)"/g, (_, p: string) => {
-    push(p.trim().split(" ").map(cleanToken).filter(Boolean).join(" "));
+    const phrase = p.trim().split(" ").map(cleanToken).filter(Boolean).join(" ");
+    if (phrase) push(buildTerm(phrase, exactLookup(phrase, lex), null));
     return " ";
   });
-  // Known multi-word phrases (Hebrew city names, "מנהל מוצר"…) stay together.
-  for (const p of PHRASES) {
-    const source = `(^|\\s)[והבלמש]?${p}(?=\\s|$)`;
-    if (new RegExp(source).test(text)) {
-      push(p);
-      text = text.replace(new RegExp(source, "g"), " ");
+  const tokens = text.split(" ").filter(Boolean);
+  const maxWords = Math.max(GLOSSARY_MAX_WORDS, lex?.maxWords ?? 1);
+  let i = 0;
+  while (i < tokens.length) {
+    let done = false;
+    const span = Math.min(maxWords, tokens.length - i);
+    const passes: [ExpansionReason | null, (raw: string[], clean: string) => Lookup | null][] = [
+      [null, (_raw, clean) => exactLookup(clean, lex)],
+      ["layout", (raw) => layoutLookup(raw.join(" "), lex)],
+      ["phonetic", (_raw, clean) => phoneticLookup(clean, lex)],
+    ];
+    for (const [reason, lookup] of passes) {
+      for (let n = span; n >= 1 && !done; n--) {
+        const raw = tokens.slice(i, i + n);
+        const cleaned = raw.map(cleanToken);
+        if (cleaned.some((c) => !c)) continue;
+        const clean = cleaned.join(" ");
+        const hit = lookup(raw, clean);
+        if (!hit) continue;
+        push(buildTerm(clean, hit, reason));
+        i += n;
+        done = true;
+      }
+      if (done) break;
     }
-  }
-  for (const tok of text.split(" ")) {
-    const t = cleanToken(tok);
+    if (done) continue;
+    const t = cleanToken(tokens[i]);
+    i++;
     // Single letters are noise ("a", "ו"), except tech names like "c", "r" written with + or #.
     if (t.length < 2 && !/[#+]/.test(t)) continue;
-    push(t);
+    push(buildTerm(t, null, null));
   }
   return terms.slice(0, MAX_TERMS);
+}
+
+/** Labels the query was also searched as (other language / keyboard layout), for the results hint. */
+export function expansionLabels(terms: SearchTerm[], max = 3): string[] {
+  const out: string[] = [];
+  for (const t of terms) for (const a of t.also ?? []) if (!out.includes(a.label)) out.push(a.label);
+  return out.slice(0, max);
 }
 
 /** All strings worth highlighting in results, longest first (so "devops" wins over "dev"). */
