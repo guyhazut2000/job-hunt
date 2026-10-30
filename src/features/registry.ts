@@ -805,6 +805,7 @@ export const FEATURES: Feature[] = [
     status: "live",
     audience: "user",
     routes: ["/cv/tailor", "/cv/tailor/[id]", "/cv/tailor/[id]/print"],
+    href: "/jobs",
     added: "2026-10-30",
     prs: [59],
     issue: 31,
