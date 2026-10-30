@@ -1,5 +1,6 @@
 import type { AtsProvider } from "@prisma/client";
 import { db } from "../db";
+import { changedFields, contentHash } from "../jobs/content-hash";
 import { sleep } from "./http";
 import { getAdapter } from "./registry";
 import { MANUAL_COMPANIES, type ManualCompany } from "../companies/manual";
@@ -156,7 +157,7 @@ export async function ingestCompany(companyId: string, options: IngestOptions = 
       for (const job of jobs) {
         if (seen.has(job.externalId)) continue;
         seen.add(job.externalId);
-        await upsertJob(job, companyId);
+        await upsertJob(job, companyId, known.get(job.externalId));
         if (known.has(job.externalId)) result.updated++;
         else result.created++;
       }
@@ -193,17 +194,29 @@ export async function ingestCompany(companyId: string, options: IngestOptions = 
   return result;
 }
 
+/** Known external ids → their stored content hash (null until first hashed). */
 async function existingIds(source: AtsProvider, ids: string[]) {
-  if (!ids.length) return new Set<string>();
-  const rows = await db.job.findMany({ where: { source, externalId: { in: ids } }, select: { externalId: true } });
-  return new Set(rows.map((r) => r.externalId));
+  if (!ids.length) return new Map<string, string | null>();
+  const rows = await db.job.findMany({
+    where: { source, externalId: { in: ids } },
+    select: { externalId: true, contentHash: true },
+  });
+  return new Map(rows.map((r) => [r.externalId, r.contentHash]));
 }
 
-function upsertJob(job: NormalizedJob, companyId: string) {
+/**
+ * Insert or refresh a posting. The content hash lets a later scan see which fields the employer
+ * edited; a change stamps `contentChangedAt` + `changedFields`, which feeds saved-job updates (#41).
+ * The first hash on an existing row (prev null) is a baseline, not a change.
+ */
+function upsertJob(job: NormalizedJob, companyId: string, prevHash?: string | null) {
+  const hash = contentHash(job);
+  const changed = changedFields(prevHash, hash);
+  const stamp = changed.length ? { contentChangedAt: new Date(), changedFields: changed } : {};
   return db.job.upsert({
     where: { source_externalId: { source: job.source, externalId: job.externalId } },
-    create: { ...job, companyId },
-    update: { ...job, companyId, isActive: true },
+    create: { ...job, companyId, contentHash: hash },
+    update: { ...job, companyId, isActive: true, contentHash: hash, ...stamp },
   });
 }
 

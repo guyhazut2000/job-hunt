@@ -8,7 +8,11 @@ import {
   CalendarClock,
   CheckCheck,
   Clock,
+  FilePenLine,
+  Flag,
   GraduationCap,
+  Mail,
+  Megaphone,
   Newspaper,
   Settings,
   Sparkles,
@@ -21,6 +25,7 @@ import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { getLocale } from "@/lib/i18n";
 import { notificationStrings } from "@/lib/i18n/notifications";
+import { WHATS_NEW_URL } from "@/lib/whats-new";
 import { reminderStrings } from "@/lib/i18n/reminders";
 import { isKind } from "@/lib/notifications/kinds";
 import { requireUser } from "@/lib/session";
@@ -34,10 +39,14 @@ const ICONS: Record<string, LucideIcon> = {
   COMPANY_JOBS: Building2,
   SCAN_FAILED: AlertTriangle,
   SAVED_JOB_CLOSED: XCircle,
+  SAVED_JOB_UPDATED: FilePenLine,
+  STAGE_CHANGE: Flag,
   FOLLOW_UP: Clock,
   INTERVIEW: CalendarClock,
   LEARNING: GraduationCap,
   DIGEST: Newspaper,
+  EMAIL_UPDATE: Mail,
+  WHATS_NEW: Megaphone,
   SYSTEM: Sparkles,
 };
 
@@ -72,6 +81,12 @@ export default async function NotificationsPage() {
               <Link href="/digest">
                 <Newspaper data-icon="inline-start" aria-hidden />
                 {reminderStrings(locale).nav}
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link href={WHATS_NEW_URL}>
+                <Megaphone data-icon="inline-start" aria-hidden />
+                {s.whatsNewNav}
               </Link>
             </Button>
             <Button asChild variant="ghost" size="sm">
