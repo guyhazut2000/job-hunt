@@ -824,13 +824,17 @@ export const FEATURES: Feature[] = [
   {
     id: "search-stats",
     name: "סטטיסטיקה של החיפוש",
-    description: "כמה הגשות הפכו לראיון, באילו חברות ותחומים, ואיפה התהליך נתקע.",
+    description:
+      "משפך הגשה, תגובה, ראיון והצעה; אחוזי תגובה ודחייה, זמן עד תגובה, פילוח לפי חברה, תחום ומקור, איפה התהליך נתקע ומגמה שבועית. כולל סטטוסים שעודכנו אוטומטית מהמייל.",
+    howTo: "נכנסים ל'סטטיסטיקה' מהתפריט או מהלוח. אחוזים מוצגים רק מ-5 הגשות ומעלה, כדי לא להסיק מסקנות ממעט נתונים.",
     category: "applications",
-    status: "planned",
+    status: "live",
     audience: "user",
-    routes: [],
+    routes: ["/stats"],
+    href: "/stats",
     added: "2026-10-30",
-    keywords: ["stats", "funnel"],
+    prs: [65],
+    keywords: ["stats", "funnel", "statistics", "סטטיסטיקה"],
   },
   {
     id: "notifications-rest",
