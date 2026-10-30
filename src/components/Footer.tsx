@@ -9,7 +9,10 @@ export async function Footer() {
         <span>
           © {new Date().getFullYear()} <span dir="ltr">{t.brand}</span> · {t.ui.sources}
         </span>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
+          <Link href="/features" className="hover:text-foreground inline-flex min-h-11 items-center px-2">
+            {t.nav.features}
+          </Link>
           <Link href="/privacy" className="hover:text-foreground inline-flex min-h-11 items-center px-2">
             {t.footer.privacy}
           </Link>

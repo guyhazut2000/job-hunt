@@ -41,6 +41,7 @@ export async function Header() {
           { href: "/chat", label: chatStrings(locale).short, priority: "more" as const },
         ]
       : []),
+    { href: "/features", label: t.nav.features, priority: "more" as const },
     ...(user?.role === "ADMIN" ? [{ href: "/admin", label: t.nav.admin, priority: "more" as const }] : []),
   ];
   return (
