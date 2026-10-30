@@ -130,7 +130,10 @@ export function DocumentPicker({
         </p>
       )}
       {showManageLink && (
-        <Link href="/documents" className="text-primary self-start text-sm font-semibold underline underline-offset-4">
+        <Link
+          href="/profile?tab=documents"
+          className="text-primary self-start text-sm font-semibold underline underline-offset-4"
+        >
           {t.picker.manage}
         </Link>
       )}

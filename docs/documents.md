@@ -1,4 +1,8 @@
-# Documents (`/documents`)
+# Documents (`/profile?tab=documents`)
+
+Profile and documents share one page, `/profile`, with two tabs held in the URL:
+`?tab=profile` (sub-sections `&section=pro|prefs`) and `?tab=documents` (CVs, then the document vault).
+Old links still resolve: `?tab=pro`, `?tab=prefs`, `?tab=cvs`, and `/documents` redirects to the documents tab.
 
 Users keep application documents next to their CVs: transcripts, degree certificates,
 certifications, recommendation letters, portfolios, cover letters and anything else. The future
@@ -19,8 +23,8 @@ apply flow attaches them through one server helper and one picker component.
 | `isDefault`                                                   | one default per (user, type); preselected by the picker                                                                                                                                        |
 | `uploadedAt`                                                  | when the current file version was uploaded (rate limit)                                                                                                                                        |
 
-CVs are unchanged: upload/parse/review keep working through `/profile?tab=cvs`. `/documents` shows
-them read-only as a CV group.
+CVs keep their own upload/parse/review flow, shown first in the documents tab; the vault below
+holds every other document type.
 
 ## Storage
 

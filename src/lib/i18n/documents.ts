@@ -5,7 +5,7 @@ const he = {
   kicker: "תיק מסמכים",
   title: "המסמכים שלי",
   intro: "קורות חיים, גיליונות ציונים, אישורי תואר, הסמכות ומכתבי המלצה — במקום אחד, מוכנים לצירוף להגשות.",
-  nav: "מסמכים",
+  nav: "קורות חיים ומסמכים",
   fromProfile: "גיליונות ציונים, תעודות והסמכות נמצאים ב„המסמכים שלי”",
   types: {
     CV: "קורות חיים",
@@ -106,7 +106,7 @@ const en: typeof he = {
   title: "My documents",
   intro:
     "CVs, transcripts, degree certificates, certifications and recommendation letters — in one place, ready to attach.",
-  nav: "Documents",
+  nav: "CVs & documents",
   fromProfile: "Transcripts, certificates and certifications live in My documents",
   types: {
     CV: "CV",

@@ -115,7 +115,10 @@ export function DocumentsManager({
             <h2 id="g-CV" className="font-heading text-xl font-bold">
               {t.types.CV} <span className="text-muted-foreground font-mono text-sm">{cvsShown.length}</span>
             </h2>
-            <Link href="/profile?tab=cvs" className="text-primary text-sm font-semibold underline underline-offset-4">
+            <Link
+              href="/profile?tab=documents"
+              className="text-primary text-sm font-semibold underline underline-offset-4"
+            >
               {t.manageCvs}
             </Link>
           </div>
