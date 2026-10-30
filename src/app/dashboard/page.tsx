@@ -3,34 +3,41 @@ import Link from "next/link";
 import { addManualApplication } from "@/app/actions";
 import { AutoChangesPanel, type AutoLabels } from "@/components/email/AutoChanges";
 import { ReviewQueue } from "@/components/email/ReviewQueue";
+import { FollowUpRow } from "@/components/followup/FollowUp";
 import { Kanban } from "@/components/Kanban";
 import { ContactList } from "@/components/outreach/ContactList";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { getStatusHistory } from "@/lib/email/history";
 import { getReviewItems } from "@/lib/email/review";
+import { formatAppliedDate } from "@/lib/followup/draft";
+import { emailResponses } from "@/lib/followup/server";
+import { followUpView } from "@/lib/followup/view";
 import { getDictionary } from "@/lib/i18n";
 import { cvTailorStrings } from "@/lib/i18n/cv-tailor";
 import { interviewStrings } from "@/lib/i18n/interview";
 import { emailSyncStrings } from "@/lib/i18n/email-sync";
+import { followUpStrings } from "@/lib/i18n/followup";
 import { jobsMapStrings } from "@/lib/i18n/jobs-map";
 import { reminderStrings } from "@/lib/i18n/reminders";
 import { statsStrings } from "@/lib/i18n/stats";
 import { formatInterviewTime } from "@/lib/notifications/interviews";
 import { toIsraelLocalInput } from "@/lib/notifications/israel-time";
+import { getPrefs } from "@/lib/notifications/prefs";
 import { requireUser } from "@/lib/session";
 import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
 export const generateMetadata = localizedTitle("dashboard");
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ followup?: string }> }) {
   const user = await requireUser("/dashboard");
+  const { followup: openFollowUp } = await searchParams;
   const { t, locale } = await getDictionary();
   const es = emailSyncStrings[locale];
   const ss = statsStrings(locale);
   const ms = jobsMapStrings(locale);
-  const [apps, contacts, review] = await Promise.all([
+  const [apps, contacts, review, prefs] = await Promise.all([
     db.application.findMany({
       where: { userId: user.id },
       orderBy: { updatedAt: "desc" },
@@ -43,6 +50,14 @@ export default async function DashboardPage() {
         status: true,
         interviewAt: true,
         interviewNote: true,
+        appliedAt: true,
+        createdAt: true,
+        statusChangedAt: true,
+        followUpCount: true,
+        lastFollowUpAt: true,
+        followUpSnoozedUntil: true,
+        followUpOff: true,
+        noResponseAt: true,
       },
     }),
     db.contact.findMany({
@@ -54,6 +69,7 @@ export default async function DashboardPage() {
       },
     }),
     getReviewItems(user.id, locale),
+    getPrefs(user.id),
   ]);
   const byJob = new Map<string, { total: number; referred: number }>();
   for (const c of contacts) {
@@ -63,7 +79,13 @@ export default async function DashboardPage() {
     if (c.status === "REFERRED") e.referred++;
     byJob.set(c.jobId, e);
   }
-  const history = await getStatusHistory(user.id, apps, locale);
+  const now = new Date();
+  const [history, replied] = await Promise.all([
+    getStatusHistory(user.id, apps, locale),
+    emailResponses(apps.filter((a) => a.status === "APPLIED")),
+  ]);
+  const fs = followUpStrings(locale);
+  const fmt = (d: Date) => formatAppliedDate(d, locale === "en" ? "en" : "he");
   const autoLabels: AutoLabels = {
     badge: es.autoBadge,
     undo: es.undo,
@@ -75,20 +97,54 @@ export default async function DashboardPage() {
     autoCreated: es.autoCreated,
     autoMoved: es.autoMoved,
     source: es.source,
+    followUpSent: es.followUpSent,
   };
-  const items = apps.map(({ interviewAt, interviewNote, ...a }) => ({
-    ...a,
-    history: history.timeline.get(a.id),
-    auto: history.auto.get(a.id) ?? null,
-    contacts: a.jobId ? byJob.get(a.jobId) : undefined,
-    interview: interviewAt
-      ? {
-          value: toIsraelLocalInput(interviewAt),
-          display: formatInterviewTime(interviewAt, locale),
-          note: interviewNote,
-        }
-      : null,
-  }));
+  const items = apps.map(
+    ({
+      interviewAt,
+      interviewNote,
+      appliedAt,
+      createdAt,
+      statusChangedAt,
+      followUpCount,
+      lastFollowUpAt,
+      followUpSnoozedUntil,
+      followUpOff,
+      noResponseAt,
+      ...a
+    }) => ({
+      ...a,
+      followUp: followUpView(
+        {
+          id: a.id,
+          status: a.status,
+          appliedAt,
+          createdAt,
+          statusChangedAt,
+          followUpCount,
+          lastFollowUpAt,
+          followUpSnoozedUntil,
+          followUpOff,
+          noResponseAt,
+        },
+        prefs,
+        now,
+        replied.has(a.id),
+        fmt,
+      ),
+      history: history.timeline.get(a.id),
+      auto: history.auto.get(a.id) ?? null,
+      contacts: a.jobId ? byJob.get(a.jobId) : undefined,
+      interview: interviewAt
+        ? {
+            value: toIsraelLocalInput(interviewAt),
+            display: formatInterviewTime(interviewAt, locale),
+            note: interviewNote,
+          }
+        : null,
+    }),
+  );
+  const pendingFollowUps = items.filter((i) => i.followUp?.kind === "due" || i.followUp?.kind === "ghost");
   const rs = reminderStrings(locale);
   const contactRows = contacts.map((c) => ({
     id: c.id,
@@ -184,6 +240,27 @@ export default async function DashboardPage() {
         </section>
       )}
 
+      {pendingFollowUps.length > 0 && (
+        <section aria-labelledby="followups-h" className="flex flex-col gap-3" data-testid="followup-section">
+          <div>
+            <h2 id="followups-h" className="font-heading text-xl font-bold">
+              {fs.sectionTitle} <span className="text-caution font-mono text-base">({pendingFollowUps.length})</span>
+            </h2>
+            <p className="text-muted-foreground text-sm">{fs.sectionLead}</p>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {pendingFollowUps.map((i) => (
+              <FollowUpRow
+                key={i.id}
+                app={{ id: i.id, title: i.title, company: i.company }}
+                view={i.followUp!}
+                s={fs}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+
       <details className="group bg-card rounded-lg border" open={items.length === 0}>
         <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 font-semibold [&::-webkit-details-marker]:hidden">
           <Plus className="text-primary size-4 transition-transform group-open:rotate-45" aria-hidden />
@@ -223,6 +300,8 @@ export default async function DashboardPage() {
         statusLabel={t.ui.status}
         emptyLabel={t.ui.emptyColumn}
         autoLabels={autoLabels}
+        followUpLabels={fs}
+        openFollowUp={openFollowUp}
         contactsLabel={{ count: t.people.trackerCount, referred: t.people.trackerReferred }}
         prepLabels={{ cv: cvTailorStrings(locale).appCta, interview: interviewStrings(locale).practiceCta }}
         interviewLabels={{

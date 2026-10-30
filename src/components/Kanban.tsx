@@ -2,6 +2,7 @@
 
 import { useOptimistic, useRef, useTransition } from "react";
 import { AutoBadge, AutoUndoButton, StatusTimeline, type AutoLabels } from "./email/AutoChanges";
+import { FollowUpCardControl } from "./followup/FollowUp";
 import { InterviewDate, type InterviewDateLabels } from "./InterviewDate";
 import { TruncatedText } from "./TruncatedText";
 import type { ApplicationStatus } from "@prisma/client";
@@ -9,6 +10,8 @@ import { ExternalLink, FileText, GripVertical, MessagesSquare, Trash2, Users } f
 import { removeApplication, updateApplicationStatus } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import type { AutoInfo, TimelineEntry } from "@/lib/email/history";
+import type { FollowUpView } from "@/lib/followup/view";
+import type { FollowUpStrings } from "@/lib/i18n/followup";
 import { cn } from "@/lib/utils";
 
 export interface KanbanItem {
@@ -25,6 +28,8 @@ export interface KanbanItem {
   /** Status history (oldest first) and, when the current status came from an email automatically, undo info. */
   history?: TimelineEntry[];
   auto?: AutoInfo | null;
+  /** Follow-up reminder state (APPLIED only). */
+  followUp?: FollowUpView | null;
 }
 
 const COLUMNS: ApplicationStatus[] = ["SAVED", "APPLIED", "SCREENING", "INTERVIEW", "OFFER", "REJECTED"];
@@ -47,6 +52,8 @@ export function Kanban({
   interviewLabels,
   autoLabels,
   prepLabels,
+  followUpLabels,
+  openFollowUp,
 }: {
   items: KanbanItem[];
   labels: Record<string, string>;
@@ -58,6 +65,9 @@ export function Kanban({
   autoLabels?: AutoLabels;
   /** Per-card prep links (tailored CV, interview practice); only the labels given are shown. */
   prepLabels?: { cv?: string; interview?: string };
+  followUpLabels?: FollowUpStrings;
+  /** Application id whose follow-up draft should open on load (from a notification link). */
+  openFollowUp?: string;
 }) {
   const [, start] = useTransition();
   const board = useRef<HTMLDivElement>(null);
@@ -131,9 +141,10 @@ export function Kanban({
                   return (
                     <li
                       key={i.id}
+                      id={`app-${i.id}`}
                       draggable
                       onDragStart={(e) => e.dataTransfer.setData("text/plain", i.id)}
-                      className="bg-card flex flex-col gap-2 rounded-md border p-3 shadow-[0_1px_0_var(--border)]"
+                      className="bg-card flex scroll-mt-24 flex-col gap-2 rounded-md border p-3 shadow-[0_1px_0_var(--border)]"
                     >
                       <div className="flex items-start gap-1.5">
                         <GripVertical
@@ -202,6 +213,14 @@ export function Kanban({
                                 </a>
                               )}
                             </p>
+                          )}
+                          {followUpLabels && i.followUp && i.status === "APPLIED" && (
+                            <FollowUpCardControl
+                              app={{ id: i.id, title: i.title, company: i.company }}
+                              view={i.followUp}
+                              s={followUpLabels}
+                              autoOpen={openFollowUp === i.id}
+                            />
                           )}
                           {autoLabels && i.auto && (
                             <div className="mt-1.5 flex flex-wrap items-center gap-2">

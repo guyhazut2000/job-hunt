@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
 import { GRAPH } from "@/lib/learning/graph";
 import { learningStats } from "@/lib/learning/progress";
-import { followUpDue, daysBetween } from "@/lib/notifications/reminders";
+import { followUpState } from "@/lib/followup/timing";
+import { emailResponses } from "@/lib/followup/server";
 import { HELD_FOR_DIGEST } from "@/lib/notifications/create";
 import { learningSnapshot } from "@/lib/notifications/learning";
 import type { EffectivePrefs } from "@/lib/notifications/prefs";
@@ -42,6 +43,11 @@ export async function collectDigestData(
         currentStageAt: true,
         interviewAt: true,
         interviewNote: true,
+        followUpCount: true,
+        lastFollowUpAt: true,
+        followUpSnoozedUntil: true,
+        followUpOff: true,
+        noResponseAt: true,
       },
       take: 2000,
     }),
@@ -114,6 +120,7 @@ export async function collectDigestData(
   }
 
   // Applications.
+  const replied = await emailResponses(apps.filter((a) => a.status === "APPLIED"));
   for (const a of apps) {
     const key = a.status.toLowerCase() as keyof DigestData["pipeline"];
     if (key in d.pipeline) d.pipeline[key]++;
@@ -126,14 +133,9 @@ export async function collectDigestData(
         status: a.status,
         stage: a.currentStageAt && a.currentStageAt > since ? a.currentStage : null,
       });
-    if (prefs.followUpEnabled && followUpDue(a, prefs.followUpDays, now))
-      d.followUps.push({
-        id: a.id,
-        title: a.title,
-        company: a.company,
-        days: daysBetween(a.appliedAt ?? a.createdAt, now),
-        jobId: a.jobId,
-      });
+    const fu = followUpState(a, prefs, now, { emailResponse: replied.has(a.id) });
+    if (fu.kind === "due" || fu.kind === "ghost")
+      d.followUps.push({ id: a.id, title: a.title, company: a.company, days: fu.days, jobId: a.jobId });
     const upcoming = a.interviewAt && a.interviewAt > now;
     if (upcoming && a.interviewAt!.getTime() <= now.getTime() + 7 * DAY && a.status !== "REJECTED")
       d.interviews.push({

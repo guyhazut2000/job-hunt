@@ -14,6 +14,7 @@
 | Paste-a-problem walkthrough  | `/learn/problem-solving/analyze`    | `src/lib/algo/feedback-server.ts` (`algo_walkthrough`)                 | Regex signal detection + decision-guide scoring                             |
 | Tailored CV per job          | `/cv/tailor?job=` / `?app=`         | `src/lib/cv-tailor/server.ts` (`cv_tailor`)                            | Offline reorder of skills/bullets by job keywords (labelled)                |
 | Interview simulation         | `/interview?job=` / `?app=`         | `src/lib/interview/server.ts` (`interview_plan`, `interview_feedback`) | Offline question bank + rule-based follow-ups + heuristic rubric (labelled) |
+| Follow-up email draft        | Dashboard → "טיוטת פולואפ"          | `src/lib/followup/server.ts` (`follow_up`)                             | He/En templates with title, company, date and a profile line (labelled)     |
 
 User-facing output is in the user's locale (Hebrew by default). All calls use structured output
 (zod schemas through the Vercel AI SDK `Output.object`) and are validated again before use; any

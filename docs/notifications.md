@@ -6,20 +6,20 @@ alert on new jobs, scan-failure alerts, follow-up reminders, and two optional ou
 
 ## What triggers a notification
 
-| Kind                | When                                                                                                                                                                    | Dedupe key                      |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `JOB_MATCH`         | A saved search has new jobs (`Job.createdAt` after the search's `lastCheckedAt`).                                                                                       | `search:<id>:<iso>`             |
-| `COMPANY_JOBS`      | A company you follow published new jobs (not already sent to you by a saved search).                                                                                    | `company:<followId>:<iso>`      |
-| `SCAN_FAILED`       | A company's feed failed 3 scans in a row — once per outage. Push off by default.                                                                                        | `scanfail:<companyId>:<streak>` |
-| `SAVED_JOB_CLOSED`  | A job you saved or applied to (`SAVED`/`APPLIED`/`SCREENING`/`INTERVIEW`) became inactive in the last 3 days.                                                           | `closed:<applicationId>`        |
-| `SAVED_JOB_UPDATED` | The employer edited such a job (title, location, work mode, pay or description) in the last 3 days.                                                                     | `updated:<applicationId>:<iso>` |
-| `STAGE_CHANGE`      | An application moved to `SCREENING`/`INTERVIEW`/`OFFER`, or you marked a new hiring stage; adds the next stage of the company's published process. Push off by default. | `stage:<applicationId>:<status  | stage>:<key>` |
-| `WHATS_NEW`         | A `src/lib/whats-new.ts` entry flagged `announce`, within 7 days of its date. In-site only by default.                                                                  | `whatsnew:<entryId>`            |
-| `FOLLOW_UP`         | An application is still `APPLIED` and untouched for N days (default 7, 1–60).                                                                                           | `followup:<id>:<date>`          |
-| `INTERVIEW`         | ~24h and ~2h before an `Application.interviewAt` you set on the tracker.                                                                                                | `interview:<id>:<iso>:<stage>`  |
-| `LEARNING`          | In your study slot, if you haven't studied today: streak, reviews, stalled stage.                                                                                       | `learning:<day>`                |
-| `DIGEST`            | Once a day after your digest hour — see [digest.md](digest.md). Telegram only by default.                                                                               | `digest:<day>`                  |
-| `SYSTEM`            | Test notifications from the settings page. In-site only by default.                                                                                                     | —                               |
+| Kind                | When                                                                                                                                                                    | Dedupe key                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `JOB_MATCH`         | A saved search has new jobs (`Job.createdAt` after the search's `lastCheckedAt`).                                                                                       | `search:<id>:<iso>`                                                                                       |
+| `COMPANY_JOBS`      | A company you follow published new jobs (not already sent to you by a saved search).                                                                                    | `company:<followId>:<iso>`                                                                                |
+| `SCAN_FAILED`       | A company's feed failed 3 scans in a row — once per outage. Push off by default.                                                                                        | `scanfail:<companyId>:<streak>`                                                                           |
+| `SAVED_JOB_CLOSED`  | A job you saved or applied to (`SAVED`/`APPLIED`/`SCREENING`/`INTERVIEW`) became inactive in the last 3 days.                                                           | `closed:<applicationId>`                                                                                  |
+| `SAVED_JOB_UPDATED` | The employer edited such a job (title, location, work mode, pay or description) in the last 3 days.                                                                     | `updated:<applicationId>:<iso>`                                                                           |
+| `STAGE_CHANGE`      | An application moved to `SCREENING`/`INTERVIEW`/`OFFER`, or you marked a new hiring stage; adds the next stage of the company's published process. Push off by default. | `stage:<applicationId>:<status                                                                            | stage>:<key>` |
+| `WHATS_NEW`         | A `src/lib/whats-new.ts` entry flagged `announce`, within 7 days of its date. In-site only by default.                                                                  | `whatsnew:<entryId>`                                                                                      |
+| `FOLLOW_UP`         | An application is still `APPLIED` with no response for N days (default **10**, 1–60); up to 2 rounds, then a "no response?" nudge. See below.                           | `followup:<id>:<date>` / `followup:<id>:r<n>:<anchorDay>[:s<snooze>]` / `followup:<id>:ghost:<anchorDay>` |
+| `INTERVIEW`         | ~24h and ~2h before an `Application.interviewAt` you set on the tracker.                                                                                                | `interview:<id>:<iso>:<stage>`                                                                            |
+| `LEARNING`          | In your study slot, if you haven't studied today: streak, reviews, stalled stage.                                                                                       | `learning:<day>`                                                                                          |
+| `DIGEST`            | Once a day after your digest hour — see [digest.md](digest.md). Telegram only by default.                                                                               | `digest:<day>`                                                                                            |
+| `SYSTEM`            | Test notifications from the settings page. In-site only by default.                                                                                                     | —                                                                                                         |
 
 Saved searches with a "match ≥" / fit filter only alert on jobs scoring at or above it (default 65)
 when the user has a scorable profile. One new job links straight to the job; several are grouped
@@ -52,6 +52,41 @@ The changelog itself is the "מה חדש" section of `/features` (from `src/feat
 [features.md](features.md)); `/notifications` links to it. For a change worth a notification, also add an
 entry with `announce: true` to `src/lib/whats-new.ts`. The notify cron sends each announced entry once per
 user within 7 days of its date (skipping users who joined after it); the notice links to the changelog.
+
+### Follow-up reminders and drafts (`FOLLOW_UP`)
+
+Code: `src/lib/followup/` (`timing.ts` pure rules, `draft.ts` templates/links, `server.ts` DB + AI),
+cron `runFollowUpReminders` (`src/lib/notifications/reminders.ts`, hourly notify cron), actions in
+`src/app/followup-actions.ts`, UI `src/components/followup/FollowUp.tsx`.
+
+- **When:** status `APPLIED` and N days (`NotificationPreference.followUpDays`, default 10, clamped 1–60;
+  `followUpEnabled` turns it off) since the latest of: applied date (else created), last status change,
+  last follow-up sent. Old rows that still hold the previous default 7 keep it (only the column default changed).
+- **Rounds:** after "I sent it" (`markFollowUpSent`) an `ApplicationFollowUp` row is logged (shown in the
+  card's status timeline), `followUpCount` +1 and the timer restarts. Round 2 comes N days later; after 2
+  sent follow-ups and N more days the reminder becomes "no response after 2 follow-ups — mark it?"
+  (`noResponseAt`, undoable). Max 2 follow-ups.
+- **Per application:** snooze 3 / 7 days (`followUpSnoozedUntil`; when it ends the reminder re-arms with a new
+  key), "don't remind" (`followUpOff`, covers withdrawn — there is no withdrawn status), "no response".
+- **Stops on:** any status other than `APPLIED` (screening, interview, offer, rejected — including changes made
+  automatically by the email scan), a status-update email from the Gmail scan about the application received
+  after it was applied (`EmailCandidate` kind `STATUS_UPDATE`, not dismissed), don't-remind, no-response, or
+  follow-ups disabled. The application-confirmation email itself doesn't count as a response.
+- **Idempotent:** the dedupe key is per application × round × anchor day (× snooze end); the first round keeps the
+  pre-existing `followup:<id>:<appliedDay>` key so nobody gets a duplicate after the upgrade. Running the cron
+  again creates nothing (`notify` swallows the unique-key error).
+- **Delivery:** through `notify()`, so the per-kind instant/digest mode and quiet hours apply; the daily digest
+  lists due follow-ups too. The notification links to `/dashboard?followup=<id>#app-<id>`, which opens the
+  draft. The dashboard shows a "follow-ups waiting" section and a badge on each card.
+- **The draft:** Hebrew or English (posting language, else title/company; switchable), short and polite, with the
+  job title, company, application date and one line from the tailored CV for that application (or the profile)
+  when it is in the same language. One guarded AI call per application × round × language (feature
+  `follow_up`, cached), stored in `Application.followUpDraft`; template fallback when AI is off, limited or
+  invalid (labelled in the UI). Editable; the To address comes from the Gmail scan when the sender looks like a
+  person (not no-reply/ATS), or is typed in (`followUpTo`).
+- **The app never sends email.** The user copies the text, opens a prefilled `mailto:` link, or opens Gmail's
+  compose window (`https://mail.google.com/mail/?view=cm&fs=1&to=&su=&body=`) and sends it himself. Gmail
+  access stays `gmail.readonly`.
 
 ### Instant or daily digest, per kind
 
