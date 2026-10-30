@@ -61,7 +61,14 @@ export function buildInterviewReminder(
   const lines = [fill(s.interviewBody, { title: app.title, company: app.company, when })];
   if (app.interviewNote) lines.push(app.interviewNote.slice(0, 300));
   lines.push(stage === "2h" ? s.interviewTipSoon : s.interviewTipDay);
+  if (stage === "24h") lines.push(s.interviewPractice);
   return { title, body: lines.join("\n") };
+}
+
+/** A day before: open a practice interview for this application; close to it: the job page. */
+export function interviewReminderUrl(app: { id: string; jobId: string | null }, stage: InterviewStage): string {
+  if (stage === "24h") return `/interview?app=${app.id}`;
+  return app.jobId ? `/jobs/${app.jobId}` : "/dashboard";
 }
 
 /** Interview reminders ~24h and ~2h before. Runs from the hourly cron. */
@@ -96,7 +103,7 @@ export async function runInterviewReminders(now = new Date()): Promise<{ reminde
       {
         kind: "INTERVIEW",
         ...msg,
-        url: a.jobId ? `/jobs/${a.jobId}` : "/dashboard",
+        url: interviewReminderUrl(a, stage),
         data: { applicationId: a.id, stage },
         dedupeKey: interviewDedupeKey(a.id, a.interviewAt, stage),
       },

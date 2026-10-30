@@ -805,6 +805,7 @@ export const FEATURES: Feature[] = [
     status: "live",
     audience: "user",
     routes: ["/cv/tailor", "/cv/tailor/[id]", "/cv/tailor/[id]/print"],
+    href: "/jobs",
     added: "2026-10-30",
     prs: [59],
     issue: 31,
@@ -813,13 +814,16 @@ export const FEATURES: Feature[] = [
   {
     id: "interview-sim",
     name: "סימולציית ראיון",
-    description: "ראיון תרגול בצ'אט (גם במיקרופון) לפי המשרה ותהליך הגיוס בחברה, עם משוב בשיטת STAR בסוף.",
+    description:
+      "ראיון תרגול בצ'אט (גם במיקרופון) לפי המשרה, תהליך הגיוס בחברה והמושגים שלך: HR עם משוב STAR, מושגים טכניים או פתרון בעיות. שאלה אחת בכל פעם עם שאלות המשך, ובסוף ציון לכל ממד ושיפורים. הראיונות נשמרים בהיסטוריה.",
+    howTo: "בעמוד משרה, בכרטיס מועמדות בלוח או ב'למידה' לוחצים 'תרגול ראיון', בוחרים סוג ראיון ושפה ומתחילים.",
     category: "ai",
-    status: "planned",
+    status: "live",
     audience: "user",
-    routes: [],
+    routes: ["/interview", "/interview/[id]"],
     added: "2026-10-30",
-    keywords: ["mock interview", "STAR"],
+    prs: [63],
+    keywords: ["mock interview", "STAR", "interview practice"],
   },
   {
     id: "search-stats",

@@ -4,6 +4,7 @@ import {
   Check,
   LayoutDashboard,
   Lightbulb,
+  MessagesSquare,
   Puzzle,
   Route,
   Sparkles,
@@ -25,6 +26,7 @@ import { LEARN_CATEGORIES } from "@/lib/learning/types";
 import { hasScorableProfile, toCandidate } from "@/lib/profile/score";
 import { cn } from "@/lib/utils";
 import { conceptStrings } from "@/lib/i18n/concepts";
+import { interviewStrings } from "@/lib/i18n/interview";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Learn" };
@@ -39,6 +41,7 @@ export default async function LearnPage() {
   const userId = session?.user?.id;
   const hub = learningHubStrings(locale);
   const cs = conceptStrings(locale);
+  const iv = interviewStrings(locale);
   const ps = problemSolvingStrings(locale);
   const [demand, progress, profile] = await Promise.all([
     demandMap(),
@@ -210,6 +213,20 @@ export default async function LearnPage() {
               <span className="flex min-w-0 flex-col">
                 <span className="font-bold">{cs.entryTitle}</span>
                 <span className="text-foreground/75 text-sm">{cs.entryLead}</span>
+              </span>
+            </span>
+            <ArrowLeft className="size-5 shrink-0 ltr:rotate-180" aria-hidden />
+          </Link>
+          <Link
+            href="/interview"
+            data-testid="interview-entry"
+            className="group bg-card hover:bg-secondary/60 flex min-h-16 items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 transition-colors sm:px-6"
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <MessagesSquare className="text-primary size-6 shrink-0" aria-hidden />
+              <span className="flex min-w-0 flex-col">
+                <span className="font-bold">{iv.learnCard}</span>
+                <span className="text-foreground/75 text-sm">{iv.learnCardLead}</span>
               </span>
             </span>
             <ArrowLeft className="size-5 shrink-0 ltr:rotate-180" aria-hidden />

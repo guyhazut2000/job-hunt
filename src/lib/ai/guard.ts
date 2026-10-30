@@ -19,6 +19,8 @@ export type AiFeature =
   | "concept_overview"
   | "concept_chat"
   | "cv_tailor"
+  | "interview_plan"
+  | "interview_feedback"
   | "chat";
 export type AiOutcome = "ok" | "cached" | "error" | "rate_limited" | "limited";
 
