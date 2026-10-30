@@ -673,6 +673,7 @@ export const FEATURES: Feature[] = [
     routes: ["/dashboard"],
     href: "/dashboard",
     added: "2026-10-30",
+    prs: [68],
     issue: 41,
     keywords: ["follow-up", "followup", "פולואפ", "email", "draft"],
   },
