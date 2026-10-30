@@ -255,15 +255,6 @@ export const ESTABLISHED_MANUAL: EstablishedCompany[] = [
   ),
   e(
     "matam",
-    "teradyne",
-    "Teradyne",
-    "https://www.teradyne.com",
-    "https://jobs.teradyne.com/",
-    "Semiconductor test equipment",
-    "Haifa",
-  ),
-  e(
-    "matam",
     "intuitive",
     "Intuitive Surgical",
     "https://www.intuitive.com",
@@ -650,6 +641,17 @@ export const ESTABLISHED_MANUAL: EstablishedCompany[] = [
 
 /** Established employers whose own careers page embeds a public ATS board (synced automatically). */
 export const ESTABLISHED_SOURCES: (JobSource & { hub: Hub })[] = [
+  {
+    hub: "matam",
+    slug: "teradyne",
+    name: "Teradyne",
+    provider: "SUCCESSFACTORS",
+    boardId: "jobs.teradyne.com",
+    website: "https://www.teradyne.com",
+    industry: "Semiconductor test equipment",
+    hqLocation: "Haifa",
+    careersUrl: "https://jobs.teradyne.com/",
+  },
   {
     hub: "tech",
     slug: "oracle-israel",

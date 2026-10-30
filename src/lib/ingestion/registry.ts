@@ -9,6 +9,7 @@ import { leverAdapter } from "./adapters/lever";
 import { oracleHcmAdapter } from "./adapters/oracle-hcm";
 import { recruiteeAdapter } from "./adapters/recruitee";
 import { smartRecruitersAdapter } from "./adapters/smartrecruiters";
+import { successFactorsAdapter } from "./adapters/successfactors";
 import { workableAdapter } from "./adapters/workable";
 import { wordpressAdapter } from "./adapters/wordpress";
 import { workdayAdapter } from "./adapters/workday";
@@ -28,6 +29,7 @@ const adapters: Partial<Record<AtsProvider, AtsAdapter<unknown>>> = {
   ORACLE_HCM: oracleHcmAdapter as AtsAdapter<unknown>,
   JIBE: jibeAdapter as AtsAdapter<unknown>,
   AMAZON: amazonAdapter as AtsAdapter<unknown>,
+  SUCCESSFACTORS: successFactorsAdapter as AtsAdapter<unknown>,
 };
 
 export function getAdapter(provider: AtsProvider): AtsAdapter<unknown> | undefined {
