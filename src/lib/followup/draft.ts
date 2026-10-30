@@ -125,7 +125,13 @@ export function validateAiDraft(raw: unknown, f: FollowUpFacts): { subject: stri
   if (!text.toLowerCase().includes(f.company.toLowerCase()) && !text.toLowerCase().includes(f.title.toLowerCase()))
     return null;
   if (body.split(/\s+/).length > 160) return null;
-  return { subject: clean(subject), body: body.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim() };
+  return {
+    subject: clean(subject),
+    body: body
+      .replace(/\r\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim(),
+  };
 }
 
 /** The prompt for the one AI call (cached by the guard on identical facts). */
@@ -178,13 +184,15 @@ export function recruiterFrom(raw: string | null | undefined): { email: string; 
   const a = parseAddress(raw);
   if (!a || SYSTEM_SENDER.test(a.email) || ATS_DOMAINS.test(a.email)) return null;
   const first = a.name?.split(/\s+/)[0]?.replace(/[^\p{L}'-]/gu, "") || null;
-  const looksHuman = first && first.length > 1 && !/team|talent|hr|recruit|careers?|jobs?|צוות|גיוס/i.test(a.name ?? "");
+  const looksHuman =
+    first && first.length > 1 && !/team|talent|hr|recruit|careers?|jobs?|צוות|גיוס/i.test(a.name ?? "");
   return { email: a.email, firstName: looksHuman ? first : null };
 }
 
 // ───────────── links ─────────────
 
-export const isEmail = (s: string | null | undefined): s is string => !!s && /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(s.trim());
+export const isEmail = (s: string | null | undefined): s is string =>
+  !!s && /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(s.trim());
 
 /** mailto: link with to/subject/body prefilled (to is optional). */
 export function mailtoLink(d: { to: string | null; subject: string; body: string }): string {

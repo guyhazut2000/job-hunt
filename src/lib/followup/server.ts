@@ -90,7 +90,7 @@ export async function draftFacts(userId: string, app: AppForDraft, lang: DraftLa
     title: app.title,
     company: app.company,
     appliedAt: app.appliedAt ?? app.createdAt,
-    round: (Math.min(FOLLOW_UP_MAX, (app.followUpCount ?? 0) + 1) as 1 | 2),
+    round: Math.min(FOLLOW_UP_MAX, (app.followUpCount ?? 0) + 1) as 1 | 2,
     highlight,
     skills: skills.slice(0, 3),
     name: user?.name || null,
