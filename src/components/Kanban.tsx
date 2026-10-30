@@ -5,7 +5,7 @@ import { AutoBadge, AutoUndoButton, StatusTimeline, type AutoLabels } from "./em
 import { InterviewDate, type InterviewDateLabels } from "./InterviewDate";
 import { TruncatedText } from "./TruncatedText";
 import type { ApplicationStatus } from "@prisma/client";
-import { ExternalLink, FileText, GripVertical, Trash2, Users } from "lucide-react";
+import { ExternalLink, FileText, GripVertical, MessagesSquare, Trash2, Users } from "lucide-react";
 import { removeApplication, updateApplicationStatus } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import type { AutoInfo, TimelineEntry } from "@/lib/email/history";
@@ -189,6 +189,16 @@ export function Kanban({
                                 >
                                   <FileText className="size-3.5" aria-hidden />
                                   {prepLabels.cv}
+                                </a>
+                              )}
+                              {prepLabels.interview && (
+                                <a
+                                  href={`/interview?app=${i.id}`}
+                                  className="text-primary inline-flex min-h-8 items-center gap-1 underline-offset-4 hover:underline"
+                                  data-testid="kanban-interview-sim"
+                                >
+                                  <MessagesSquare className="size-3.5" aria-hidden />
+                                  {prepLabels.interview}
                                 </a>
                               )}
                             </p>

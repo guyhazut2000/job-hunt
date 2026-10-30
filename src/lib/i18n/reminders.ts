@@ -8,6 +8,7 @@ const en = {
   interviewBody: "{title} · {company} — {when}",
   interviewTipDay: "Review the job, your stories and questions to ask. The job page has hiring-process prep links.",
   interviewTipSoon: "Check the link / address, have water and your notes ready. Good luck!",
+  interviewPractice: "Want to warm up? Open this reminder for a practice interview tailored to the job.",
   // ── learning reminders ──
   learnStreakTitle: "Keep your {n}-day study streak 🔥",
   learnReviewsTitle: "{n} questions are due for review",
@@ -129,6 +130,7 @@ const he: ReminderStrings = {
   interviewBody: "{title} · {company} — {when}",
   interviewTipDay: "עבור על המשרה, הסיפורים שלך ושאלות לשאול. בעמוד המשרה יש קישורי הכנה לתהליך הגיוס.",
   interviewTipSoon: "בדוק את הקישור / הכתובת, הכן מים והערות. בהצלחה!",
+  interviewPractice: "רוצה להתחמם? פתח את התזכורת לסימולציית ראיון מותאמת למשרה.",
   learnStreakTitle: "שמור על רצף של {n} ימי למידה 🔥",
   learnReviewsTitle: "{n} שאלות ממתינות לחזרה",
   learnIdleTitle: "{n} ימים בלי למידה — 20 דקות היום?",

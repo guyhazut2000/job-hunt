@@ -135,6 +135,7 @@ model User {
   companyFollows       CompanyFollow[]
   concepts             Concept[]
   tailoredCvs          TailoredCv[]
+  interviewSessions    InterviewSession[]
 }
 
 model Profile {
@@ -340,9 +341,9 @@ model SalaryReport {
 }
 
 model Job {
-  id                String          @id @default(cuid())
+  id                String             @id @default(cuid())
   companyId         String
-  company           Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   externalId        String
   source            AtsProvider
   title             String
@@ -355,11 +356,11 @@ model Job {
   applyUrl          String
   postedAt          DateTime
   /// Broad job function (engineering, data, sales, marketing…) — see src/lib/jobs/classify.ts.
-  jobFunction       String          @default("other")
+  jobFunction       String             @default("other")
   /// Professional domain (תחום) from the deterministic classifier in src/lib/jobs/domain-classifier.ts.
-  domain            String          @default("other")
-  level             JobLevel        @default(MID)
-  employmentType    EmploymentType  @default(FULL_TIME)
+  domain            String             @default("other")
+  level             JobLevel           @default(MID)
+  employmentType    EmploymentType     @default(FULL_TIME)
   /// Last update time reported by the ATS (Greenhouse `updated_at`); null when the source has none.
   sourceUpdatedAt   DateTime?
   /// Department / team as published by the ATS (null when the source has none).
@@ -371,13 +372,14 @@ model Job {
   payMax            Int?
   payCurrency       String?
   payPeriod         String?
-  isActive          Boolean         @default(true)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   applications      Application[]
   contacts          Contact[]
   hiringProcesses   HiringProcess[]
   tailoredCvs       TailoredCv[]
+  interviews        InterviewSession[]
   /// Exact LinkedIn posting (https://www.linkedin.com/jobs/view/<id>/) found via Brave Search; null = unknown.
   linkedinUrl       String?
   /// Last Brave lookup for linkedinUrl (found or not). Null = never checked.
@@ -386,7 +388,7 @@ model Job {
   /// location mentions (hub:* / gn:* / co:<companyId>). Null = not geocodable (e.g. "Israel" + foreign HQ).
   geoLat            Float?
   geoLng            Float?
-  geoPlaces         String[]        @default([])
+  geoPlaces         String[]           @default([])
   /// office | hub | city | hq
   geoPrecision      String?
   /// What the geo was computed from (location + company HQ/office), so changes trigger a re-geocode.
@@ -437,6 +439,7 @@ model Application {
   updatedAt       DateTime                  @updatedAt
   statusChanges   ApplicationStatusChange[]
   tailoredCvs     TailoredCv[]
+  interviews      InterviewSession[]
 
   @@unique([userId, jobId])
   @@index([userId, status])
@@ -1404,4 +1407,57 @@ model TailoredCv {
   @@index([userId, createdAt])
   @@index([userId, jobId])
   @@index([userId, applicationId])
+}
+
+/// Interview simulation (docs/interview-sim.md): one practice session for a job / application.
+model InterviewSession {
+  id             String             @id @default(cuid())
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId          String?
+  job            Job?               @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  applicationId  String?
+  application    Application?       @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  title          String
+  company        String
+  /// HR | TECH | PROBLEM
+  mode           String
+  /// "he" | "en"
+  language       String             @default("he")
+  /// active | done
+  status         String             @default("active")
+  /// [{ q, followUps[], focus, expected[], problemId? }] — planned up front (one AI call).
+  plan           Json               @default("[]")
+  questionIndex  Int                @default(0)
+  /// Follow-ups already asked for the current question.
+  followUps      Int                @default(0)
+  /// Plan source: ai | offline | limited
+  source         String             @default("offline")
+  /// End-of-session feedback (one batched AI call): { dimensions[], perQuestion[], improvements[], summary }
+  feedback       Json?
+  feedbackSource String?
+  /// Overall 0–100.
+  score          Int?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  endedAt        DateTime?
+  messages       InterviewMessage[]
+
+  @@index([userId, createdAt])
+  @@index([userId, applicationId])
+}
+
+model InterviewMessage {
+  id            String           @id @default(cuid())
+  sessionId     String
+  session       InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  /// interviewer | candidate
+  role          String
+  /// question | followup | answer | skip
+  kind          String
+  content       String
+  questionIndex Int
+  createdAt     DateTime         @default(now())
+
+  @@index([sessionId, createdAt])
 }
