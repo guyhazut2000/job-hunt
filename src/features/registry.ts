@@ -821,6 +821,7 @@ export const FEATURES: Feature[] = [
     audience: "user",
     routes: ["/interview", "/interview/[id]"],
     added: "2026-10-30",
+    prs: [63],
     keywords: ["mock interview", "STAR", "interview practice"],
   },
   {
