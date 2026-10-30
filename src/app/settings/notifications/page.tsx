@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BellRing, Pause, Play, Search, Trash2 } from "lucide-react";
 import { deleteSavedSearch, toggleSavedSearch, unfollowCompany } from "@/app/notification-actions";
@@ -16,9 +15,10 @@ import { isTelegramConfigured, vapidConfig } from "@/lib/notifications/config";
 import { CHANNEL_TYPES } from "@/lib/notifications/kinds";
 import { toEffective } from "@/lib/notifications/prefs";
 import { requireUser } from "@/lib/session";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Notification settings" };
+export const generateMetadata = localizedTitle("notificationSettings");
 
 export default async function NotificationSettingsPage() {
   const user = await requireUser("/settings/notifications");

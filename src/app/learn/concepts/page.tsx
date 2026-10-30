@@ -19,9 +19,10 @@ import { fmt, learningStrings } from "@/lib/i18n/learning";
 import { GRAPH } from "@/lib/learning/graph";
 import { getProgress } from "@/lib/learning/server";
 import { requireUser } from "@/lib/session";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Concepts" };
+export const generateMetadata = localizedTitle("concepts");
 
 export default async function ConceptsPage() {
   const user = await requireUser("/learn/concepts");

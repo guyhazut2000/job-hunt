@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -30,9 +29,10 @@ import { reminderStrings } from "@/lib/i18n/reminders";
 import { isKind } from "@/lib/notifications/kinds";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Notifications" };
+export const generateMetadata = localizedTitle("notifications");
 
 const ICONS: Record<string, LucideIcon> = {
   JOB_MATCH: BriefcaseBusiness,

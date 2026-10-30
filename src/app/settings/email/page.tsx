@@ -13,9 +13,10 @@ import { clampThreshold } from "@/lib/email/score";
 import { getLocale } from "@/lib/i18n";
 import { emailSyncStrings } from "@/lib/i18n/email-sync";
 import { requireUser } from "@/lib/session";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Email sync" };
+export const generateMetadata = localizedTitle("emailSync");
 
 export default async function EmailSettingsPage({
   searchParams,

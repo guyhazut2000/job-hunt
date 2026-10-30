@@ -5,8 +5,9 @@ import { tr } from "@/lib/algo/types";
 import { getLocale } from "@/lib/i18n";
 import { fmt } from "@/lib/i18n/learning";
 import { problemSolvingStrings } from "@/lib/i18n/problem-solving";
+import { localizedTitle } from "@/lib/i18n/titles";
 
-export const metadata = { title: "Interview method" };
+export const generateMetadata = localizedTitle("psInterview");
 
 export default async function InterviewPage() {
   const locale = await getLocale();

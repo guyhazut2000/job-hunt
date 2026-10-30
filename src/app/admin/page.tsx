@@ -19,11 +19,12 @@ import { jobsMapStrings } from "@/lib/i18n/jobs-map";
 import { linkedinStrings } from "@/lib/i18n/linkedin";
 import { SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
 import { requireAdmin } from "@/lib/session";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
 // "Sync all" and "Run discovery" server actions run for up to ~4 minutes.
 export const maxDuration = 300;
-export const metadata = { title: "Admin" };
+export const generateMetadata = localizedTitle("admin");
 
 export default async function AdminPage() {
   await requireAdmin("/admin");

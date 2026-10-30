@@ -8,9 +8,10 @@ import { db } from "@/lib/db";
 import { getLocale } from "@/lib/i18n";
 import { cvTailorStrings } from "@/lib/i18n/cv-tailor";
 import { requireUser } from "@/lib/session";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "CV" };
+export const generateMetadata = localizedTitle("cv");
 
 // Print / "Save as PDF": hide the site chrome, plain white A4, keep roles together.
 const PRINT_CSS = `@media print {

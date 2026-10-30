@@ -23,9 +23,10 @@ import { computeCompleteness } from "@/lib/profile/completeness";
 import { readPreferences, readProfessional } from "@/lib/profile/load";
 import { PROFILE_SECTIONS, profileHref, resolveProfileView } from "@/lib/profile/tabs";
 import { requireUser } from "@/lib/session";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Profile & documents" };
+export const generateMetadata = localizedTitle("profile");
 
 const ymd = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
 

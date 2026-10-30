@@ -10,9 +10,10 @@ import { fmt } from "@/lib/i18n/learning";
 import { loadInterviewTarget } from "@/lib/interview/server";
 import { isMode } from "@/lib/interview/types";
 import { requireUser } from "@/lib/session";
+import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Interview simulation" };
+export const generateMetadata = localizedTitle("interview");
 
 export default async function InterviewPage({
   searchParams,

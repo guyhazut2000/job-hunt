@@ -1,6 +1,7 @@
 import { getDictionary } from "@/lib/i18n";
+import { localizedTitle } from "@/lib/i18n/titles";
 
-export const metadata = { title: "Terms" };
+export const generateMetadata = localizedTitle("terms");
 
 export default async function TermsPage() {
   const { t, locale } = await getDictionary();
