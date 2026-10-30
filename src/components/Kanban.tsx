@@ -5,7 +5,7 @@ import { AutoBadge, AutoUndoButton, StatusTimeline, type AutoLabels } from "./em
 import { InterviewDate, type InterviewDateLabels } from "./InterviewDate";
 import { TruncatedText } from "./TruncatedText";
 import type { ApplicationStatus } from "@prisma/client";
-import { ExternalLink, GripVertical, Trash2, Users } from "lucide-react";
+import { ExternalLink, FileText, GripVertical, Trash2, Users } from "lucide-react";
 import { removeApplication, updateApplicationStatus } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import type { AutoInfo, TimelineEntry } from "@/lib/email/history";
@@ -46,6 +46,7 @@ export function Kanban({
   contactsLabel,
   interviewLabels,
   autoLabels,
+  prepLabels,
 }: {
   items: KanbanItem[];
   labels: Record<string, string>;
@@ -55,6 +56,8 @@ export function Kanban({
   contactsLabel?: { count: string; referred: string };
   interviewLabels?: InterviewDateLabels;
   autoLabels?: AutoLabels;
+  /** Per-card prep links (tailored CV, interview practice); only the labels given are shown. */
+  prepLabels?: { cv?: string; interview?: string };
 }) {
   const [, start] = useTransition();
   const board = useRef<HTMLDivElement>(null);
@@ -175,6 +178,20 @@ export function Kanban({
                                 labels={interviewLabels}
                               />
                             </div>
+                          )}
+                          {prepLabels && (
+                            <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs font-semibold">
+                              {prepLabels.cv && (
+                                <a
+                                  href={`/cv/tailor?app=${i.id}`}
+                                  className="text-primary inline-flex min-h-8 items-center gap-1 underline-offset-4 hover:underline"
+                                  data-testid="kanban-tailor-cv"
+                                >
+                                  <FileText className="size-3.5" aria-hidden />
+                                  {prepLabels.cv}
+                                </a>
+                              )}
+                            </p>
                           )}
                           {autoLabels && i.auto && (
                             <div className="mt-1.5 flex flex-wrap items-center gap-2">

@@ -10,6 +10,7 @@ import { db } from "@/lib/db";
 import { getStatusHistory } from "@/lib/email/history";
 import { getReviewItems } from "@/lib/email/review";
 import { getDictionary } from "@/lib/i18n";
+import { cvTailorStrings } from "@/lib/i18n/cv-tailor";
 import { emailSyncStrings } from "@/lib/i18n/email-sync";
 import { jobsMapStrings } from "@/lib/i18n/jobs-map";
 import { reminderStrings } from "@/lib/i18n/reminders";
@@ -208,6 +209,7 @@ export default async function DashboardPage() {
         emptyLabel={t.ui.emptyColumn}
         autoLabels={autoLabels}
         contactsLabel={{ count: t.people.trackerCount, referred: t.people.trackerReferred }}
+        prepLabels={{ cv: cvTailorStrings(locale).appCta }}
         interviewLabels={{
           set: rs.interviewSet,
           date: rs.interviewDate,

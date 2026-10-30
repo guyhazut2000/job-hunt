@@ -2,16 +2,17 @@
 
 ## What uses AI
 
-| Feature                      | Where                               | Code                                                              | Fallback without AI                                       |
-| ---------------------------- | ----------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------- |
-| CV tips for a job            | Job page → "CV tips"                | `src/lib/ai/cv-suggestions.ts` (feature `cv_tips`)                | Heuristic suggestions (missing skills, impact, headline)  |
-| CV → structured profile      | Profile / onboarding CV upload      | `src/lib/profile/extract.ts` (feature `cv_extract`)               | Heuristic extractor                                       |
-| Personalised outreach drafts | "People at the company" → AI draft  | `src/lib/outreach/messages.ts` (feature `outreach`)               | Rendered templates                                        |
-| Stage practice + Q&A         | `/learn/[skill]/[stage]` first open | `src/lib/learning/hub.ts` (`learn_content`, `learn_regen`)        | Curated static content (16 skills), then generic          |
-| AI tutor chat                | Stage workspace → "AI tutor" tab    | `src/lib/learning/tutor.ts` (`tutor_chat`)                        | Offline reply with a stage question                       |
-| Concepts overview + chat     | `/learn/concepts/[id]`              | `src/lib/concepts/server.ts` (`concept_overview`, `concept_chat`) | Curated / learning-graph overview, labelled offline reply |
-| Problem-solving feedback     | `/learn/problem-solving/practice`   | `src/lib/algo/feedback-server.ts` (`algo_feedback`)               | Heuristic coach (verdict, checklist, keywords)            |
-| Paste-a-problem walkthrough  | `/learn/problem-solving/analyze`    | `src/lib/algo/feedback-server.ts` (`algo_walkthrough`)            | Regex signal detection + decision-guide scoring           |
+| Feature                      | Where                               | Code                                                              | Fallback without AI                                          |
+| ---------------------------- | ----------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------ |
+| CV tips for a job            | Job page → "CV tips"                | `src/lib/ai/cv-suggestions.ts` (feature `cv_tips`)                | Heuristic suggestions (missing skills, impact, headline)     |
+| CV → structured profile      | Profile / onboarding CV upload      | `src/lib/profile/extract.ts` (feature `cv_extract`)               | Heuristic extractor                                          |
+| Personalised outreach drafts | "People at the company" → AI draft  | `src/lib/outreach/messages.ts` (feature `outreach`)               | Rendered templates                                           |
+| Stage practice + Q&A         | `/learn/[skill]/[stage]` first open | `src/lib/learning/hub.ts` (`learn_content`, `learn_regen`)        | Curated static content (16 skills), then generic             |
+| AI tutor chat                | Stage workspace → "AI tutor" tab    | `src/lib/learning/tutor.ts` (`tutor_chat`)                        | Offline reply with a stage question                          |
+| Concepts overview + chat     | `/learn/concepts/[id]`              | `src/lib/concepts/server.ts` (`concept_overview`, `concept_chat`) | Curated / learning-graph overview, labelled offline reply    |
+| Problem-solving feedback     | `/learn/problem-solving/practice`   | `src/lib/algo/feedback-server.ts` (`algo_feedback`)               | Heuristic coach (verdict, checklist, keywords)               |
+| Paste-a-problem walkthrough  | `/learn/problem-solving/analyze`    | `src/lib/algo/feedback-server.ts` (`algo_walkthrough`)            | Regex signal detection + decision-guide scoring              |
+| Tailored CV per job          | `/cv/tailor?job=` / `?app=`         | `src/lib/cv-tailor/server.ts` (`cv_tailor`)                       | Offline reorder of skills/bullets by job keywords (labelled) |
 
 User-facing output is in the user's locale (Hebrew by default). All calls use structured output
 (zod schemas through the Vercel AI SDK `Output.object`) and are validated again before use; any

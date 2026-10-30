@@ -134,6 +134,7 @@ model User {
   notificationChannels NotificationChannel[]
   companyFollows       CompanyFollow[]
   concepts             Concept[]
+  tailoredCvs          TailoredCv[]
 }
 
 model Profile {
@@ -376,6 +377,7 @@ model Job {
   applications      Application[]
   contacts          Contact[]
   hiringProcesses   HiringProcess[]
+  tailoredCvs       TailoredCv[]
   /// Exact LinkedIn posting (https://www.linkedin.com/jobs/view/<id>/) found via Brave Search; null = unknown.
   linkedinUrl       String?
   /// Last Brave lookup for linkedinUrl (found or not). Null = never checked.
@@ -434,6 +436,7 @@ model Application {
   createdAt       DateTime                  @default(now())
   updatedAt       DateTime                  @updatedAt
   statusChanges   ApplicationStatusChange[]
+  tailoredCvs     TailoredCv[]
 
   @@unique([userId, jobId])
   @@index([userId, status])
@@ -1363,4 +1366,42 @@ model ConceptOverview {
   updatedAt DateTime @updatedAt
 
   @@unique([key, locale])
+}
+
+/// A CV version tailored to one job or application (docs/cv-tailor.md). Every save is a new row;
+/// `version` counts per user × target. Content only reorders/rephrases the base CV — never invents.
+model TailoredCv {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId         String?
+  job           Job?         @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  /// Resume row the base text came from (null = profile only).
+  baseResumeId  String?
+  /// "<role> · <company>" at generation time (kept if the job is deleted).
+  title         String
+  company       String
+  /// Job description pasted by the user for applications without a job page.
+  jobText       String?
+  /// "he" | "en" — CV language (detected from the posting, user can switch).
+  language      String
+  version       Int          @default(1)
+  /// CvDoc (src/lib/cv-tailor/types.ts): the tailored CV.
+  content       Json
+  /// CvDoc snapshot of the base CV it was built from (for the diff view).
+  base          Json
+  /// MatchSummary: covered vs missing job requirements.
+  match         Json
+  /// Gap suggestions (things to add only if true) — never written into the CV.
+  suggestions   Json         @default("[]")
+  /// ai | offline | limited | edited
+  source        String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([userId, jobId])
+  @@index([userId, applicationId])
 }
