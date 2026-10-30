@@ -51,7 +51,7 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 export default async function NotificationsPage() {
-  const user = await requireUser();
+  const user = await requireUser("/notifications");
   const locale = await getLocale();
   const s = notificationStrings(locale);
   const items = await db.notification.findMany({

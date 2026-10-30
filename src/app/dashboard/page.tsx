@@ -31,7 +31,7 @@ export const dynamic = "force-dynamic";
 export const generateMetadata = localizedTitle("dashboard");
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ followup?: string }> }) {
-  const user = await requireUser();
+  const user = await requireUser("/dashboard");
   const { followup: openFollowUp } = await searchParams;
   const { t, locale } = await getDictionary();
   const es = emailSyncStrings[locale];

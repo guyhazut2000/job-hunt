@@ -23,7 +23,7 @@ export default async function EmailSettingsPage({
 }: {
   searchParams: Promise<{ error?: string; connected?: string }>;
 }) {
-  const user = await requireUser();
+  const user = await requireUser("/settings/email");
   const locale = await getLocale();
   const s = emailSyncStrings[locale];
   const sp = await searchParams;

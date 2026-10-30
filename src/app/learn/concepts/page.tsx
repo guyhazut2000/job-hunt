@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
 export const generateMetadata = localizedTitle("concepts");
 
 export default async function ConceptsPage() {
-  const user = await requireUser();
+  const user = await requireUser("/learn/concepts");
   const { locale } = await getDictionary();
   const t = conceptStrings(locale);
   const s = learningStrings(locale);
