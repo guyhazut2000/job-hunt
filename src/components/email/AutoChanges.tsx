@@ -115,7 +115,9 @@ export function StatusTimeline({
             <span className="text-foreground font-semibold">{describeChange(e, labels, statusLabels)}</span>
             <span className="text-muted-foreground">
               {labels.source[e.source] ?? e.source}
-              {e.confidence != null && e.source !== "MANUAL" && e.source !== "FOLLOW_UP" ? ` · ${e.confidence}%` : ""} · {e.at}
+              {e.confidence != null && e.source !== "MANUAL" && e.source !== "FOLLOW_UP"
+                ? ` · ${e.confidence}%`
+                : ""} · {e.at}
               {e.undone ? ` · ${labels.undone}` : ""}
             </span>
           </li>

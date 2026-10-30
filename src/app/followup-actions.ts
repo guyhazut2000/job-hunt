@@ -26,7 +26,8 @@ async function loadApp(userId: string, id: string) {
   });
 }
 
-const readStored = (v: unknown): StoredDrafts => (v && typeof v === "object" && !Array.isArray(v) ? (v as StoredDrafts) : {});
+const readStored = (v: unknown): StoredDrafts =>
+  v && typeof v === "object" && !Array.isArray(v) ? (v as StoredDrafts) : {};
 
 /**
  * The draft for this application's next follow-up. Generated once per round + language (one guarded
@@ -39,7 +40,9 @@ export async function getFollowUpDraft(id: string, lang?: DraftLang, regenerate 
   if (app.followUpCount >= FOLLOW_UP_MAX) return { ok: false, error: "max" };
   const round = (app.followUpCount + 1) as 1 | 2;
   const def = defaultLang(app);
-  const want = lang ? langSchema.parse(lang) : (Object.values(readStored(app.followUpDraft)).find((d) => d?.round === round)?.lang ?? def);
+  const want = lang
+    ? langSchema.parse(lang)
+    : (Object.values(readStored(app.followUpDraft)).find((d) => d?.round === round)?.lang ?? def);
   const stored = readStored(app.followUpDraft);
   const recruiter = await recruiterForApplication(user.id, app.id);
   const to = app.followUpTo ?? recruiter?.email ?? null;
