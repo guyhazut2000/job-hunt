@@ -114,18 +114,3 @@ export function followUpDue(
 
 /** Gmail-scan candidate statuses that count as "the company replied". DISMISSED = user said no. */
 export const RESPONSE_CANDIDATE_STATUSES = ["PENDING", "AUTO_ADDED", "APPROVED"] as const;
-
-/** Applications (ids) that got a status-update email after their follow-up anchor. */
-export function responsesAfterAnchor(
-  apps: FollowUpApp[],
-  candidates: Array<{ applicationId: string | null; receivedAt: Date }>,
-): Set<string> {
-  const anchorOf = new Map(apps.map((a) => [a.id, (a.appliedAt ?? a.createdAt).getTime()]));
-  const out = new Set<string>();
-  for (const c of candidates) {
-    if (!c.applicationId) continue;
-    const a = anchorOf.get(c.applicationId);
-    if (a != null && c.receivedAt.getTime() >= a) out.add(c.applicationId);
-  }
-  return out;
-}

@@ -54,7 +54,7 @@ export function templateDraft(f: FollowUpFacts, lang: DraftLang, to: string | nu
   let lines: string[];
   if (lang === "he") {
     const hi = f.highlight
-      ? `התפקיד מאוד מעניין אותי, ונראה לי שהוא מתאים לניסיון שלי: ${sentence(f.highlight)}`
+      ? `התפקיד מאוד מעניין אותי. בקצרה על הניסיון שלי: ${sentence(f.highlight)}`
       : skills.length
         ? `התפקיד מאוד מעניין אותי, במיוחד בזכות הניסיון שלי עם ${skills.join(", ")}.`
         : "התפקיד עדיין מאוד מעניין אותי.";
@@ -73,7 +73,7 @@ export function templateDraft(f: FollowUpFacts, lang: DraftLang, to: string | nu
       lines = [
         hello,
         "",
-        `רציתי לחזור בקצרה לגבי המועמדות שלי למשרת ${f.title} (הוגשה ב-${date}).`,
+        `רציתי לחזור בקצרה לגבי המועמדות שלי למשרת ${f.title} ב-${f.company} (הוגשה ב-${date}).`,
         "התפקיד עדיין מעניין אותי מאוד, ואשמח לדעת אם התהליך עדיין פתוח.",
         "תודה על הזמן!",
       ];
@@ -81,7 +81,7 @@ export function templateDraft(f: FollowUpFacts, lang: DraftLang, to: string | nu
     lines.push("", "תודה רבה,", f.name ?? "");
   } else {
     const hi = f.highlight
-      ? `I'm still very interested in the role, and I think it's a strong fit: ${sentence(f.highlight)}`
+      ? `I'm still very interested in the role. A quick note on my background: ${sentence(f.highlight)}`
       : skills.length
         ? `I'm still very interested in the role, especially given my experience with ${skills.join(", ")}.`
         : "I'm still very interested in the role.";
@@ -100,7 +100,7 @@ export function templateDraft(f: FollowUpFacts, lang: DraftLang, to: string | nu
       lines = [
         hello,
         "",
-        `Just a short note about my application for the ${f.title} role (submitted on ${date}).`,
+        `Just a short note about my application for the ${f.title} role at ${f.company} (submitted on ${date}).`,
         "I'm still interested and would appreciate knowing whether the position is still open.",
         "Thanks for your time!",
       ];
