@@ -846,6 +846,12 @@ export const FEATURES: Feature[] = [
     prs: [59],
     issue: 31,
     keywords: ["tailored cv", "resume", "pdf"],
+    updates: [
+      {
+        date: "2026-10-30",
+        text: "כניסה ישירה בלי משרה מסבירה מאיפה מתחילים ומקשרת ללוח ולמשרות, במקום הודעת 'לא נמצא'",
+      },
+    ],
   },
   {
     id: "interview-sim",
@@ -875,6 +881,12 @@ export const FEATURES: Feature[] = [
     added: "2026-10-30",
     prs: [65],
     keywords: ["stats", "funnel", "statistics", "סטטיסטיקה"],
+    updates: [
+      {
+        date: "2026-10-30",
+        text: "תיקוני תצוגה בעברית: המספרים במשפך כבר לא נדבקים לאחוזים, ולזמן עד תגובה נוספה יחידה (ימים, חציון). גם +N בתגיות מוצג נכון, ו'מבני נתונים' לא גולש במובייל",
+      },
+    ],
   },
   {
     id: "notifications-rest",
