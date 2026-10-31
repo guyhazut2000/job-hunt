@@ -31,7 +31,7 @@ Everything runs on free providers that need no API key. Guy doesn't have to set 
 
 - Strings: `src/lib/i18n/jobs-map.ts`, with full en/he parity.
 - Map labels use `coalesce(name:he, name)` (`name:en` in English).
-- Arabic/Hebrew shaping uses the vendored `@mapbox/mapbox-gl-rtl-text` 0.3.0 from `public/vendor/` (BSD-2).
+- Hebrew/Arabic labels are shaped natively by MapLibre GL JS 6.9+ (no RTL text plugin needed).
 
 ## Privacy
 

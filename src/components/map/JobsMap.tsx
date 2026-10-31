@@ -3,7 +3,7 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { GeoJSONSource, Map as MlMap, Marker as MlMarker } from "maplibre-gl";
+import type { ExpressionSpecification, GeoJSONSource, Map as MlMap, Marker as MlMarker } from "maplibre-gl";
 import { ChevronDown, ChevronUp, Crosshair, Info, Maximize2, Minimize2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { bestSeconds } from "@/lib/commute/best";
@@ -18,7 +18,6 @@ import { roundedFrom } from "./CommuteBar";
 import { useQueryUpdate } from "./useQueryUpdate";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-const RTL_PLUGIN = "/vendor/mapbox-gl-rtl-text-0.3.0.js";
 const ISRAEL: [number, number] = [34.85, 31.75];
 
 export interface JobsMapProps {
@@ -99,9 +98,8 @@ export function JobsMap({
       try {
         const ml = await import("maplibre-gl");
         if (cancelled || !containerRef.current) return;
-        if (ml.getRTLTextPluginStatus() === "unavailable") {
-          ml.setRTLTextPlugin(RTL_PLUGIN, true).catch(() => {});
-        }
+        // v6 is ESM-only: bundlers must point it at the emitted worker asset.
+        ml.setWorkerUrl(new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).toString());
         map = new ml.Map({
           container: containerRef.current,
           style: STYLE_URL,
@@ -126,7 +124,7 @@ export function JobsMap({
         map.on("load", () => {
           if (!map) return;
           // Hebrew / English place names.
-          const field =
+          const field: ExpressionSpecification =
             locale === "he"
               ? ["coalesce", ["get", "name:he"], ["get", "name"]]
               : ["coalesce", ["get", "name:en"], ["get", "name:latin"], ["get", "name"]];
