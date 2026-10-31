@@ -31,6 +31,7 @@ import { formatDateTime } from "@/lib/format";
 import { lastScanStrings } from "@/lib/i18n/last-scan";
 import { formatRelative } from "@/lib/ingestion/last-scan";
 import { localizedTitle } from "@/lib/i18n/titles";
+import { companiesHref, pageGroups, parseShow } from "@/lib/companies/paging";
 
 export const dynamic = "force-dynamic";
 export const generateMetadata = localizedTitle("companies");
@@ -61,13 +62,8 @@ export default async function CompaniesPage({
   const hiring = everything.filter((c) => c._count.jobs > 0).length;
   // The search narrows every tab (counts included); A/B/C groups left empty simply disappear.
   const all = everything.filter((c) => companyMatchesTerms(c, terms));
-  const tabHref = (key: CompanyFilter) => {
-    const p = new URLSearchParams();
-    if (key !== "all") p.set("sync", key);
-    if (q) p.set("q", q);
-    const qs = p.toString();
-    return qs ? `/companies?${qs}` : "/companies";
-  };
+  // Changing tab starts over at the first batch.
+  const tabHref = (key: CompanyFilter) => companiesHref({ sync: key, q });
   const counts: Record<CompanyFilter, number> = {
     all: all.length,
     auto: all.filter((c) => matchesFilter(c, "auto")).length,
@@ -79,8 +75,14 @@ export default async function CompaniesPage({
     { key: "manual", label: t.companies.filterManual },
   ];
   const companies = all.filter((c) => matchesFilter(c, filter));
-  const groups = groupByLetter(companies, (c) => c.name);
-  const present = new Set(groups.map((g) => g.letter));
+  const allGroups = groupByLetter(companies, (c) => c.name);
+  const present = new Set(allGroups.map((g) => g.letter));
+  // Server-side paging: render the first `?show=` cards (48 per "טען עוד"), not all ~900 at once.
+  const show = parseShow(sp.show, companies.length);
+  const paged = pageGroups(allGroups, show);
+  const groups = paged.groups;
+  const rendered = new Set(groups.map((g) => g.letter));
+  const letterTotal = new Map(allGroups.map((g) => [g.letter, g.items.length]));
   // Full Latin row (missing letters shown disabled); Hebrew letters and "#" only when used.
   const jump = [
     { key: "latin", dir: "ltr" as const, letters: LATIN },
@@ -100,7 +102,7 @@ export default async function CompaniesPage({
         </p>
       </header>
 
-      <SearchBox s={ss.companies} resetParams={[]} testId="companies-search" className="-mt-2" />
+      <SearchBox s={ss.companies} resetParams={["show"]} testId="companies-search" className="-mt-2" />
 
       <nav aria-label={t.companies.filter} className="-mt-2">
         <ul className="scroll-chips flex gap-2" data-company-filter>
@@ -158,7 +160,7 @@ export default async function CompaniesPage({
               {fillQ(ss.noCompaniesFor, q)}
             </p>
             <Link
-              href={filter === "all" ? "/companies" : `/companies?sync=${filter}`}
+              href={companiesHref({ sync: filter })}
               className="text-primary inline-flex min-h-11 items-center font-semibold underline-offset-4 hover:underline"
             >
               {ss.clearSearch}
@@ -168,7 +170,7 @@ export default async function CompaniesPage({
           <p className="text-muted-foreground">{t.companies.noMatches}</p>
         ))}
 
-      {groups.length > 1 && (
+      {allGroups.length > 1 && (
         <nav
           aria-label={t.companies.jumpTo}
           className="bg-background/92 sticky top-(--header-h) z-30 -mx-4 border-b px-4 py-2 backdrop-blur-md md:-mx-6 md:px-6"
@@ -184,7 +186,7 @@ export default async function CompaniesPage({
                       "grid h-9 min-w-8 place-items-center rounded-md px-1 font-mono text-sm font-medium md:h-8 md:min-w-7";
                     return (
                       <li key={l}>
-                        {present.has(l) ? (
+                        {rendered.has(l) ? (
                           <a
                             href={`#${letterAnchor(l)}`}
                             aria-label={`${t.companies.jumpTo}: ${label}`}
@@ -192,6 +194,16 @@ export default async function CompaniesPage({
                           >
                             {l}
                           </a>
+                        ) : present.has(l) ? (
+                          // Not loaded yet: load up to that letter, then jump to it.
+                          <Link
+                            href={companiesHref({ sync: filter, q, show: paged.showFor.get(l), hash: letterAnchor(l) })}
+                            aria-label={`${t.companies.jumpTo}: ${label}`}
+                            data-jump-load
+                            className={cn(cls, "text-foreground hover:bg-muted focus-visible:bg-muted")}
+                          >
+                            {l}
+                          </Link>
                         ) : (
                           <span
                             aria-disabled="true"
@@ -225,7 +237,7 @@ export default async function CompaniesPage({
                 <h2 id={`${id}-h`} className="font-heading text-3xl leading-none font-black">
                   {g.letter === OTHER ? <span aria-label={t.companies.other}>#</span> : g.letter}
                 </h2>
-                <span className="text-muted-foreground font-mono text-xs">{g.items.length}</span>
+                <span className="text-muted-foreground font-mono text-xs">{letterTotal.get(g.letter)}</span>
               </div>
               <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
                 {g.items.map((c) => {
@@ -337,6 +349,24 @@ export default async function CompaniesPage({
           );
         })}
       </div>
+      {paged.total > 0 && (
+        <div className="flex flex-col items-center gap-3" data-testid="companies-paging">
+          <p className="text-muted-foreground text-sm" aria-live="polite" data-testid="companies-showing">
+            {t.companies.showingOf.replace("{shown}", String(paged.shown)).replace("{total}", String(paged.total))}
+          </p>
+          {paged.nextShow && (
+            <Link
+              href={companiesHref({ sync: filter, q, show: paged.nextShow })}
+              scroll={false}
+              prefetch={false}
+              data-testid="companies-load-more"
+              className="bg-card text-foreground hover:bg-muted inline-flex min-h-11 items-center rounded-full border px-6 text-sm font-semibold transition-colors"
+            >
+              {t.companies.loadMore}
+            </Link>
+          )}
+        </div>
+      )}
       {session?.user?.id && <SuggestCompanyForm s={suggestCompanyStrings(locale)} />}
       <BackToTop label={t.ui.backToTop} />
     </div>

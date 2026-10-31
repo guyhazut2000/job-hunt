@@ -117,6 +117,8 @@ const en = {
     manualBadgeHint: "We can't pull this company's jobs automatically — check its careers site",
     careersSite: "Careers site",
     noMatches: "No companies match this filter.",
+    loadMore: "Load more",
+    showingOf: "Showing {shown} of {total}",
     manualTitle: "Jobs here are not pulled automatically",
     manualBody:
       "We couldn't connect to this company's job feed, so its openings aren't listed in the app. It stays on the list so you don't miss it — check its official careers site for roles in Israel.",
@@ -641,6 +643,8 @@ const he: Dictionary = {
     manualBadgeHint: "אין לנו חיבור אוטומטי למשרות של החברה — בדקו באתר המשרות שלה",
     careersSite: "אתר המשרות",
     noMatches: "אין חברות שמתאימות לסינון.",
+    loadMore: "טען עוד",
+    showingOf: "מציג {shown} מתוך {total}",
     manualTitle: "המשרות של החברה לא נמשכות אוטומטית",
     manualBody:
       "לא הצלחנו להתחבר לפיד המשרות של החברה, ולכן המשרות שלה לא מופיעות באפליקציה. היא נשארת ברשימה כדי שלא תפספסו אותה — בדקו משרות בישראל באתר המשרות הרשמי שלה.",
