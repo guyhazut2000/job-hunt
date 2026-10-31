@@ -12,6 +12,9 @@ The full, always-current list is in the app at **`/features`** ("מה המערכ
 [`src/features/registry.ts`](src/features/registry.ts). Every feature change must update it — see
 [docs/features.md](docs/features.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
+Development workflow (Hebrew): [checklist](docs/dev-workflow-checklist.md) and a
+[worked example](docs/dev-workflow-example.md).
+
 ### MVP
 
 - **Job feed** with filters (text, role, seniority, location, work mode, tech) and pagination
