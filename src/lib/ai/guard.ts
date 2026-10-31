@@ -22,7 +22,8 @@ export type AiFeature =
   | "interview_plan"
   | "interview_feedback"
   | "chat"
-  | "follow_up";
+  | "follow_up"
+  | "cv_translate";
 export type AiOutcome = "ok" | "cached" | "error" | "rate_limited" | "limited";
 
 /** Persistence used by the guard; the Prisma implementation lives in ./store.ts, tests use an in-memory one. */

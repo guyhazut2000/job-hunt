@@ -1,4 +1,4 @@
-import { ArrowLeft, FileDown, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, FileDown, LayoutTemplate, ShieldCheck, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CvWorkspace } from "@/components/cv-tailor/CvWorkspace";
@@ -81,6 +81,12 @@ export default async function TailoredCvPage({
             <Link href={`/cv/tailor/${row.id}/print`} data-testid="cvt-export">
               <FileDown className="size-4" aria-hidden />
               {t.exportPdf}
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="rounded-full">
+            <Link href={`/cv?tailored=${row.id}`} data-testid="cvt-templates">
+              <LayoutTemplate className="size-4" aria-hidden />
+              {t.styleTemplate}
             </Link>
           </Button>
           {row.jobId && (
