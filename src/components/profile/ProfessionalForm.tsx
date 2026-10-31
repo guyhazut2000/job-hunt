@@ -16,6 +16,14 @@ import {
 } from "@/lib/profile/schema";
 import { skillKey } from "@/lib/profile/skills-view";
 import { SkillsEditor } from "./SkillsEditor";
+import {
+  CustomSectionsEditor,
+  ProjectsEditor,
+  VolunteeringEditor,
+  type CustomUi,
+  type ProjectUi,
+  type VolunteerUi,
+} from "./CvExtrasEditor";
 
 type T = Dictionary["pv2"];
 type Keyed<X> = X & { _k: number };
@@ -62,6 +70,14 @@ function toUi(p: Professional) {
     linkedinUrl: p.linkedinUrl,
     githubUrl: p.githubUrl,
     portfolioUrl: p.portfolioUrl,
+    phone: p.phone,
+    projects: p.projects.map((x) =>
+      k<Omit<ProjectUi, "_k">>({ ...x, start: x.start ?? "", end: x.end ?? "", tech: x.tech.join(", ") }),
+    ),
+    volunteering: p.volunteering.map((x) =>
+      k<Omit<VolunteerUi, "_k">>({ ...x, start: x.start ?? "", end: x.end ?? "" }),
+    ),
+    customSections: p.customSections.map((x) => k<Omit<CustomUi, "_k">>(x)),
   };
 }
 type Ui = ReturnType<typeof toUi>;
@@ -105,6 +121,37 @@ function toPayload(u: Ui): Professional {
     linkedinUrl: u.linkedinUrl.trim(),
     githubUrl: u.githubUrl.trim(),
     portfolioUrl: u.portfolioUrl.trim(),
+    phone: u.phone.trim(),
+    projects: u.projects
+      .filter((p) => p.name.trim())
+      .map((p) => ({
+        name: p.name.trim(),
+        role: p.role.trim(),
+        url: p.url.trim(),
+        start: p.start.trim(),
+        end: p.end.trim(),
+        description: p.description.trim(),
+        tech: [
+          ...new Set(
+            p.tech
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean),
+          ),
+        ],
+      })),
+    volunteering: u.volunteering
+      .filter((v) => v.organization.trim())
+      .map((v) => ({
+        organization: v.organization.trim(),
+        role: v.role.trim(),
+        start: v.start.trim(),
+        end: v.end.trim(),
+        description: v.description.trim(),
+      })),
+    customSections: u.customSections
+      .filter((c) => c.title.trim())
+      .map((c) => ({ id: c.id, title: c.title.trim(), body: c.body.trim() })),
   };
 }
 
@@ -509,6 +556,9 @@ export function ProfessionalForm({
         </ul>
       </section>
 
+      <ProjectsEditor t={t} id={id} items={u.projects} onChange={(v) => set("projects", v)} />
+      <VolunteeringEditor t={t} id={id} items={u.volunteering} onChange={(v) => set("volunteering", v)} />
+
       {/* ── Languages & links ── */}
       <div className="grid gap-10 lg:grid-cols-2">
         <section className="form-section" aria-labelledby={`${id}-lang`}>
@@ -595,8 +645,25 @@ export function ProfessionalForm({
               />
             </div>
           ))}
+          <div>
+            <label className="label" htmlFor={`${id}-phone`}>
+              {t.phone}
+            </label>
+            <input
+              id={`${id}-phone`}
+              type="tel"
+              dir="ltr"
+              autoComplete="tel"
+              className="input font-mono"
+              placeholder="050-0000000"
+              value={u.phone}
+              onChange={(e) => set("phone", e.target.value)}
+            />
+          </div>
         </section>
       </div>
+
+      <CustomSectionsEditor t={t} id={id} items={u.customSections} onChange={(v) => set("customSections", v)} />
 
       {/* ── Sticky save bar (sits above the mobile tab bar) ── */}
       <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] z-20 -mx-4 flex items-center gap-3 border-t px-4 py-3 backdrop-blur md:bottom-0">

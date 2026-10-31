@@ -129,6 +129,10 @@ describe("mergeProfessional", () => {
       linkedinUrl: "",
       githubUrl: "https://github.com/me",
       portfolioUrl: "",
+      phone: "",
+      projects: [],
+      volunteering: [],
+      customSections: [],
     };
     const m = mergeProfessional(current, x);
     expect(m.headline).toBe("My own headline");

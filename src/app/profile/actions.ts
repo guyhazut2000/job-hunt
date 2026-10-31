@@ -49,6 +49,10 @@ export async function saveProfessional(_: ActionState, formData: FormData): Prom
     linkedinUrl: d.linkedinUrl || null,
     githubUrl: d.githubUrl || null,
     portfolioUrl: d.portfolioUrl || null,
+    phone: d.phone || null,
+    projects: d.projects as Prisma.InputJsonValue,
+    volunteering: d.volunteering as Prisma.InputJsonValue,
+    customSections: d.customSections as Prisma.InputJsonValue,
     // keep v1 columns in sync for older readers (filters, CV tips)
     skills: [...new Set(d.skillItems.map((s) => s.name))].slice(0, 80),
     ...(years != null ? { yearsExperience: Math.round(years) } : {}),

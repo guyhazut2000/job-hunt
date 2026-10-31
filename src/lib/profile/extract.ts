@@ -8,6 +8,8 @@ import {
   type ExperienceItem,
   type LanguageItem,
   type Professional,
+  type ProjectItem,
+  type VolunteerItem,
   type SkillItem,
   categorizeSkill,
   professionalSchema,
@@ -21,7 +23,8 @@ export interface ExtractedProfile extends Professional {
   source: "heuristic" | "llm";
 }
 
-type Section = "summary" | "experience" | "education" | "skills" | "languages" | "military" | "other";
+type Section =
+  "summary" | "experience" | "education" | "skills" | "languages" | "military" | "projects" | "volunteering" | "other";
 
 const HEADINGS: [Section, RegExp][] = [
   ["summary", /^(summary|profile|about( me)?|professional summary|objective|תקציר|פרופיל|על עצמי|אודות)$/i],
@@ -36,6 +39,8 @@ const HEADINGS: [Section, RegExp][] = [
   ],
   ["languages", /^(languages|שפות)$/i],
   ["military", /^(military( service)?|idf|army service|שירות צבאי)$/i],
+  ["projects", /^((personal |side |selected |key )?projects|פרויקטים( אישיים| נבחרים)?)$/i],
+  ["volunteering", /^(volunteering|volunteer (work|experience)|community( work)?|התנדבות|פעילות התנדבותית)$/i],
 ];
 
 const MONTHS: Record<string, number> = {
@@ -138,6 +143,76 @@ function parseExperience(lines: string[]): ExperienceItem[] {
     description: e.description.slice(0, 2000),
     tech: extractTech(`${e.title} ${e.description}`),
   }));
+}
+
+/** Projects: a short line starts a project ("Name – what it is"); bullets / longer lines describe it. */
+function parseProjects(lines: string[]): ProjectItem[] {
+  const out: ProjectItem[] = [];
+  for (const line of lines) {
+    const bullet = /^[•*\-–]/.test(line);
+    const text = line.replace(/^[•*\-–]\s*/, "").trim();
+    if (!text) continue;
+    const url = text.match(/https?:\/\/[^\s)>\]]+|(?:www\.)?github\.com\/[^\s)>\]]+/i)?.[0];
+    const startsNew = !out.length || (!bullet && text.length <= 90);
+    if (startsNew) {
+      const [name, ...rest] = text.split(/\s+[|–—-]\s+|:\s+/);
+      out.push({
+        name: clean(name.replace(url ?? "", "")).slice(0, 120) || "—",
+        role: "",
+        url: url ? (url.startsWith("http") ? url : `https://${url}`).replace(/[.,;]+$/, "") : "",
+        start: undefined,
+        end: undefined,
+        description: rest.join(" – ").trim(),
+        tech: [],
+      });
+    } else {
+      const cur = out.at(-1)!;
+      cur.description = (cur.description ? `${cur.description}\n` : "") + text;
+    }
+  }
+  return out.slice(0, 20).map((p) => ({
+    ...p,
+    description: p.description.slice(0, 1500),
+    tech: extractTech(`${p.name} ${p.description}`),
+  }));
+}
+
+/** Volunteering: "Role, Organization (2019–2021)" or "Organization – Role" lines. */
+function parseVolunteering(lines: string[]): VolunteerItem[] {
+  const out: VolunteerItem[] = [];
+  for (const line of lines) {
+    const bullet = /^[•*\-–]/.test(line);
+    const text = line.replace(/^[•*\-–]\s*/, "").trim();
+    if (!text) continue;
+    if (bullet && out.length) {
+      const cur = out.at(-1)!;
+      cur.description = (cur.description ? `${cur.description}\n` : "") + text;
+      continue;
+    }
+    const r = text.match(RANGE);
+    const body = clean(text.replace(r?.[0] ?? "", "").replace(/[()]/g, ""));
+    if (!body) continue;
+    let { title, company } = splitRoleLine(body);
+    const VROLE = /mentor|volunteer|coordinator|guide|instructor|tutor|board member|מתנדב|מדריכ|חונכ|רכז|מנטור/i;
+    if (company && VROLE.test(company) && !VROLE.test(title)) [title, company] = [company, title];
+    out.push({
+      organization: (company || title).slice(0, 120),
+      role: company ? title.slice(0, 120) : "",
+      start: r ? toYm(r[1]) : undefined,
+      end: r ? toYm(r[2]) : undefined,
+      description: "",
+    });
+  }
+  return out.slice(0, 15);
+}
+
+/** Israeli mobile / landline or an international number found in the CV text. */
+export function findPhone(text: string): string {
+  const m =
+    text.match(/(?:\+972[-\s]?|0)5\d[-\s]?\d{3}[-\s]?\d{4}/) ??
+    text.match(/(?:\+972[-\s]?|0)[23489][-\s]?\d{3}[-\s]?\d{4}/) ??
+    text.match(/\+\d{1,3}[\s-]?\(?\d{1,4}\)?(?:[\s-]?\d{2,4}){2,3}/);
+  return m ? m[0].trim().slice(0, 30) : "";
 }
 
 const MILITARY = /\b(8200|mamram|talpiot|idf|c4i|lotem|matzov|unit 81)\b|ממר"?ם|צה"ל|תלפיות|יחידה|מודיעין|חיל/i;
@@ -276,6 +351,9 @@ export function heuristicExtract(text: string, now = new Date()): ExtractedProfi
       linkedinUrl,
       githubUrl,
       portfolioUrl,
+      phone: findPhone(text),
+      projects: parseProjects(pick("projects")),
+      volunteering: parseVolunteering(pick("volunteering")),
     }),
     targetRoles: role && role !== "other" ? [role] : [],
     targetSeniorities: seniority ? [seniority] : [],
@@ -321,6 +399,9 @@ export const llmWireShape = z.object({
   linkedinUrl: s,
   githubUrl: s,
   portfolioUrl: s,
+  phone: s.describe("phone number as written, empty if none"),
+  projects: z.array(z.object({ name: s, role: s, url: s, ...dates, description: s, tech: z.array(s) })),
+  volunteering: z.array(z.object({ organization: s, role: s, ...dates, description: s })),
   targetRoles: z.array(s),
   targetSeniorities: z.array(z.enum(["INTERN", "JUNIOR", "MID", "SENIOR", "LEAD", "MANAGER"])),
 });
@@ -346,6 +427,15 @@ export function normalizeLlmProfile(raw: unknown): unknown {
       : items;
   o.experience = fixDates(o.experience);
   o.education = fixDates(o.education);
+  o.projects = fixDates(o.projects);
+  o.volunteering = fixDates(o.volunteering);
+  if (Array.isArray(o.projects))
+    o.projects = o.projects.map((p) =>
+      p && typeof p === "object" && !URL_RE.test(String((p as { url?: unknown }).url ?? "").trim())
+        ? { ...(p as object), url: "" }
+        : p,
+    );
+  if (typeof o.phone === "string" && !/^[+\d][\d\s()-]{6,}$/.test(o.phone.trim())) o.phone = "";
   for (const k of ["linkedinUrl", "githubUrl", "portfolioUrl"]) {
     const v = typeof o[k] === "string" ? (o[k] as string).trim() : "";
     o[k] = URL_RE.test(v) ? v : "";
@@ -359,10 +449,12 @@ const PROMPT = `Extract a structured profile from the CV below. Reply with JSON 
  "skillItems":[{"name":string,"level":"BASIC"|"GOOD"|"EXPERT","years":number|null,"category":"languages"|"frontend"|"backend"|"data"|"cloud"|"mobile"|"ml"|"tools"|"other"}],
  "education":[{"kind":"DEGREE"|"BOOTCAMP"|"CERTIFICATION"|"COURSE"|"MILITARY","institution":string,"title":string,"start":"YYYY","end":"YYYY"}],
  "languages":[{"name":string,"level":"BASIC"|"CONVERSATIONAL"|"FLUENT"|"NATIVE"}],
- "linkedinUrl":string,"githubUrl":string,"portfolioUrl":string,
+ "linkedinUrl":string,"githubUrl":string,"portfolioUrl":string,"phone":string,
+ "projects":[{"name":string,"role":string,"url":string,"start":"YYYY-MM"|"","end":"YYYY-MM"|"","description":string,"tech":string[]}],
+ "volunteering":[{"organization":string,"role":string,"start":"YYYY-MM"|"","end":"YYYY-MM"|"","description":string}],
  "targetRoles":string[] (from: backend,frontend,fullstack,mobile,devops,data,ml,qa,security,product,design,hardware,management),
  "targetSeniorities":string[]}
-IDF technology units (8200, Mamram, Talpiot, etc.) go in education with kind MILITARY. Do not invent facts.`;
+IDF technology units (8200, Mamram, Talpiot, etc.) go in education with kind MILITARY. Projects and volunteering only if the CV lists them; otherwise empty arrays. Do not invent facts.`;
 
 /** Extract with the configured LLM; the mock provider (or any failure) uses the heuristic extractor. */
 export async function extractProfile(text: string, provider: LLMProvider): Promise<ExtractedProfile> {

@@ -39,7 +39,7 @@ export function buildBaseCv(opts: {
 }): CvDoc {
   const p = opts.professional;
   const contact = [opts.email ?? "", p.linkedinUrl, p.githubUrl, p.portfolioUrl].filter(Boolean);
-  const phone = opts.resumeText?.match(/(?:\+972[-\s]?|0)5\d[-\s]?\d{3}[-\s]?\d{4}/)?.[0];
+  const phone = p.phone || opts.resumeText?.match(/(?:\+972[-\s]?|0)5\d[-\s]?\d{3}[-\s]?\d{4}/)?.[0];
   if (phone) contact.splice(1, 0, phone);
 
   const skills: string[] = [];

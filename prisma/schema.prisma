@@ -161,6 +161,11 @@ model Profile {
   skillItems        Json          @default("[]")
   education         Json          @default("[]")
   languages         Json          @default("[]")
+  // ── CV sections (docs/cv-templates.md) ──
+  phone             String?
+  projects          Json          @default("[]")
+  volunteering      Json          @default("[]")
+  customSections    Json          @default("[]")
   // ── v2 preferences ──
   targetRoles       String[]      @default([])
   targetSeniorities Seniority[]   @default([])
