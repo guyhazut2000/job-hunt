@@ -181,6 +181,8 @@ model Profile {
   avoidTech         String[]      @default([])
   availability      Availability?
   onboardedAt       DateTime?
+  /// Furthest onboarding wizard step reached (1-4), so /onboarding resumes there. Null = not started.
+  onboardingStep    Int?
 }
 
 model Resume {
