@@ -19,6 +19,9 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // CV export (docs/cv-templates.md): load react-pdf natively (ESM-only deps) and ship the OFL fonts.
+  serverExternalPackages: ["@react-pdf/renderer"],
+  outputFileTracingIncludes: { "/api/cv/export": ["./src/lib/cv-templates/fonts/**"] },
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },

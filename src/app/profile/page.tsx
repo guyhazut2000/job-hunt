@@ -1,5 +1,5 @@
 import type { Document } from "@prisma/client";
-import { ArrowLeft, FolderOpen, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, FolderOpen, LayoutTemplate, ShieldCheck, UserRound } from "lucide-react";
 import Link from "next/link";
 import { DocumentsManager } from "@/components/documents/DocumentsManager";
 import { DocumentUploader } from "@/components/documents/DocumentUploader";
@@ -17,6 +17,7 @@ import { USER_QUOTA_BYTES } from "@/lib/documents/constants";
 import { storageDriver } from "@/lib/documents/storage";
 import { expiryStatus, formatBytes } from "@/lib/documents/validate";
 import { getDictionary } from "@/lib/i18n";
+import { cvTemplateStrings } from "@/lib/i18n/cv-templates";
 import { documentStrings } from "@/lib/i18n/documents";
 import { GRAPH } from "@/lib/learning/graph";
 import { computeCompleteness } from "@/lib/profile/completeness";
@@ -214,6 +215,7 @@ function DocumentsTab({
     expiry: expiryStatus(d.expiryDate, now),
     daysToExpiry: d.expiryDate ? Math.max(0, Math.ceil((d.expiryDate.getTime() - now.getTime()) / 86_400_000)) : null,
   }));
+  const ct = cvTemplateStrings(locale);
   const used = docs.reduce((s, d) => s + d.sizeBytes, 0);
   const skills = GRAPH.nodes.map((n) => ({ id: n.id, label: n.label })).sort((a, b) => a.label.localeCompare(b.label));
   const mode = storageDriver();
@@ -221,6 +223,25 @@ function DocumentsTab({
   return (
     <div className="flex flex-col gap-10">
       <p className="text-muted-foreground -mt-2 text-sm">{p.documentsLead}</p>
+
+      <section
+        className="bg-card flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
+        data-testid="cv-templates-card"
+      >
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <LayoutTemplate className="text-primary mt-1 size-5 shrink-0" aria-hidden />
+          <div>
+            <h2 className="font-heading text-lg font-bold">{ct.docsCard.title}</h2>
+            <p className="text-muted-foreground text-sm">{ct.docsCard.body}</p>
+          </div>
+        </div>
+        <Link
+          href="/cv"
+          className="bg-primary text-primary-foreground inline-flex min-h-11 items-center rounded-md px-4 text-sm font-semibold"
+        >
+          {ct.docsCard.cta}
+        </Link>
+      </section>
 
       {/* CVs: parsed into the profile, so they keep their own upload flow. */}
       <div className="grid gap-8 lg:grid-cols-[1fr_20rem] lg:items-start">

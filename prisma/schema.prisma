@@ -135,6 +135,7 @@ model User {
   companyFollows       CompanyFollow[]
   concepts             Concept[]
   tailoredCvs          TailoredCv[]
+  cvLayouts            CvLayout[]
   interviewSessions    InterviewSession[]
   applicationFollowUps ApplicationFollowUp[]
 }
@@ -166,6 +167,8 @@ model Profile {
   projects          Json          @default("[]")
   volunteering      Json          @default("[]")
   customSections    Json          @default("[]")
+  /// Default CV template id (src/lib/cv-templates/templates.ts); null = recommended from target role.
+  cvTemplate        String?
   // ── v2 preferences ──
   targetRoles       String[]      @default([])
   targetSeniorities Seniority[]   @default([])
@@ -1515,4 +1518,19 @@ model ApplicationFollowUp {
 
   @@unique([applicationId, round])
   @@index([userId, sentAt])
+}
+
+/// Per-user, per-template CV layout (docs/cv-templates.md): section order, visibility and renamed
+/// headings. Content always comes from the profile; this stores layout only.
+model CvLayout {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Template id (hitech | executive | junior | creative | classic).
+  template  String
+  /// LayoutEntry[] (src/lib/cv-templates/sections.ts).
+  sections  Json     @default("[]")
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, template])
 }
