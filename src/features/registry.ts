@@ -170,8 +170,15 @@ export const FEATURES: Feature[] = [
     audience: "public",
     routes: ["/companies"],
     added: "2026-10-27",
-    prs: [1, 7, 33],
-    keywords: ["companies"],
+    prs: [1, 7, 33, 73],
+    keywords: ["companies", "load more", "טען עוד"],
+    updates: [
+      {
+        date: "2026-10-31",
+        text: "העמוד נטען מהר יותר: 48 חברות בכל פעם עם כפתור 'טען עוד' ו'מציג X מתוך Y'. החיפוש, הסינון ומעבר לאות ממשיכים לעבוד (אות שעוד לא נטענה נטענת בלחיצה).",
+        pr: 73,
+      },
+    ],
   },
   {
     id: "company-page",
