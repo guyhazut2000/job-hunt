@@ -874,7 +874,7 @@ export const FEATURES: Feature[] = [
       {
         date: "2026-10-31",
         text: "כפתור 'עיצוב בתבנית' מוריד את הגרסה המותאמת בכל אחת מ-5 תבניות קורות החיים, כ-PDF או Word",
-        pr: 0,
+        pr: 81,
       },
     ],
   },
@@ -891,7 +891,7 @@ export const FEATURES: Feature[] = [
     routes: ["/cv", "/cv/templates/[id]"],
     href: "/cv",
     added: "2026-10-31",
-    prs: [0],
+    prs: [81],
     issue: 78,
     keywords: ["cv templates", "resume", "pdf", "docx", "word", "drag and drop", "rtl"],
   },
