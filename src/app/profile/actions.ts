@@ -133,7 +133,7 @@ export async function savePreferences(_: ActionState, formData: FormData): Promi
   refresh();
   if (formData.get("onboarding")) {
     track("onboarding_completed");
-    redirect("/jobs?welcome=1");
+    redirect("/onboarding?step=4");
   }
   return { ok: t.profile.saved };
 }

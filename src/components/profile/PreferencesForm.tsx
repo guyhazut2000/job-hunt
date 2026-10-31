@@ -1,5 +1,6 @@
 "use client";
 
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { Lock } from "lucide-react";
 import { useActionState, useId } from "react";
 import { savePreferences, type ActionState } from "@/app/profile/actions";
@@ -142,9 +143,12 @@ export function PreferencesForm({
 
       <section className="form-section grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor={`${id}-want`} className="label">
-            {t.wantedTech}
-          </label>
+          <div className="flex items-end justify-between gap-2">
+            <label htmlFor={`${id}-want`} className="label">
+              {t.wantedTech}
+            </label>
+            <VoiceInputButton targetId={`${id}-want`} size="sm" testId="want-voice" />
+          </div>
           <input
             id={`${id}-want`}
             name="wantedTech"
@@ -155,9 +159,12 @@ export function PreferencesForm({
           />
         </div>
         <div>
-          <label htmlFor={`${id}-avoid`} className="label">
-            {t.avoidTech}
-          </label>
+          <div className="flex items-end justify-between gap-2">
+            <label htmlFor={`${id}-avoid`} className="label">
+              {t.avoidTech}
+            </label>
+            <VoiceInputButton targetId={`${id}-avoid`} size="sm" testId="avoid-voice" />
+          </div>
           <input
             id={`${id}-avoid`}
             name="avoidTech"

@@ -12,7 +12,9 @@ import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
 import { BackToTop } from "@/components/BackToTop";
 import { fill, jobSearchStrings } from "@/lib/i18n/job-search";
+import { redirect } from "next/navigation";
 import { hasScorableProfile, scoreMatch, toCandidate } from "@/lib/profile/score";
+import { shouldAutoStartOnboarding } from "@/lib/profile/onboarding";
 import {
   activeFilterCount,
   clearedFilters,
@@ -81,6 +83,9 @@ export default async function JobsPage({
     listSavedPlaces(userId),
     lastScanSafe(),
   ]);
+  // First sign-in with an empty/incomplete profile → the onboarding wizard (once; afterwards the
+  // profile banner offers "continue setup", which resumes at the saved step).
+  if (userId && shouldAutoStartOnboarding(profile)) redirect("/onboarding");
   const now = new Date();
   const nextScan = nextScheduledScan(now);
   const filters: JobFilters = {

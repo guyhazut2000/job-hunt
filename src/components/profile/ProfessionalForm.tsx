@@ -253,9 +253,12 @@ export function ProfessionalForm({
       {/* ── Headline & summary ── */}
       <section className="flex flex-col gap-4">
         <div>
-          <label className="label" htmlFor={`${id}-headline`}>
-            {t.headline}
-          </label>
+          <div className="flex items-end justify-between gap-2">
+            <label className="label" htmlFor={`${id}-headline`}>
+              {t.headline}
+            </label>
+            <VoiceInputButton targetId={`${id}-headline`} size="sm" testId="headline-voice" />
+          </div>
           <input
             id={`${id}-headline`}
             className="input font-heading text-lg font-bold sm:text-lg"
