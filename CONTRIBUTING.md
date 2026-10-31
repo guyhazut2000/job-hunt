@@ -7,3 +7,7 @@
   which renders `/features` ("מה המערכת יודעת לעשות"). New pages fail CI until they are listed. See
   [docs/features.md](docs/features.md).
 - PRs say `Closes #N` when they fully implement an issue and `Refs #N` when they implement part of it.
+- **How we work** (Hebrew): a step-by-step development checklist — success criteria, small PRs, worktrees, additive
+  migrations, tests and guards, mobile/desktop verification, green CI → merge → verify prod, one-at-a-time upgrades —
+  in [docs/dev-workflow-checklist.md](docs/dev-workflow-checklist.md), and a worked example applying every step to the
+  application-delete undo (#74) in [docs/dev-workflow-example.md](docs/dev-workflow-example.md).
