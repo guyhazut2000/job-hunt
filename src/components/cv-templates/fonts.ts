@@ -8,6 +8,8 @@ export const cvSans = localFont({
     { path: "../../lib/cv-templates/fonts/IBMPlexSansHebrew-Bold.ttf", weight: "700" },
   ],
   display: "swap",
+  // The fallback-metrics step of next/font cannot parse these TTFs during `next build` (null name table match).
+  adjustFontFallback: false,
   variable: "--font-cv-sans",
 });
 export const cvSerif = localFont({
@@ -16,5 +18,7 @@ export const cvSerif = localFont({
     { path: "../../lib/cv-templates/fonts/DavidLibre-Bold.ttf", weight: "700" },
   ],
   display: "swap",
+  // The fallback-metrics step of next/font cannot parse these TTFs during `next build` (null name table match).
+  adjustFontFallback: false,
   variable: "--font-cv-serif",
 });
