@@ -139,6 +139,8 @@ const en = {
     add: "Add",
     move: "Move to",
     remove: "Remove",
+    deletedToast: "Application deleted",
+    undoDelete: "Undo",
   },
   profile: {
     title: "Profile & documents",
@@ -665,6 +667,8 @@ const he: Dictionary = {
     add: "הוספה",
     move: "העבר ל",
     remove: "הסרה",
+    deletedToast: "המועמדות נמחקה",
+    undoDelete: "בטל",
   },
   profile: {
     title: "פרופיל ומסמכים",

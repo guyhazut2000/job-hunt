@@ -1,14 +1,15 @@
 "use client";
 
-import { useOptimistic, useRef, useTransition } from "react";
+import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import { AutoBadge, AutoUndoButton, StatusTimeline, type AutoLabels } from "./email/AutoChanges";
 import { FollowUpCardControl } from "./followup/FollowUp";
 import { InterviewDate, type InterviewDateLabels } from "./InterviewDate";
 import { TruncatedText } from "./TruncatedText";
 import type { ApplicationStatus } from "@prisma/client";
-import { ExternalLink, FileText, GripVertical, MessagesSquare, Trash2, Users } from "lucide-react";
+import { ExternalLink, FileText, GripVertical, MessagesSquare, Trash2, Undo2, Users } from "lucide-react";
 import { removeApplication, updateApplicationStatus } from "@/app/actions";
 import { Button } from "@/components/ui/button";
+import { createPendingDeleteQueue, UNDO_DELETE_MS } from "@/lib/applications/pending-delete";
 import type { AutoInfo, TimelineEntry } from "@/lib/email/history";
 import type { FollowUpView } from "@/lib/followup/view";
 import type { FollowUpStrings } from "@/lib/i18n/followup";
@@ -54,6 +55,7 @@ export function Kanban({
   prepLabels,
   followUpLabels,
   openFollowUp,
+  undoLabels = { deleted: "המועמדות נמחקה", undo: "בטל" },
 }: {
   items: KanbanItem[];
   labels: Record<string, string>;
@@ -68,16 +70,74 @@ export function Kanban({
   followUpLabels?: FollowUpStrings;
   /** Application id whose follow-up draft should open on load (from a notification link). */
   openFollowUp?: string;
+  /** Undo toast after a delete ("המועמדות נמחקה · בטל"). */
+  undoLabels?: { deleted: string; undo: string };
 }) {
   const [, start] = useTransition();
   const board = useRef<HTMLDivElement>(null);
-  const [optimistic, setOptimistic] = useOptimistic(
-    items,
-    (state, u: { id: string; status?: ApplicationStatus; remove?: boolean }) =>
-      u.remove
-        ? state.filter((i) => i.id !== u.id)
-        : state.map((i) => (i.id === u.id ? { ...i, status: u.status! } : i)),
+  const [optimisticItems, setOptimistic] = useOptimistic(items, (state, u: { id: string; status: ApplicationStatus }) =>
+    state.map((i) => (i.id === u.id ? { ...i, status: u.status } : i)),
   );
+  // Delayed delete: the card is hidden at once and only deleted after the undo window (or when the
+  // page is left), so undo restores it with its history, notes and drafts intact.
+  const [hidden, setHidden] = useState<{ id: string; title: string; committed?: boolean }[]>([]);
+  const undoRef = useRef<HTMLButtonElement>(null);
+  const leaving = useRef(false);
+  const queue = useMemo(
+    () =>
+      createPendingDeleteQueue({
+        commit: (ids) => {
+          if (ids.length === 1 && !leaving.current) {
+            const [id] = ids;
+            setHidden((h) => h.map((x) => (x.id === id ? { ...x, committed: true } : x)));
+            start(async () => {
+              // On failure the card shows again rather than pretending it's gone; on success the
+              // refreshed board no longer has it.
+              await removeApplication(id).catch(() => {});
+              setHidden((h) => h.filter((x) => x.id !== id));
+            });
+          } else {
+            // Leaving the page: a keep-alive request survives the unload, a server action may not.
+            void fetch("/api/applications/remove", {
+              method: "POST",
+              keepalive: true,
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ ids }),
+            }).catch(() => {});
+          }
+        },
+      }),
+    [],
+  );
+  useEffect(() => {
+    const leave = () => {
+      leaving.current = true;
+      queue.flush();
+      leaving.current = false;
+    };
+    const onVis = () => document.visibilityState === "hidden" && leave();
+    window.addEventListener("pagehide", leave);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("pagehide", leave);
+      document.removeEventListener("visibilitychange", onVis);
+      leave(); // navigating elsewhere in the app
+    };
+  }, [queue]);
+  const remove = (id: string, title: string) => {
+    queue.schedule(id);
+    setHidden((h) => [...h.filter((x) => x.id !== id), { id, title }]);
+    // The trash button disappears with the card; keep keyboard focus on the undo action.
+    requestAnimationFrame(() => undoRef.current?.focus({ preventScroll: true }));
+  };
+  const undo = (id: string) => {
+    queue.undo(id);
+    setHidden((h) => h.filter((x) => x.id !== id));
+  };
+  const hiddenIds = new Set(hidden.map((h) => h.id));
+  const optimistic = optimisticItems.filter((i) => !hiddenIds.has(i.id));
+  // Toast for the most recent delete still in its undo window.
+  const toast = hidden.filter((h) => !h.committed).at(-1);
   const move = (id: string, status: ApplicationStatus) =>
     start(async () => {
       setOptimistic({ id, status });
@@ -255,12 +315,8 @@ export function Kanban({
                           size="icon"
                           className="text-muted-foreground hover:text-destructive xl:size-9"
                           aria-label={`${removeLabel}: ${i.title}`}
-                          onClick={() =>
-                            start(async () => {
-                              setOptimistic({ id: i.id, remove: true });
-                              await removeApplication(i.id);
-                            })
-                          }
+                          data-testid="kanban-remove"
+                          onClick={() => remove(i.id, i.title)}
                         >
                           <Trash2 aria-hidden />
                         </Button>
@@ -271,6 +327,41 @@ export function Kanban({
             </ul>
           </section>
         ))}
+      </div>
+      <div
+        role="status"
+        aria-live="polite"
+        className="pointer-events-none fixed inset-x-4 bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+0.75rem)] z-50 flex justify-center md:bottom-[calc(env(safe-area-inset-bottom)+1.5rem)]"
+      >
+        {toast && (
+          <div
+            key={toast.id}
+            data-testid="undo-delete-toast"
+            className="bg-foreground text-background pointer-events-auto relative flex w-full max-w-md items-center gap-3 overflow-hidden rounded-lg py-2 ps-4 pe-2 shadow-lg"
+          >
+            <p className="min-w-0 flex-1 text-sm">
+              <span className="font-semibold">{undoLabels.deleted}</span>
+              <span className="block truncate text-xs opacity-75" dir="auto">
+                {toast.title}
+              </span>
+            </p>
+            <button
+              ref={undoRef}
+              type="button"
+              onClick={() => undo(toast.id)}
+              data-testid="undo-delete"
+              className="text-background hover:bg-background/15 focus-visible:ring-background inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm font-bold focus-visible:ring-2 focus-visible:outline-none"
+            >
+              <Undo2 className="size-4" aria-hidden />
+              {undoLabels.undo}
+            </button>
+            <span
+              aria-hidden
+              className="bg-background/60 animate-undo-countdown absolute start-0 bottom-0 h-0.5 w-full origin-left rtl:origin-right"
+              style={{ animationDuration: `${UNDO_DELETE_MS}ms` }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
