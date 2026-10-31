@@ -71,7 +71,7 @@ describe("profile CV sections", () => {
       phone: "n/a",
       projects: [{ name: "A", role: "", url: "github.com/a", start: "2023", end: "", description: "", tech: [] }],
       volunteering: [{ organization: "B", role: "", start: "", end: "", description: "" }],
-    });
+    }) as { phone: string; projects: { url: string }[]; volunteering: { organization: string }[] };
     expect(x.phone).toBe("");
     expect(x.projects[0].url).toBe("");
     expect(x.volunteering[0].organization).toBe("B");
