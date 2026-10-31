@@ -119,6 +119,17 @@
   --text-title: clamp(1.6rem, 1.25rem + 1.4vw, 2.25rem);
   --text-title--line-height: 1.15;
 
+  /* undo toast: a bar that empties over the undo window (duration set inline) */
+  --animate-undo-countdown: undo-countdown linear forwards;
+  @keyframes undo-countdown {
+    from {
+      transform: scaleX(1);
+    }
+    to {
+      transform: scaleX(0);
+    }
+  }
+
   --animate-rise: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   @keyframes rise {
     from {

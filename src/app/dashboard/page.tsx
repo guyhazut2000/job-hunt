@@ -297,6 +297,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         items={items}
         labels={t.status}
         removeLabel={t.dashboard.remove}
+        undoLabels={{ deleted: t.dashboard.deletedToast, undo: t.dashboard.undoDelete }}
         statusLabel={t.ui.status}
         emptyLabel={t.ui.emptyColumn}
         autoLabels={autoLabels}

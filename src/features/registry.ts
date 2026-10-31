@@ -266,8 +266,9 @@ export const FEATURES: Feature[] = [
     audience: "user",
     routes: ["/dashboard"],
     added: "2026-10-27",
-    prs: [1],
-    keywords: ["kanban", "tracker", "dashboard"],
+    prs: [1, 74],
+    keywords: ["kanban", "tracker", "dashboard", "undo", "ביטול"],
+    updates: [{ date: "2026-10-31", text: "מחיקת מועמדות אפשר לבטל תוך 7 שניות מההודעה שקופצת", pr: 74 }],
   },
   {
     id: "save-jobs",
