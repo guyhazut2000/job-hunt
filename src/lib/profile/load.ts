@@ -2,11 +2,14 @@ import type { Profile } from "@prisma/client";
 import {
   type Preferences,
   type Professional,
+  customSection,
   educationItem,
   experienceItem,
   languageItem,
   parseList,
+  projectItem,
   skillItem,
+  volunteerItem,
 } from "./schema";
 
 export function readProfessional(p: Profile | null): Professional {
@@ -22,6 +25,10 @@ export function readProfessional(p: Profile | null): Professional {
     linkedinUrl: p?.linkedinUrl ?? "",
     githubUrl: p?.githubUrl ?? "",
     portfolioUrl: p?.portfolioUrl ?? "",
+    phone: p?.phone ?? "",
+    projects: parseList(projectItem, p?.projects),
+    volunteering: parseList(volunteerItem, p?.volunteering),
+    customSections: parseList(customSection, p?.customSections),
   };
 }
 

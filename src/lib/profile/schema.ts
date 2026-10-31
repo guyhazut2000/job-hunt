@@ -58,6 +58,45 @@ export const educationItem = z.object({
   end: month.optional().or(z.literal("")),
 });
 export const languageItem = z.object({ name: str(40).min(1), level: z.enum(LANGUAGE_LEVELS).default("FLUENT") });
+/** A personal / open-source / academic project (CV "Projects" section). */
+export const projectItem = z.object({
+  name: str(120).min(1),
+  role: str(120).default(""),
+  url: z
+    .string()
+    .trim()
+    .max(300)
+    .refine((v) => v === "" || /^https?:\/\/\S+$/i.test(v), "Must start with https://")
+    .default(""),
+  start: month.optional().or(z.literal("")),
+  end: month.optional().or(z.literal("")),
+  description: str(1500).default(""),
+  tech: tags,
+});
+/** Volunteering / community work. */
+export const volunteerItem = z.object({
+  organization: str(120).min(1),
+  role: str(120).default(""),
+  start: month.optional().or(z.literal("")),
+  end: month.optional().or(z.literal("")),
+  description: str(1000).default(""),
+});
+/** A free-form CV section the user names (e.g. "פרסומים", "Awards"); one line per bullet. */
+export const customSection = z.object({
+  id: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9]{1,24}$/)
+    .default(() => Math.random().toString(36).slice(2, 10)),
+  title: str(60).min(1),
+  body: str(2000).default(""),
+});
+const phone = z
+  .string()
+  .trim()
+  .max(30)
+  .refine((v) => v === "" || /^[+\d][\d\s()-]{6,}$/.test(v), "phone")
+  .default("");
 
 const url = z
   .string()
@@ -76,12 +115,20 @@ export const professionalSchema = z.object({
   linkedinUrl: url,
   githubUrl: url,
   portfolioUrl: url,
+  // ── CV sections (additive, docs/cv-templates.md): the profile is the single source of CV content ──
+  phone,
+  projects: z.array(projectItem).max(20).default([]),
+  volunteering: z.array(volunteerItem).max(15).default([]),
+  customSections: z.array(customSection).max(6).default([]),
 });
 export type Professional = z.infer<typeof professionalSchema>;
 export type ExperienceItem = z.infer<typeof experienceItem>;
 export type SkillItem = z.infer<typeof skillItem>;
 export type EducationItem = z.infer<typeof educationItem>;
 export type LanguageItem = z.infer<typeof languageItem>;
+export type ProjectItem = z.infer<typeof projectItem>;
+export type VolunteerItem = z.infer<typeof volunteerItem>;
+export type CustomSection = z.infer<typeof customSection>;
 
 export const preferencesSchema = z
   .object({

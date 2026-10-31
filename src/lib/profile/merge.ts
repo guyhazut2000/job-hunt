@@ -36,5 +36,10 @@ export function mergeProfessional(current: Professional, x: ExtractedProfile): P
     linkedinUrl: current.linkedinUrl || x.linkedinUrl,
     githubUrl: current.githubUrl || x.githubUrl,
     portfolioUrl: current.portfolioUrl || x.portfolioUrl,
+    phone: current.phone || x.phone,
+    projects: uniqBy([...current.projects, ...x.projects], (p) => key(p.name)),
+    volunteering: uniqBy([...current.volunteering, ...x.volunteering], (v) => key(v.organization, v.role)),
+    // Custom sections are written by the user only; extraction never proposes them.
+    customSections: current.customSections,
   };
 }
