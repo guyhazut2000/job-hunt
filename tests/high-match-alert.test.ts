@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type Row = { job: { id: string; title: string; location: string; company: { name: string } }; personal: P };
-type P = { score: number; parts: Record<string, number | null>; hidden: boolean; reasons: unknown[] };
+type P = import("@/lib/ranking/personal").PersonalResult;
 
 const store = vi.hoisted(() => ({
   users: [] as Array<Record<string, unknown>>,
