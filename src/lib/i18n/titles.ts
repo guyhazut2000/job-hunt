@@ -8,6 +8,7 @@ export const PAGE_TITLES = {
   companies: { he: "חברות", en: "Companies" },
   cv: { he: "קורות חיים", en: "CV" },
   cvTailor: { he: "קורות חיים מותאמים", en: "Tailored CV" },
+  coach: { he: "מאמן שבועי", en: "Weekly coach" },
   cvTemplates: { he: "תבניות קורות חיים", en: "CV templates" },
   cvStandard: { he: "קורות חיים חובה", en: "Mandatory CV" },
   dashboard: { he: "לוח הבקרה", en: "Dashboard" },

@@ -16,6 +16,7 @@ export default function robots(): MetadataRoute.Robots {
         "/notifications",
         "/digest",
         "/stats",
+        "/coach",
         "/interview",
         "/cv",
         "/chat",

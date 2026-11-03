@@ -10,6 +10,7 @@ export const NOTIFICATION_KINDS = [
   "INTERVIEW",
   "LEARNING",
   "DIGEST",
+  "WEEKLY_COACH",
   "SCAN_FAILED",
   "EMAIL_UPDATE",
   "WHATS_NEW",
@@ -52,6 +53,7 @@ const DEFAULT_ON: Record<NotificationKind, Record<ExternalChannel, boolean>> = {
   INTERVIEW: { push: true, telegram: true },
   LEARNING: { push: true, telegram: true },
   DIGEST: { push: false, telegram: true },
+  WEEKLY_COACH: { push: true, telegram: true },
   SCAN_FAILED: { push: false, telegram: true },
   EMAIL_UPDATE: { push: true, telegram: true },
   WHATS_NEW: { push: false, telegram: false },
@@ -74,7 +76,7 @@ export function parseOverrides(raw: unknown): ChannelOverrides {
 }
 
 /** Kinds whose push/Telegram messages are not dropped by the per-hour cap (scheduled and time-critical). */
-export const CAP_EXEMPT: readonly NotificationKind[] = ["INTERVIEW", "DIGEST"];
+export const CAP_EXEMPT: readonly NotificationKind[] = ["INTERVIEW", "DIGEST", "WEEKLY_COACH"];
 
 export function channelEnabled(overrides: ChannelOverrides, kind: NotificationKind, ch: ExternalChannel): boolean {
   return overrides[kind]?.[ch] ?? DEFAULT_ON[kind][ch];

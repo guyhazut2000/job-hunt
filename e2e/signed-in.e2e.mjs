@@ -103,6 +103,7 @@ before(async () => {
   await db.savedPlace.deleteMany({ where: { userId: demoId } });
   await db.rankingPrefs.deleteMany({ where: { userId: demoId } });
   await db.notification.deleteMany({ where: { userId: demoId, dedupeKey: { startsWith: "e2e-" } } });
+  await db.coachReport.deleteMany({ where: { userId: demoId } });
   await db.company.deleteMany({ where: { slug: { startsWith: "e2e-" } } });
 
   // 60 manual companies → two pages under a filter (48 per page).
@@ -362,5 +363,39 @@ test("high-match alert: settings save threshold/cap, alert shows in the notifica
     where: { userId: demoId },
     data: { highMatchThreshold: 80, highMatchDailyCap: 3 },
   });
+  await done(page);
+});
+
+test("weekly coach: 3 recommendations with their numbers, refresh stores the report", async () => {
+  const page = await newPage();
+  await login(page);
+  await page.goto(`${BASE}/coach`);
+  await page.getByTestId("coach-preview").waitFor();
+  const recs = page.getByTestId("coach-rec");
+  assert.equal(await recs.count(), 3);
+  for (let i = 0; i < 3; i++) assert.ok((await recs.nth(i).getByTestId("coach-basis").innerText()).match(/\d/));
+  await page.getByTestId("coach-applied").waitFor();
+  await page.getByTestId("coach-refresh").click();
+  await page.getByTestId("coach-preview").waitFor({ state: "detached" });
+  assert.equal(await page.getByTestId("coach-rec").count(), 3);
+  await shot(page, "coach-page");
+  const reports = await db.coachReport.findMany({ where: { userId: demoId } });
+  assert.equal(reports.length, 1);
+  assert.equal(reports[0].data.recommendations.length, 3);
+  // Refresh never notifies; the cron sends the WEEKLY_COACH row (unit-tested). Check it renders.
+  assert.equal(await db.notification.count({ where: { userId: demoId, kind: "WEEKLY_COACH" } }), 0);
+  await db.notification.create({
+    data: {
+      userId: demoId,
+      kind: "WEEKLY_COACH",
+      title: `המאמן השבועי: ${reports[0].data.activity.applied} הגשות, ${reports[0].data.activity.responses} תגובות`,
+      body: "השבוע: e2e",
+      url: "/coach",
+      dedupeKey: "e2e-coach",
+    },
+  });
+  await page.goto(`${BASE}/notifications`);
+  await page.getByText("השבוע: e2e").waitFor();
+  await shot(page, "coach-notification");
   await done(page);
 });

@@ -13,6 +13,7 @@ import { documentStrings } from "@/lib/i18n/documents";
 import { salaryHubStrings } from "@/lib/i18n/salary-hub";
 import { referralStrings } from "@/lib/i18n/referrals";
 import { statsStrings } from "@/lib/i18n/stats";
+import { coachStrings } from "@/lib/i18n/coach";
 import { reminderStrings } from "@/lib/i18n/reminders";
 import { learningStrings } from "@/lib/i18n/learning";
 import { learningHubStrings } from "@/lib/i18n/learning-hub";
@@ -99,6 +100,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 learnMine: learningHubStrings(locale).navMine,
                 digest: reminderStrings(locale).nav,
                 stats: statsStrings(locale).nav,
+                coach: coachStrings(locale).nav,
                 salary: salaryHubStrings[locale].title,
                 referrals: referralStrings[locale].kicker,
                 admin: t.nav.admin,

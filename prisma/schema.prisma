@@ -144,6 +144,7 @@ model User {
   salaryDataPoints     SalaryDataPoint[]
   rankingPrefs         RankingPrefs?
   outreachPrefs        OutreachPrefs?
+  coachReports         CoachReport[]
 }
 
 model Profile {
@@ -1700,4 +1701,24 @@ model SalaryDataPoint {
   createdAt       DateTime  @default(now())
 
   @@index([userId, family])
+}
+
+/// Weekly coach (#97): one rule-based summary per user and Israel week (Sunday YYYY-MM-DD), built from
+/// the same stats as /stats plus outreach activity. `ai` is the optional Gemini rephrasing (cached here).
+model CoachReport {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Sunday of the summarized week (Israel), YYYY-MM-DD.
+  week      String
+  /// src/lib/coach/build.ts CoachData: the numbers and the rule-based recommendations.
+  data      Json
+  /// { summary, recs: { [id]: text } } from Gemini, or null.
+  ai        Json?
+  /// ai | offline | limited
+  aiSource  String   @default("offline")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, week])
 }
