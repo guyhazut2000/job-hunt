@@ -16,6 +16,7 @@ export type AiFeature =
   | "tutor_chat"
   | "hiring_process"
   | "digest"
+  | "coach"
   | "concept_overview"
   | "concept_chat"
   | "cv_tailor"

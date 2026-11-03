@@ -6,7 +6,7 @@ export const maxDuration = 300;
 
 /**
  * Hourly cron (vercel.json lists it once per hour — Hobby crons run at most daily each, and fire
- * somewhere inside the scheduled hour): interview + learning reminders, daily digests, send queue.
+ * somewhere inside the scheduled hour): interview + learning reminders, daily digests, weekly coach, send queue.
  * `Authorization: Bearer $CRON_SECRET`.
  */
 async function handle(req: Request) {
