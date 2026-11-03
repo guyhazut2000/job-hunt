@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
+import { dispositionFilename, exportOutcome, type ExportOutcome } from "@/lib/cv-templates/export-status";
 import { resetCvLayoutAction, saveCvLayoutAction, setCvTemplateAction } from "@/app/cv/actions";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { demoContent, type CvContent } from "@/lib/cv-templates/content";
@@ -125,6 +126,34 @@ export function TemplateEditor(p: TemplateEditorProps) {
   if (p.demo) q.set("demo", "1");
   const exportHref = (format: "pdf" | "docx") => `/api/cv/export?${q.toString()}&format=${format}`;
   const other = !p.demo && lang !== p.written;
+  const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
+  const [exportMsg, setExportMsg] = useState<{ kind: ExportOutcome; to: CvLang } | null>(null);
+  const download = async (f: "pdf" | "docx", ev: React.MouseEvent<HTMLAnchorElement>) => {
+    ev.preventDefault();
+    if (exporting) return;
+    setExporting(f);
+    setExportMsg(null);
+    const to = lang;
+    try {
+      const res = await fetch(exportHref(f), { credentials: "same-origin" });
+      const kind = exportOutcome(res.status, res.headers.get("X-Cv-Translation"));
+      if (res.ok) {
+        const url = URL.createObjectURL(await res.blob());
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = dispositionFilename(res.headers.get("Content-Disposition"), `cv-${template}-${to}.${f}`);
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      }
+      setExportMsg({ kind, to });
+    } catch {
+      setExportMsg({ kind: "exportFailed", to });
+    } finally {
+      setExporting(null);
+    }
+  };
   const langName = (l: CvLang) => (l === "he" ? e.langHe : e.langEn);
 
   return (
@@ -295,14 +324,36 @@ export function TemplateEditor(p: TemplateEditorProps) {
                 key={f}
                 href={exportHref(f)}
                 download
+                onClick={(ev) => void download(f, ev)}
+                aria-busy={exporting === f}
+                aria-disabled={!!exporting}
                 data-testid={`cv-export-${f}`}
-                className="bg-primary text-primary-foreground inline-flex min-h-11 items-center gap-1 rounded-md px-4 text-sm font-semibold"
+                className={cn(
+                  "bg-primary text-primary-foreground inline-flex min-h-11 items-center gap-1 rounded-md px-4 text-sm font-semibold",
+                  exporting && "opacity-70",
+                )}
               >
                 <Download className="size-4" aria-hidden />
-                {f === "pdf" ? e.pdf : e.docx} · {langName(lang)}
+                {exporting === f ? e.exporting : `${f === "pdf" ? e.pdf : e.docx} · ${langName(lang)}`}
               </a>
             ))}
           </div>
+          <p
+            role="status"
+            aria-live="polite"
+            data-testid="cv-export-status"
+            data-outcome={exportMsg?.kind ?? ""}
+            className={cn(
+              "text-sm empty:hidden",
+              exportMsg && exportMsg.kind !== "done"
+                ? "rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-950 dark:bg-amber-950/30 dark:text-amber-100"
+                : "text-muted-foreground",
+            )}
+          >
+            {exportMsg
+              ? fmt(e[exportMsg.kind === "done" ? "exportDone" : exportMsg.kind], { to: langName(exportMsg.to) })
+              : ""}
+          </p>
           <ScaledSheet label={`${e.preview}: ${t.templates[template].name}`}>
             <CvPreview content={content} layout={layout} tpl={tpl} lang={lang} />
           </ScaledSheet>

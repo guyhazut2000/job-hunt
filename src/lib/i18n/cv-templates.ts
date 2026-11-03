@@ -112,6 +112,12 @@ const he = {
     exporting: "מכין קובץ…",
     translateNote: "התוכן בפרופיל כתוב ב{from}. בהורדה ב{to} הוא יתורגם (בלי להוסיף פרטים); התצוגה מציגה את המקור.",
     translateOff: "תרגום אוטומטי לא זמין כרגע — הקובץ יירד עם הכותרות ב{to} והתוכן כפי שהוא כתוב בפרופיל.",
+    translateLimited:
+      "הקובץ ירד, אבל בלי תרגום: הגעת למכסת ה-AI היומית. הכותרות ב{to}, התוכן כפי שנכתב. אפשר לנסות שוב מחר.",
+    translateFailed: "הקובץ ירד, אבל התרגום נכשל — התוכן נשאר כפי שנכתב. אפשר לנסות להוריד שוב.",
+    exportFailed: "ההורדה נכשלה. נסו שוב בעוד רגע.",
+    exportSignedOut: "פג תוקף ההתחברות. התחברו מחדש ונסו שוב.",
+    exportDone: "הקובץ ירד.",
     setDefault: "קביעה כתבנית שלי",
     isDefault: "זו התבנית שלך",
     editContent: "עריכת התוכן בפרופיל",
@@ -187,6 +193,12 @@ const en: Strings = {
       "Your profile is written in {from}. Downloading in {to} translates it (never adding facts); the preview shows the original.",
     translateOff:
       "Automatic translation isn't available right now — the file will have {to} headings and your content as written.",
+    translateLimited:
+      "Downloaded without translation: you've reached today's AI limit. {to} headings, content as written. Try again tomorrow.",
+    translateFailed: "Downloaded, but the translation failed — content is as written. You can download again.",
+    exportFailed: "The download failed. Try again in a moment.",
+    exportSignedOut: "Your session expired. Sign in again and retry.",
+    exportDone: "Downloaded.",
     setDefault: "Make this my template",
     isDefault: "This is your template",
     editContent: "Edit content in profile",

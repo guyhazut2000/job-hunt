@@ -4,6 +4,7 @@ import { renderCvDocx } from "@/lib/cv-templates/docx";
 import { renderCvPdf } from "@/lib/cv-templates/pdf";
 import { loadCvSource, loadLayout } from "@/lib/cv-templates/server";
 import { TEMPLATES, isTemplateId } from "@/lib/cv-templates/templates";
+import { shouldTranslate } from "@/lib/cv-templates/export-status";
 import { translateContent } from "@/lib/cv-templates/translate";
 
 export const runtime = "nodejs";
@@ -39,7 +40,7 @@ export async function GET(req: Request) {
   const demo = url.searchParams.get("demo") === "1" || source.empty;
   let content = demo ? demoContent(lang) : source.content;
   let translation = "none";
-  if (!demo && source.written !== lang) {
+  if (shouldTranslate(source.written, lang, demo)) {
     const r = await translateContent(content, lang, userId);
     content = r.content;
     translation = r.status;
