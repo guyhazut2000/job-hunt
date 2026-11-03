@@ -62,6 +62,10 @@ export function Kanban({
   followUpLabels,
   openFollowUp,
   undoLabels = { deleted: "המועמדות נמחקה", undo: "בטל" },
+  cvGateLabels = {
+    text: "לפני סימון כ״נשלח״ צריך קורות חיים שעומדים בתקן (עמוד אחד, כל כללי החובה).",
+    cta: "להשלמת קורות החיים",
+  },
 }: {
   items: KanbanItem[];
   labels: Record<string, string>;
@@ -81,6 +85,7 @@ export function Kanban({
   openFollowUp?: string;
   /** Undo toast after a delete ("המועמדות נמחקה · בטל"). */
   undoLabels?: { deleted: string; undo: string };
+  cvGateLabels?: { text: string; cta: string };
 }) {
   const [, start] = useTransition();
   const board = useRef<HTMLDivElement>(null);
@@ -147,10 +152,12 @@ export function Kanban({
   const optimistic = optimisticItems.filter((i) => !hiddenIds.has(i.id));
   // Toast for the most recent delete still in its undo window.
   const toast = hidden.filter((h) => !h.committed).at(-1);
+  const [cvBlocked, setCvBlocked] = useState(false);
   const move = (id: string, status: ApplicationStatus) =>
     start(async () => {
       setOptimistic({ id, status });
-      await updateApplicationStatus(id, status);
+      const r = await updateApplicationStatus(id, status);
+      setCvBlocked(!!(r && r.blocked === "cv"));
     });
   const counts = Object.fromEntries(COLUMNS.map((c) => [c, optimistic.filter((i) => i.status === c).length]));
   const jump = (col: ApplicationStatus) =>
@@ -160,6 +167,18 @@ export function Kanban({
 
   return (
     <div className="flex flex-col gap-3">
+      {cvBlocked && (
+        <div
+          role="alert"
+          data-testid="kanban-cv-gate"
+          className="border-caution/40 bg-caution/10 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm"
+        >
+          <span>{cvGateLabels.text}</span>
+          <a href="/cv/standard?from=applied" className="text-primary min-h-11 content-center font-semibold underline">
+            {cvGateLabels.cta}
+          </a>
+        </div>
+      )}
       {/* status index — doubles as a column jumper on small screens */}
       <div className="scroll-thin -mx-4 overflow-x-auto px-4 xl:hidden">
         <ul className="flex w-max gap-1.5">

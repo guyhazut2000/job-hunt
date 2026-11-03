@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { getLocale } from "@/lib/i18n";
 import { cvTailorStrings } from "@/lib/i18n/cv-tailor";
 import { requireUser } from "@/lib/session";
+import { requireCvStandard, standardUrl } from "@/lib/cv-standard/server";
 
 export type GenerateState = { error?: string } | undefined;
 
@@ -19,6 +20,8 @@ export async function generateTailoredAction(_: GenerateState, formData: FormDat
   const user = await requireUser();
   const locale = await getLocale();
   const t = cvTailorStrings(locale);
+  // Mandatory CV standard (#94): tailor only from a base CV that meets it.
+  if (!(await requireCvStandard(user.id)).ok) redirect(standardUrl("tailor"));
   const jobText = str(formData.get("jobText"));
   const resolved = await resolveTarget(
     user.id,

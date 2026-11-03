@@ -82,7 +82,11 @@ describe("onboarding: resumable steps", () => {
 });
 
 // ── finishOnboarding (server action) ──
-const h = vi.hoisted(() => ({ upserts: [] as unknown[], redirects: [] as string[] }));
+const h = vi.hoisted(() => ({ upserts: [] as unknown[], redirects: [] as string[], cvOk: true }));
+vi.mock("@/lib/cv-standard/server", () => ({
+  requireCvStandard: vi.fn(async () => ({ ok: h.cvOk })),
+  standardUrl: (from: string) => `/cv/standard?from=${from}`,
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((to: string) => {
@@ -99,6 +103,7 @@ describe("finishOnboarding", () => {
   beforeEach(() => {
     h.upserts.length = 0;
     h.redirects.length = 0;
+    h.cvOk = true;
   });
   const run = async (template?: string) => {
     const { finishOnboarding } = await import("@/app/onboarding/actions");
@@ -108,7 +113,7 @@ describe("finishOnboarding", () => {
   };
   it("stores the picked template, marks onboarding done and goes to the matches", async () => {
     await run("creative");
-    const a = h.upserts[0] as { update: Record<string, unknown> };
+    const a = h.upserts.at(-1) as { update: Record<string, unknown> };
     expect(a.update.cvTemplate).toBe("creative");
     expect(a.update.onboardingStep).toBe(ONBOARDING_STEPS);
     expect(a.update.onboardedAt).toBeInstanceOf(Date);
@@ -116,7 +121,14 @@ describe("finishOnboarding", () => {
   });
   it("ignores an unknown template id", async () => {
     await run("../../etc");
+    expect(h.upserts).toHaveLength(1);
     const a = h.upserts[0] as { update: Record<string, unknown> };
     expect("cvTemplate" in a.update).toBe(false);
+  });
+  it("does not finish without a CV that meets the mandatory standard (#94)", async () => {
+    h.cvOk = false;
+    await run("hitech");
+    expect(h.redirects).toEqual(["/cv/standard?from=onboarding"]);
+    expect(h.upserts.some((u) => "onboardedAt" in (u as { update: object }).update)).toBe(false);
   });
 });
