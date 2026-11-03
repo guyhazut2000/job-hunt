@@ -198,7 +198,7 @@ export function personalScore(input: PersonalInput): PersonalResult {
   }
 
   const recency = recencyPoints(job.postedAt, now);
-  const days = Math.floor(Math.max(0, now.getTime() - job.postedAt.getTime()) / DAY);
+  const days = Math.round(Math.max(0, now.getTime() - job.postedAt.getTime()) / DAY);
 
   // "Likely to answer": the company answered you before, a fresh posting, few requirement gaps.
   const gapPts = input.missingSkills === null ? 0 : input.missingSkills === 0 ? 25 : input.missingSkills <= 2 ? 15 : 0;
