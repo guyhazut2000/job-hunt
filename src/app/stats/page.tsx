@@ -16,6 +16,9 @@ import {
 } from "@/lib/stats/search-stats";
 import { cn } from "@/lib/utils";
 import { localizedTitle } from "@/lib/i18n/titles";
+import { prepStrings } from "@/lib/i18n/prep";
+import { labelFor, loadDebriefStats } from "@/lib/prep/server";
+import { DebriefStats } from "@/components/prep/DebriefStats";
 
 export const dynamic = "force-dynamic";
 export const generateMetadata = localizedTitle("stats");
@@ -84,6 +87,8 @@ export default async function StatsPage() {
     })),
   }));
   const st = computeStats(apps);
+  const ps = prepStrings[locale];
+  const debriefs = await loadDebriefStats(user.id);
   const nf = new Intl.NumberFormat(locale === "he" ? "he-IL" : "en-US", { maximumFractionDigits: 1 });
   const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)}%`);
   const days = (x: number | null) => (x === null ? "—" : nf.format(Math.round(x * 10) / 10));
@@ -304,6 +309,7 @@ export default async function StatsPage() {
           </div>
         </>
       )}
+      <DebriefStats s={ps} st={debriefs} stageLabel={labelFor(locale === "en" ? "en" : "he")} />
     </div>
   );
 }

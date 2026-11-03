@@ -27,6 +27,7 @@ import { toIsraelLocalInput } from "@/lib/notifications/israel-time";
 import { getPrefs } from "@/lib/notifications/prefs";
 import { requireUser } from "@/lib/session";
 import { salaryHubStrings } from "@/lib/i18n/salary-hub";
+import { prepStrings } from "@/lib/i18n/prep";
 import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
@@ -308,7 +309,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         followUpLabels={fs}
         openFollowUp={openFollowUp}
         contactsLabel={{ count: t.people.trackerCount, referred: t.people.trackerReferred }}
-        prepLabels={{ cv: cvTailorStrings(locale).appCta, interview: interviewStrings(locale).practiceCta }}
+        prepLabels={{
+          cv: cvTailorStrings(locale).appCta,
+          interview: interviewStrings(locale).practiceCta,
+          prep: prepStrings[locale].prepCta,
+        }}
         askedLabels={salaryHubStrings[locale].field}
         locale={locale}
         interviewLabels={{

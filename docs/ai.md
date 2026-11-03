@@ -16,6 +16,7 @@
 | Interview simulation         | `/interview?job=` / `?app=`         | `src/lib/interview/server.ts` (`interview_plan`, `interview_feedback`) | Offline question bank + rule-based follow-ups + heuristic rubric (labelled) |
 | Follow-up email draft        | Dashboard → "טיוטת פולואפ"          | `src/lib/followup/server.ts` (`follow_up`)                             | He/En templates with title, company, date and a profile line (labelled)     |
 | Referral request draft       | `/referrals` → "בקשת הפניה"         | `src/lib/referrals/server.ts` (`referral_request`)                     | He/En template with first name, how you know them, job title + posting URL  |
+| Interview prep summary       | `/prep/[id]` → "צור סיכום"          | `src/lib/prep/server.ts` (`interview_prep`)                            | Template overview from title, company, stages, tech; labelled "לא מאומת"    |
 
 User-facing output is in the user's locale (Hebrew by default). All calls use structured output
 (zod schemas through the Vercel AI SDK `Output.object`) and are validated again before use; any

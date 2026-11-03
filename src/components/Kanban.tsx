@@ -7,7 +7,16 @@ import { InterviewDate, type InterviewDateLabels } from "./InterviewDate";
 import { AskedSalary, type AskedSalaryLabels } from "./salary-hub/AskedSalary";
 import { TruncatedText } from "./TruncatedText";
 import type { ApplicationStatus } from "@prisma/client";
-import { ExternalLink, FileText, GripVertical, MessagesSquare, Trash2, Undo2, Users } from "lucide-react";
+import {
+  ClipboardList,
+  ExternalLink,
+  FileText,
+  GripVertical,
+  MessagesSquare,
+  Trash2,
+  Undo2,
+  Users,
+} from "lucide-react";
 import { removeApplication, updateApplicationStatus } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { createPendingDeleteQueue, UNDO_DELETE_MS } from "@/lib/applications/pending-delete";
@@ -79,7 +88,7 @@ export function Kanban({
   locale?: string;
   autoLabels?: AutoLabels;
   /** Per-card prep links (tailored CV, interview practice); only the labels given are shown. */
-  prepLabels?: { cv?: string; interview?: string };
+  prepLabels?: { cv?: string; interview?: string; prep?: string };
   followUpLabels?: FollowUpStrings;
   /** Application id whose follow-up draft should open on load (from a notification link). */
   openFollowUp?: string;
@@ -300,6 +309,16 @@ export function Kanban({
                                 >
                                   <FileText className="size-3.5" aria-hidden />
                                   {prepLabels.cv}
+                                </a>
+                              )}
+                              {prepLabels.prep && (
+                                <a
+                                  href={`/prep/${i.id}`}
+                                  className="text-primary inline-flex min-h-8 items-center gap-1 underline-offset-4 hover:underline"
+                                  data-testid="kanban-prep"
+                                >
+                                  <ClipboardList className="size-3.5" aria-hidden />
+                                  {prepLabels.prep}
                                 </a>
                               )}
                               {prepLabels.interview && (

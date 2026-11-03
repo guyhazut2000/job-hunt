@@ -42,6 +42,7 @@ export const PAGE_TITLES = {
   salaryOffers: { he: "השוואת הצעות", en: "Compare offers" },
   salaryNegotiate: { he: "הכנה למשא ומתן", en: "Negotiation prep" },
   referrals: { he: "חבר מביא חבר", en: "Referrals" },
+  prep: { he: "הכנה לראיון", en: "Interview prep" },
   psInterview: { he: "שיטת הראיון", en: "Interview method" },
   psPatterns: { he: "תבניות", en: "Patterns" },
   psPractice: { he: "תרגול", en: "Practice" },

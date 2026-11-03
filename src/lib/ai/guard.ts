@@ -27,7 +27,8 @@ export type AiFeature =
   | "cv_translate"
   | "cv_improve"
   | "work_story"
-  | "referral_request";
+  | "referral_request"
+  | "interview_prep";
 export type AiOutcome = "ok" | "cached" | "error" | "rate_limited" | "limited";
 
 /** Persistence used by the guard; the Prisma implementation lives in ./store.ts, tests use an in-memory one. */

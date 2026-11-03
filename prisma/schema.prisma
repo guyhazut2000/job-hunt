@@ -137,6 +137,8 @@ model User {
   tailoredCvs          TailoredCv[]
   cvLayouts            CvLayout[]
   interviewSessions    InterviewSession[]
+  interviewPreps       InterviewPrep[]
+  interviewDebriefs    InterviewDebrief[]
   applicationFollowUps ApplicationFollowUp[]
   workStories          WorkStory[]
   jobOffers            JobOffer[]
@@ -473,6 +475,8 @@ model Application {
   statusChanges        ApplicationStatusChange[]
   tailoredCvs          TailoredCv[]
   interviews           InterviewSession[]
+  interviewPrep        InterviewPrep?
+  debriefs             InterviewDebrief[]
   /// Follow-up emails the user marked as sent (max 2; see src/lib/followup/timing.ts).
   followUpCount        Int                       @default(0)
   lastFollowUpAt       DateTime?
@@ -1721,4 +1725,51 @@ model CoachReport {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, week])
+}
+
+/// Interview prep page per application (#93). Stages/questions are the user's own list (JSON validated by
+/// zod in src/lib/prep/plan.ts); `summary` is an AI overview labelled "לא מאומת".
+model InterviewPrep {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationId String      @unique
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  /// [{ id, kind, title, date?, done, note }]
+  stages        Json        @default("[]")
+  /// WorkStory ids to bring.
+  storyIds      String[]    @default([])
+  /// DS&A topic keys: "ds:<id>" | "pattern:<id>".
+  topics        String[]    @default([])
+  /// [{ id, text, done }]
+  questions     Json        @default("[]")
+  /// { text, focus[], source: ai|template|limited, at }
+  summary       Json?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+/// Post-interview debrief (#93): what happened at one stage; feeds /stats.
+model InterviewDebrief {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  /// STAGE_KINDS key.
+  stageKind     String
+  happenedAt    DateTime
+  /// 1–5 how it went (self-rating).
+  rating        Int
+  asked         String      @default("")
+  wentWell      String      @default("")
+  improve       String      @default("")
+  /// pending | passed | failed
+  outcome       String      @default("pending")
+  createdAt     DateTime    @default(now())
+
+  @@index([userId, happenedAt])
+  @@index([applicationId])
 }
