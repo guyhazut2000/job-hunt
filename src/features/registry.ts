@@ -614,7 +614,7 @@ export const FEATURES: Feature[] = [
     routes: ["/jobs/ranking"],
     href: "/jobs/ranking",
     added: "2026-11-03",
-    prs: [],
+    prs: [88],
     issue: 84,
     keywords: ["keywords", "ranking", "sort", "personal fit", "exclude", "why"],
   },
