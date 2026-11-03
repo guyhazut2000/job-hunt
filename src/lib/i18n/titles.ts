@@ -34,6 +34,7 @@ export const PAGE_TITLES = {
   psDataStructures: { he: "מבני נתונים", en: "Data structures" },
   psStories: { he: "הסיפורים שלי", en: "My stories" },
   jobRanking: { he: "המיון האישי שלי", en: "My personal ranking" },
+  jobStepUp: { he: "משרות שדרוג", en: "Step-up jobs" },
   psInterview: { he: "שיטת הראיון", en: "Interview method" },
   psPatterns: { he: "תבניות", en: "Patterns" },
   psPractice: { he: "תרגול", en: "Practice" },
