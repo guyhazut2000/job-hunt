@@ -619,6 +619,23 @@ export const FEATURES: Feature[] = [
     keywords: ["keywords", "ranking", "sort", "personal fit", "exclude", "why"],
   },
   {
+    id: "step-up-jobs",
+    name: "משרות שדרוג",
+    description:
+      "משרות שהן צעד אחד מעל התפקיד שלך היום: דרגה אחת למעלה, תפקיד רחב יותר (Frontend/Backend ← Full Stack), או המסלול הטכני (Staff / ארכיטקט / פלטפורמה). הבכירות מזוהה מהכותרת ומשנות הניסיון שבמודעה. לכל משרה ניתוח פערים (טכנולוגיות, שנים, הובלה) והמלצה 'כדאי להגיש בכל זאת' כשהפערים קטנים. כללי אצבע, לא תחזית.",
+    howTo:
+      "במשרות: 'משרות שדרוג'. אפשר לתקן את הדרגה והתפקיד שלך, לסנן לפי סוג הצעד או 'רק פערים קטנים', וללחוץ על התג בכרטיס לניתוח הפערים.",
+    category: "jobs",
+    status: "live",
+    audience: "user",
+    routes: ["/jobs/step-up"],
+    href: "/jobs/step-up",
+    added: "2026-11-03",
+    prs: [],
+    issue: 85,
+    keywords: ["step up", "career ladder", "seniority", "gap analysis", "senior", "staff", "tech lead"],
+  },
+  {
     id: "practice",
     name: "תרגול בעיות עם משוב AI",
     description: "52 תרגילים: מזהים את התבנית, כותבים גישה וסיבוכיות ומקבלים משוב. 'נסו בעצמכם' מקשר ל-LeetCode.",

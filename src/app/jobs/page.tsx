@@ -64,7 +64,8 @@ import { getRankingPrefs, rankPersonal } from "@/lib/ranking/server";
 import { EMPTY_PREFS, hasKeywords, type PersonalResult } from "@/lib/ranking/personal";
 import { fillR, rankingStrings } from "@/lib/i18n/ranking";
 import { PersonalWhy } from "@/components/ranking/PersonalWhy";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, TrendingUp } from "lucide-react";
+import { stepUpStrings } from "@/lib/i18n/step-up";
 
 export const dynamic = "force-dynamic";
 export const generateMetadata = localizedTitle("jobs");
@@ -458,6 +459,14 @@ export default async function JobsPage({
               <Link href="/jobs/ranking" data-testid="ranking-settings-link">
                 <SlidersHorizontal data-icon="inline-start" aria-hidden />
                 {rs.settingsLink}
+              </Link>
+            </Button>
+          )}
+          {userId && (
+            <Button asChild variant="ghost" size="sm" className="min-h-11 sm:min-h-8">
+              <Link href="/jobs/step-up" data-testid="stepup-link">
+                <TrendingUp data-icon="inline-start" aria-hidden />
+                {stepUpStrings(locale).link}
               </Link>
             </Button>
           )}
