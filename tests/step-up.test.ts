@@ -7,6 +7,8 @@ import {
   hasLeadership,
   stepTargets,
   stepUpMove,
+  technicalTrackOpen,
+  TECH_TITLE_TERMS,
   type Position,
 } from "@/lib/career/ladder";
 
@@ -154,7 +156,41 @@ describe("ordering and targets", () => {
     expect(stepTargets(pos("frontend", "MID"))).toEqual({
       roles: ["frontend", "fullstack"],
       levels: ["MID", "SENIOR"],
+      techRoles: ["frontend", "fullstack"],
     });
     expect(stepTargets(pos("backend", "SENIOR")).levels).toEqual(["MID", "SENIOR", "LEAD"]);
+  });
+});
+
+describe("technical track regression (#91: the tab showed 0)", () => {
+  it("opens at Mid with one-rung platform / architecture moves", () => {
+    expect(stepUpMove(pos("fullstack", "MID"), job("Senior Platform Engineer", "backend", "SENIOR"))?.kind).toBe(
+      "technical",
+    );
+    expect(stepUpMove(pos("backend", "MID"), job("Senior Software Architect", "backend", "SENIOR"))?.kind).toBe(
+      "technical",
+    );
+    // Same rung or two rungs up is still not a step from Mid.
+    expect(stepUpMove(pos("backend", "MID"), job("Platform Engineer", "backend", "MID"))).toBeNull();
+    expect(stepUpMove(pos("backend", "MID"), job("Staff Engineer", "backend", "LEAD"))).toBeNull();
+  });
+  it("counts platform / infra roles in devops as technical for fullstack, but not as a level move", () => {
+    expect(stepUpMove(pos("fullstack", "SENIOR"), job("Staff Platform Engineer", "devops", "LEAD"))?.kind).toBe(
+      "technical",
+    );
+    expect(stepUpMove(pos("fullstack", "SENIOR"), job("Lead DevOps Engineer", "devops", "LEAD"))).toBeNull();
+    expect(stepTargets(pos("fullstack", "SENIOR")).techRoles).toContain("devops");
+  });
+  it("Hebrew titles reach the technical track", () => {
+    expect(stepUpMove(pos("backend", "SENIOR"), job("ארכיטקט/ית תוכנה", "backend", "LEAD"))?.kind).toBe("technical");
+  });
+  it("the DB pre-filter terms cover every title the detector accepts", () => {
+    for (const t of ["Staff Engineer", "Principal Engineer", "Software Architect", "Platform Engineer", "ארכיטקט"])
+      expect(TECH_TITLE_TERMS.some((term) => t.toLowerCase().includes(term))).toBe(true);
+  });
+  it("says when the track is closed instead of showing a bare 0", () => {
+    expect(technicalTrackOpen("JUNIOR")).toBe(false);
+    expect(technicalTrackOpen("MID")).toBe(true);
+    expect(technicalTrackOpen("SENIOR")).toBe(true);
   });
 });

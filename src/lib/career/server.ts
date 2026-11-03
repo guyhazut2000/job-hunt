@@ -10,6 +10,7 @@ import {
   hasLeadership,
   stepTargets,
   stepUpMove,
+  TECH_TITLE_TERMS,
   type Gap,
   type MoveKind,
   type Position,
@@ -30,6 +31,8 @@ export interface StepUpResult {
 }
 
 const MAX_SCAN = 600;
+/** Technical-track candidates are fetched separately so the newest-first cap above can't crowd them out. */
+const MAX_TECH_SCAN = 300;
 
 /** Step-up jobs for a user (#85): load the profile, place them on the ladder, keep one-step moves, analyse gaps. */
 export async function loadStepUps(
@@ -56,13 +59,29 @@ export async function loadStepUps(
     exp.map((e) => e.title),
     exp.map((e) => e.description),
   );
-  const { roles, levels } = stepTargets(position);
-  const jobs = await db.job.findMany({
-    where: { isActive: true, roleCategory: { in: roles }, seniority: { in: levels } },
-    include: { company: true },
-    orderBy: [{ postedAt: "desc" }, { id: "asc" }],
-    take: MAX_SCAN,
-  });
+  const { roles, levels, techRoles } = stepTargets(position);
+  const order = [{ postedAt: "desc" as const }, { id: "asc" as const }];
+  const [general, technical] = await Promise.all([
+    db.job.findMany({
+      where: { isActive: true, roleCategory: { in: roles }, seniority: { in: levels } },
+      include: { company: true },
+      orderBy: order,
+      take: MAX_SCAN,
+    }),
+    db.job.findMany({
+      where: {
+        isActive: true,
+        roleCategory: { in: techRoles },
+        seniority: { in: levels },
+        OR: TECH_TITLE_TERMS.map((term) => ({ title: { contains: term, mode: "insensitive" as const } })),
+      },
+      include: { company: true },
+      orderBy: order,
+      take: MAX_TECH_SCAN,
+    }),
+  ]);
+  const seen = new Set<string>();
+  const jobs = [...general, ...technical].filter((j) => !seen.has(j.id) && (seen.add(j.id), true));
   const rows: StepUpRow[] = [];
   for (const job of jobs) {
     const move = stepUpMove(position, job);

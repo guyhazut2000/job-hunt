@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/session";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/titles";
 import { fillS, stepUpStrings } from "@/lib/i18n/step-up";
-import { LADDER, MOVE_KINDS, ROLE_UP, nextRung, type MoveKind } from "@/lib/career/ladder";
+import { LADDER, MOVE_KINDS, ROLE_UP, nextRung, technicalTrackOpen, type MoveKind } from "@/lib/career/ladder";
 import { loadStepUps } from "@/lib/career/server";
 import { JobCard, JobList } from "@/components/JobCard";
 import { StepUpGap } from "@/components/career/StepUpGap";
@@ -151,7 +151,11 @@ export default async function StepUpPage({
 
           {shown.length === 0 ? (
             <p className="bg-card rounded-lg border p-4" data-testid="stepup-empty">
-              {s.empty}
+              {kind === "technical"
+                ? technicalTrackOpen(position.level)
+                  ? s.emptyTechnical
+                  : s.emptyTechnicalClosed
+                : s.empty}
             </p>
           ) : (
             <JobList>

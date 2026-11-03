@@ -52,6 +52,19 @@ const SAME_TRACK: Record<string, string[]> = {
 const IC_TOP = /\b(staff|principal|architect|distinguished)\b|ארכיטקט/i;
 const PLATFORM = /\bplatform\b|פלטפורמ/i;
 
+/**
+ * Title words for a DB pre-filter on the technical track (case-insensitive `contains`). The main
+ * scan is capped and newest-first, so without a dedicated query older Staff/Architect postings were
+ * cut off by the cap and the technical tab came out (nearly) empty (#91).
+ */
+export const TECH_TITLE_TERMS = ["staff", "principal", "architect", "distinguished", "platform", "ארכיטקט", "פלטפורמ"];
+
+/** Extra roles that only count on the technical track (a platform/infra role from fullstack is a technical step). */
+const TECH_EXTRA: Record<string, string[]> = { fullstack: ["devops"], backend: ["devops"] };
+
+/** The technical branch opens at Mid: Mid → Senior platform/architecture, Senior+ → Staff / principal / architect. */
+export const TECH_MIN_LEVEL: Seniority = "MID";
+
 export type MoveKind = "level" | "broaden" | "technical";
 
 export const MOVE_KINDS: MoveKind[] = ["level", "broaden", "technical"];
@@ -160,7 +173,10 @@ export function stepUpMove(pos: Position, job: StepJob): StepMove | null {
   const broader = (ROLE_UP[pos.role] ?? []).includes(job.roleCategory);
   // People management is its own track: only a step for people already leading.
   if (lv.level === "MANAGER" && pos.level !== "LEAD") return null;
-  if (rung(pos.level) >= rung("SENIOR") && (same || broader) && (lv.icTop || lv.platform) && d >= 0 && d <= 1)
+  const techTrack = same || broader || (TECH_EXTRA[pos.role] ?? []).includes(job.roleCategory);
+  // Below Senior only a one-rung move counts (Mid → Senior platform); above, staying on the rung is fine too.
+  const techD = rung(pos.level) >= rung("SENIOR") ? d >= 0 && d <= 1 : d === 1;
+  if (rung(pos.level) >= rung(TECH_MIN_LEVEL) && techTrack && (lv.icTop || lv.platform) && techD)
     return { kind: "technical", level: lv };
   if (same && d === 1) return { kind: "level", level: lv };
   if (broader && (d === 0 || d === 1)) return { kind: "broaden", level: lv };
@@ -217,13 +233,17 @@ export function compareStepUps(
 }
 
 /** Which (role, level) pairs to fetch from the DB for a position — a superset; `stepUpMove` decides. */
-export function stepTargets(pos: Position): { roles: string[]; levels: Seniority[] } {
+export function stepTargets(pos: Position): { roles: string[]; levels: Seniority[]; techRoles: string[] } {
   const roles = [...new Set([...(SAME_TRACK[pos.role] ?? [pos.role]), ...(ROLE_UP[pos.role] ?? [])])];
   const r = rung(pos.level);
   // MID is always included: a neutral title can still be senior by the years it asks.
   const levels = [...new Set<Seniority>(["MID", LADDER[r], LADDER[Math.min(r + 1, LADDER.length - 1)]])];
-  return { roles, levels };
+  const techRoles = [...new Set([...roles, ...(TECH_EXTRA[pos.role] ?? [])])];
+  return { roles, levels, techRoles };
 }
+
+/** Is the technical track open at this level at all? (Used for an honest empty state instead of a bare 0.) */
+export const technicalTrackOpen = (level: Seniority) => rung(level) >= rung(TECH_MIN_LEVEL) && level !== "MANAGER";
 
 /** The next rung, for the header ("Mid → Senior"). */
 export const nextRung = (s: Seniority): Seniority => LADDER[Math.min(rung(s) + 1, LADDER.length - 1)];
