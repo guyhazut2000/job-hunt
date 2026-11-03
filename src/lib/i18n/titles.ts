@@ -9,6 +9,7 @@ export const PAGE_TITLES = {
   cv: { he: "קורות חיים", en: "CV" },
   cvTailor: { he: "קורות חיים מותאמים", en: "Tailored CV" },
   cvTemplates: { he: "תבניות קורות חיים", en: "CV templates" },
+  cvStandard: { he: "קורות חיים חובה", en: "Mandatory CV" },
   dashboard: { he: "לוח הבקרה", en: "Dashboard" },
   digest: { he: "סיכום יומי", en: "Daily digest" },
   emailSync: { he: "סנכרון מייל", en: "Email sync" },

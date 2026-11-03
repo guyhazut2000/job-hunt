@@ -18,6 +18,8 @@ import { loadAllLayouts, loadCvSource } from "@/lib/cv-templates/server";
 import { TEMPLATE_IDS } from "@/lib/cv-templates/templates";
 import { cvTemplateStrings } from "@/lib/i18n/cv-templates";
 import { advanceStored, currentStep } from "@/lib/profile/onboarding";
+import { cvStandardStatus } from "@/lib/cv-standard/server";
+import { cvStandardStrings, fillS } from "@/lib/i18n/cv-standard";
 
 export const dynamic = "force-dynamic";
 export const generateMetadata = localizedTitle("onboarding");
@@ -74,7 +76,30 @@ export default async function OnboardingPage({
     });
 
   let picker: React.ReactNode = null;
+  let standard: React.ReactNode = null;
   if (step === 4) {
+    const cs = cvStandardStrings(locale === "en" ? "en" : "he");
+    const st = await cvStandardStatus(user.id).catch(() => null);
+    standard = (
+      <div
+        data-testid="onb-cv-standard"
+        data-passed={st?.passed ? "1" : "0"}
+        className={`flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm ${st?.passed ? "border-fit/40 bg-fit/10" : "border-caution/40 bg-caution/10"}`}
+      >
+        <span>
+          <span className="font-semibold">{cs.onboarding.title}: </span>
+          {st?.passed ? cs.onboarding.passed : fillS(cs.onboarding.failed, { n: Math.max(1, st?.blocking ?? 1) })}
+        </span>
+        {!st?.passed && (
+          <Link
+            href="/cv/standard?from=onboarding"
+            className="text-primary inline-flex min-h-10 items-center font-semibold underline underline-offset-4"
+          >
+            {cs.onboarding.fix}
+          </Link>
+        )}
+      </div>
+    );
     const ct = cvTemplateStrings(locale);
     const source = await loadCvSource(user.id);
     const lang = source.empty ? locale : source.written;
@@ -210,6 +235,7 @@ export default async function OnboardingPage({
             {o.templateTitle}
           </h2>
           <p className="text-muted-foreground text-sm">{o.templateHint}</p>
+          {standard}
           <form action={finishOnboarding} className="flex flex-col gap-5">
             {picker}
             <div className="flex flex-wrap items-center justify-between gap-3">

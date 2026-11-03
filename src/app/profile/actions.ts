@@ -127,7 +127,7 @@ export async function savePreferences(_: ActionState, formData: FormData): Promi
     desiredRole: d.targetRoles[0] ?? null,
     seniority: (d.targetSeniorities[0] as Seniority | undefined) ?? null,
     workMode: d.workModes.length === 1 ? (d.workModes[0] as WorkMode) : null,
-    ...(formData.get("onboarding") ? { onboardedAt: new Date() } : {}),
+    // onboardedAt is set only by finishOnboarding, which requires the mandatory CV standard (#94).
   };
   await db.profile.upsert({ where: { userId: user.id }, create: { userId: user.id, ...data }, update: data });
   refresh();
@@ -221,12 +221,19 @@ export async function deleteCv(formData: FormData) {
   refresh();
 }
 
+/**
+ * "Continue later" (#94): the mandatory CV standard makes onboarding non-skippable, so this only
+ * pauses it — the wizard stops auto-starting (onboardingStep is set) but onboardedAt stays empty
+ * and the CV-standard banner keeps showing until the CV passes.
+ */
 export async function skipOnboarding() {
   const user = await requireUser();
+  const p = await db.profile.findUnique({ where: { userId: user.id }, select: { onboardingStep: true } });
+  const onboardingStep = Math.max(1, p?.onboardingStep ?? 0);
   await db.profile.upsert({
     where: { userId: user.id },
-    create: { userId: user.id, skills: [], onboardedAt: new Date() },
-    update: { onboardedAt: new Date() },
+    create: { userId: user.id, skills: [], onboardingStep },
+    update: { onboardingStep },
   });
   redirect("/jobs");
 }

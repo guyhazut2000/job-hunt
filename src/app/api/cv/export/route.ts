@@ -1,11 +1,12 @@
 import { auth } from "@/auth";
 import { demoContent } from "@/lib/cv-templates/content";
 import { renderCvDocx } from "@/lib/cv-templates/docx";
-import { renderCvPdf } from "@/lib/cv-templates/pdf";
 import { loadCvSource, loadLayout } from "@/lib/cv-templates/server";
 import { TEMPLATES, isTemplateId } from "@/lib/cv-templates/templates";
 import { shouldTranslate } from "@/lib/cv-templates/export-status";
 import { translateContent } from "@/lib/cv-templates/translate";
+import { fitCvPdf } from "@/lib/cv-standard/fit";
+import { requireCvStandard, standardUrl } from "@/lib/cv-standard/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,6 +25,8 @@ const asciiName = (s: string) =>
  * GET /api/cv/export?template=hitech&lang=he&format=pdf|docx[&tailored=<id>][&demo=1]
  * Owner-only. Content from the profile (or a tailored CV), layout from CvLayout.
  * Response headers: X-Cv-Translation = translated | none | off | limited | error.
+ * Mandatory CV standard (#94): a real CV exports only when every blocking rule passes and the
+ * rendered PDF is one page (auto-tightened); otherwise 303 → the guided editor. Demo stays open.
  */
 export async function GET(req: Request) {
   const session = await auth();
@@ -45,11 +48,17 @@ export async function GET(req: Request) {
     content = r.content;
     translation = r.status;
   }
+  const blocked = (q = "") => Response.redirect(new URL(standardUrl("export") + q, url.origin), 303);
+  if (!demo) {
+    const gate = await requireCvStandard(userId);
+    if (!gate.ok) return blocked();
+  }
   const layout = await loadLayout(userId, template, content);
+  // One page for this exact template + language (translation can change the length).
+  const fit = await fitCvPdf({ content, layout, tpl, lang });
+  if (!demo && !fit.fits) return blocked(`&template=${template}&lang=${lang}`);
   const buf =
-    format === "pdf"
-      ? await renderCvPdf({ content, layout, tpl, lang })
-      : await renderCvDocx({ content, layout, tpl, lang });
+    format === "pdf" ? fit.buffer : await renderCvDocx({ content, layout, tpl, lang, densityLevel: fit.level });
 
   const base = `${asciiName(content.name)}-${template}-${lang}`;
   const display = `${content.name || "CV"} – ${template} (${lang}).${format}`;
@@ -63,6 +72,7 @@ export async function GET(req: Request) {
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
       "X-Cv-Translation": translation,
+      "X-Cv-Density": String(fit.level),
     },
   });
 }

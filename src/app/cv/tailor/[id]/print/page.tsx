@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { requireCvStandard, standardUrl } from "@/lib/cv-standard/server";
 import { CvSheet } from "@/components/cv-tailor/CvSheet";
 import { PrintButton } from "@/components/problem-solving/PrintButton";
 import type { CvDoc, CvLanguage } from "@/lib/cv-tailor/types";
@@ -26,6 +27,7 @@ const PRINT_CSS = `@media print {
 export default async function PrintTailoredCv({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireUser(`/cv/tailor/${id}/print`);
+  if (!(await requireCvStandard(user.id)).ok) redirect(standardUrl("print"));
   const t = cvTailorStrings(await getLocale());
   const row = await db.tailoredCv.findFirst({
     where: { id, userId: user.id },

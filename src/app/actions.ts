@@ -1,6 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { requireCvStandard } from "@/lib/cv-standard/server";
 import { AuthError } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
@@ -89,7 +90,13 @@ export async function saveJob(jobId: string) {
 
 const STATUSES: ApplicationStatus[] = ["SAVED", "APPLIED", "SCREENING", "INTERVIEW", "OFFER", "REJECTED"];
 
-export async function updateApplicationStatus(id: string, status: ApplicationStatus) {
+const sendsCv = (from: ApplicationStatus, to: ApplicationStatus) =>
+  from === "SAVED" && to !== "SAVED" && to !== "REJECTED";
+
+export async function updateApplicationStatus(
+  id: string,
+  status: ApplicationStatus,
+): Promise<{ blocked?: "cv" } | void> {
   const user = await requireUser();
   if (!STATUSES.includes(status)) throw new Error("Invalid status");
   const prev = await db.application.findFirst({
@@ -97,6 +104,9 @@ export async function updateApplicationStatus(id: string, status: ApplicationSta
     select: { status: true, statusChangedAt: true },
   });
   if (!prev) return;
+  // Mandatory CV standard (#94): a manual "sent" (SAVED → APPLIED, or straight to a later stage)
+  // needs a CV that meets it. Email-detected applications are not gated (the CV already went out).
+  if (sendsCv(prev.status, status) && !(await requireCvStandard(user.id)).ok) return { blocked: "cv" };
   await db.application.updateMany({
     where: { id, userId: user.id },
     data: { status, statusChangedAt: new Date(), ...(status === "APPLIED" ? { appliedAt: new Date() } : {}) },

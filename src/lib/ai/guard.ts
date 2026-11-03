@@ -24,6 +24,7 @@ export type AiFeature =
   | "chat"
   | "follow_up"
   | "cv_translate"
+  | "cv_improve"
   | "work_story";
 export type AiOutcome = "ok" | "cached" | "error" | "rate_limited" | "limited";
 

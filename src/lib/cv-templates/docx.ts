@@ -29,6 +29,7 @@ import type { CvContent, CvEntry } from "./content";
 import { DOCX_FONT, FONT_FILES, fontPath } from "./fonts";
 import { levelLabel, resolveBlocks, tint, type Block } from "./resolve";
 import type { LayoutEntry } from "./sections";
+import { tightenTemplate } from "@/lib/cv-standard/density";
 import type { CvTemplate } from "./templates";
 
 interface Ctx {
@@ -337,8 +338,11 @@ export async function renderCvDocx(input: {
   layout: LayoutEntry[];
   tpl: CvTemplate;
   lang: CvLang;
+  /** One-page auto-tighten level found by the PDF fit (same font reduction; Word reflows spacing itself). */
+  densityLevel?: number;
 }): Promise<Buffer> {
-  const { content: c, layout, tpl, lang } = input;
+  const { content: c, layout, lang } = input;
+  const tpl = tightenTemplate(input.tpl, input.densityLevel);
   const ctx: Ctx = { rtl: lang === "he", lang, tpl, font: DOCX_FONT[tpl.font] };
   const blocks = resolveBlocks(c, layout, tpl, lang);
   const main = blocks.filter((b) => b.column === "main");
