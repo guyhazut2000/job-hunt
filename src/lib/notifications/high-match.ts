@@ -114,7 +114,7 @@ export async function runHighMatchAlerts(now = new Date()): Promise<HighMatchSum
     if (anyNew && (candidate || hasKeywords(prefs))) {
       summary.users++;
       const eff = toEffective(u.notificationPrefs);
-      const where = filtersToWhere(parseFilters({}), { userId: u.id, now });
+      const where = filtersToWhere(parseFilters({ hide: "saved" }), { userId: u.id, now });
       const { rows } = await rankPersonal({
         userId: u.id,
         where: { AND: [where, { createdAt: { gt: since, lte: now } }] },
