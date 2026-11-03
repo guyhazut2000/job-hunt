@@ -117,7 +117,8 @@ export async function loadOutreachDashboard(userId: string, now = new Date()): P
       take: 60,
       select: { id: true, companyId: true, postedAt: true },
     });
-    for (const j of fresh) cands.push({ source: "fresh", companyId: j.companyId, jobId: j.id, at: j.postedAt.getTime() });
+    for (const j of fresh)
+      cands.push({ source: "fresh", companyId: j.companyId, jobId: j.id, at: j.postedAt.getTime() });
   }
   const picked = pickQueue(cands, recent, prefs.queueSize);
   const jobs = picked.length

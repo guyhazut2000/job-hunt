@@ -1,3 +1,4 @@
+import { outreachAssistantStrings } from "@/lib/i18n/outreach-assistant";
 import { BarChart3, MailCheck, MapPinned, Plus } from "lucide-react";
 import Link from "next/link";
 import { addManualApplication } from "@/app/actions";
@@ -322,6 +323,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <h2 id="outreach-h" className="font-heading text-xl font-bold">
             {t.people.outreach}
           </h2>
+          <Link
+            href="/outreach"
+            className="text-primary inline-flex min-h-11 items-center text-sm font-semibold underline-offset-4 hover:underline"
+            data-testid="outreach-assistant-link"
+          >
+            {outreachAssistantStrings[locale].dashboardLink}
+          </Link>
           {contacts.length > 0 && (
             <p className="text-muted-foreground text-sm">
               {t.people.trackerCount.replace("{n}", String(contacts.length))}
