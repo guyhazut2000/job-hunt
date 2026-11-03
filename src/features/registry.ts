@@ -406,6 +406,7 @@ export const FEATURES: Feature[] = [
       {
         date: "2026-11-03",
         text: "'דלג' הפך ל'אמשיך אחר כך': ההרשמה מסתיימת רק כשקורות החיים עומדים בתקן החובה, ועד אז מופיע באנר להשלמה",
+        pr: 101,
       },
     ],
   },
@@ -990,7 +991,7 @@ export const FEATURES: Feature[] = [
     routes: ["/cv/standard"],
     href: "/cv/standard",
     added: "2026-11-03",
-    prs: [],
+    prs: [101],
     issue: 94,
     keywords: ["cv standard", "one page", "resume rules", "action verbs", "xyz", "mandatory cv", "תקן קורות חיים"],
   },
@@ -1018,6 +1019,7 @@ export const FEATURES: Feature[] = [
       {
         date: "2026-11-03",
         text: "כל 5 התבניות נכנסות לעמוד אחד: אם התוכן גולש, הריווח והגופן מתהדקים אוטומטית בגבולות בטוחים (לא פחות מ-9.5pt), ואם עדיין לא נכנס — מקבלים רשימה מה לקצר. הייצוא דורש קורות חיים שעומדים בתקן",
+        pr: 101,
       },
     ],
     keywords: ["cv templates", "resume", "pdf", "docx", "word", "drag and drop", "rtl"],
