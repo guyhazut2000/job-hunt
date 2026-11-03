@@ -140,6 +140,7 @@ model User {
   applicationFollowUps ApplicationFollowUp[]
   workStories          WorkStory[]
   rankingPrefs         RankingPrefs?
+  outreachPrefs        OutreachPrefs?
 }
 
 model Profile {
@@ -595,6 +596,8 @@ enum ContactCategory {
 enum ContactStatus {
   NOT_CONTACTED
   SENT
+  /// Connection request accepted (#86).
+  ACCEPTED
   REPLIED
   REFERRED
 }
@@ -602,23 +605,30 @@ enum ContactStatus {
 /// A person the user found (manually, via a LinkedIn/Google search link) for a referral or intro.
 /// We never scrape LinkedIn: every field here is typed by the user.
 model Contact {
-  id          String          @id @default(cuid())
-  userId      String
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jobId       String?
-  job         Job?            @relation(fields: [jobId], references: [id], onDelete: SetNull)
-  companyId   String?
-  company     Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  name        String
-  title       String?
-  linkedinUrl String?
-  category    ContactCategory
-  status      ContactStatus   @default(NOT_CONTACTED)
-  notes       String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id           String          @id @default(cuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId        String?
+  job          Job?            @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  companyId    String?
+  company      Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  name         String
+  title        String?
+  linkedinUrl  String?
+  category     ContactCategory
+  status       ContactStatus   @default(NOT_CONTACTED)
+  notes        String?
+  /// When the connection request / first message was sent (#86). Drives the daily goal, streak and follow-ups.
+  sentAt       DateTime?
+  /// When the status last changed (#86).
+  statusAt     DateTime?
+  /// When the user marked the follow-up message as sent (#86). Null = no follow-up yet.
+  followedUpAt DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   @@index([userId, jobId])
+  @@index([userId, sentAt])
   @@index([userId, companyId])
 }
 
@@ -1577,4 +1587,15 @@ model RankingPrefs {
   /// Opt-in: "Personal fit" becomes the default sort on /jobs.
   defaultSort Boolean  @default(false)
   updatedAt   DateTime @updatedAt
+}
+
+/// LinkedIn outreach assistant (#86): daily goal, follow-up delay and the "low-energy day" queue size.
+model OutreachPrefs {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyGoal    Int      @default(3)
+  followUpDays Int      @default(5)
+  queueSize    Int      @default(5)
+  updatedAt    DateTime @updatedAt
 }
