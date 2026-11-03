@@ -47,19 +47,27 @@ export function filledCount(f: Partial<StoryFields> | null | undefined): number 
  * STAR-shaped spoken answer built only from the user's text (no new facts). Used when AI is off,
  * limited, or its answer fails the guard.
  */
+/** "Hash map (dictionary)" → "Hash map": the name as you'd say it out loud. */
+export const spokenName = (name: string) => name.replace(/\s*\([^)]*\)/g, "").trim() || name;
+
+/** Drop a leading "because"/"כי" so "I chose it because …" doesn't read "because because". */
+const dropBecause = (s: string) => s.replace(/^(?:because|since|כי|מכיוון ש|בגלל ש)\s*/i, "");
+
 export function templateAnswer(f: StoryFields, itemName: string, lang: StoryLang): string {
   const n = normalizeFields(f);
+  n.why = dropBecause(n.why);
+  itemName = spokenName(itemName);
   const parts: string[] = [];
   if (lang === "he") {
     parts.push(`כן, השתמשתי ב-${itemName} בעבודה.`);
     if (n.situation) parts.push(`המצב היה כזה: ${sentence(n.situation)}`);
-    if (n.built) parts.push(`מה שבניתי: ${sentence(n.built)}`);
+    if (n.built) parts.push(`מה שעשיתי: ${sentence(n.built)}`);
     if (n.why) parts.push(`בחרתי בזה כי ${sentence(n.why)}`);
     if (n.result) parts.push(`התוצאה: ${sentence(n.result)}`);
   } else {
     parts.push(`Yes, I've used ${itemName} at work.`);
     if (n.situation) parts.push(`The situation: ${sentence(n.situation)}`);
-    if (n.built) parts.push(`What I built: ${sentence(n.built)}`);
+    if (n.built) parts.push(`What I did: ${sentence(n.built)}`);
     if (n.why) parts.push(`I chose it because ${sentence(n.why)}`);
     if (n.result) parts.push(`The result: ${sentence(n.result)}`);
   }
@@ -74,6 +82,7 @@ export function spokenSeconds(text: string): number {
 
 export function polishPrompt(f: StoryFields, itemName: string, kind: StoryItemKind, lang: StoryLang): LLMMessage[] {
   const n = normalizeFields(f);
+  itemName = spokenName(itemName);
   const what = kind === "ds" ? "data structure" : "algorithm pattern";
   const language = lang === "he" ? "Hebrew (keep technical terms in English)" : "English";
   return [

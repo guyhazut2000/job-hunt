@@ -47,9 +47,9 @@ export function IndustrySection({
           {entry.uses.map((u) => (
             <li key={u.text.en} className="flex flex-col gap-1" data-testid="industry-use">
               <span className="leading-relaxed">{tr(u.text, locale)}</span>
-              <span className="flex flex-wrap gap-1" dir="ltr">
+              <span className="flex flex-wrap gap-1">
                 {u.tools.map((tool) => (
-                  <span key={tool} className="bg-muted rounded px-1.5 py-0.5 font-mono text-[0.7rem]">
+                  <span key={tool} dir="ltr" className="bg-muted rounded px-1.5 py-0.5 font-mono text-[0.7rem]">
                     {tool}
                   </span>
                 ))}

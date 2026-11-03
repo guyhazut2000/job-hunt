@@ -10,7 +10,7 @@ import { fill, storyStrings } from "@/lib/i18n/stories";
 import { localizedTitle } from "@/lib/i18n/titles";
 import { requireUser } from "@/lib/session";
 import { listStories } from "@/lib/stories/server";
-import { isEmptyStory, templateAnswer } from "@/lib/stories/story";
+import { isEmptyStory, spokenName, templateAnswer } from "@/lib/stories/story";
 
 export const generateMetadata = localizedTitle("psStories");
 
@@ -34,7 +34,7 @@ export default async function StoriesPage() {
   });
   const cards: DeckCard[] = items.map((x) => ({
     key: `${x.kind}:${x.itemId}`,
-    question: fill(s.storyQuestion, { name: x.name }),
+    question: fill(s.storyQuestion, { name: spokenName(x.name) }),
     answer: x.answer,
   }));
 
@@ -80,7 +80,7 @@ export default async function StoriesPage() {
                   </h2>
                   <span className="text-muted-foreground text-xs">{x.kind === "ds" ? s.dsKind : s.patternKind}</span>
                 </div>
-                <p className="text-sm font-semibold">{fill(s.storyQuestion, { name: x.name })}</p>
+                <p className="text-sm font-semibold">{fill(s.storyQuestion, { name: spokenName(x.name) })}</p>
                 <p dir="auto" className="text-foreground/80 text-sm leading-relaxed">
                   {x.answer}
                 </p>

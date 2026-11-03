@@ -99,3 +99,16 @@ describe("validatePolish (no invented facts)", () => {
     expect(validatePolish(he, fields, "Hash map")).toBe(he);
   });
 });
+
+describe("templateAnswer wording", () => {
+  it("doesn't double 'because'", () => {
+    const he = templateAnswer({ situation: "", built: "", why: "כי Map מהיר", result: "" }, "Hash map", "he");
+    expect(he).toContain("בחרתי בזה כי Map מהיר.");
+    const en = templateAnswer(
+      { situation: "", built: "", why: "because lookups are O(1)", result: "" },
+      "Hash map",
+      "en",
+    );
+    expect(en).toContain("I chose it because lookups are O(1).");
+  });
+});

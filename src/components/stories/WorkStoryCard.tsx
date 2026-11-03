@@ -13,6 +13,7 @@ import { fill, type StoryStrings } from "@/lib/i18n/stories";
 import {
   filledCount,
   isEmptyStory,
+  spokenName,
   spokenSeconds,
   STORY_FIELD_MAX,
   STORY_FIELDS,
@@ -105,7 +106,7 @@ export function WorkStoryCard({
   const valueRef = useRef(fields);
   valueRef.current = fields;
 
-  const question = fill(s.storyQuestion, { name });
+  const question = fill(s.storyQuestion, { name: spokenName(name) });
   const saved = story?.fields ?? EMPTY;
   const dirty = STORY_FIELDS.some((k) => fields[k].trim() !== saved[k].trim());
   const empty = isEmptyStory(fields);
@@ -200,7 +201,7 @@ export function WorkStoryCard({
           </Button>
         </div>
       </div>
-      <p className="text-muted-foreground text-xs leading-relaxed">{fill(s.storyLead, { name })}</p>
+      <p className="text-muted-foreground text-xs leading-relaxed">{fill(s.storyLead, { name: spokenName(name) })}</p>
 
       {practice && <PracticeReveal question={question} answer={answer ?? exampleAnswer} s={s} example={!answer} />}
 
