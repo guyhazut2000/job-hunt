@@ -3,6 +3,7 @@ import { runFollowUpReminders, runSavedJobClosed, runSavedJobUpdated, runWhatsNe
 import { runFollowedCompanyAlerts } from "./company-follow";
 import { runSavedSearchAlerts } from "./saved-search";
 import { runScanFailureAlerts } from "./scan-failures";
+import { runOutreachFollowUps } from "./outreach";
 
 /** Everything the notify cron does; each step is isolated so one failure doesn't stop the rest. */
 export async function runNotifications(now = new Date()) {
@@ -11,9 +12,10 @@ export async function runNotifications(now = new Date()) {
   const companies = await safe(runFollowedCompanyAlerts(now));
   const scanFailures = await safe(runScanFailureAlerts(now));
   const followUps = await safe(runFollowUpReminders(now));
+  const outreach = await safe(runOutreachFollowUps(now));
   const closed = await safe(runSavedJobClosed(now));
   const updated = await safe(runSavedJobUpdated(now));
   const whatsNew = await safe(runWhatsNew(now));
   const deliveries = await safe(processDeliveries({ now }));
-  return { searches, companies, scanFailures, followUps, closed, updated, whatsNew, deliveries };
+  return { searches, companies, scanFailures, followUps, outreach, closed, updated, whatsNew, deliveries };
 }

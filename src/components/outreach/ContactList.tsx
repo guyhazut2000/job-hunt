@@ -21,10 +21,11 @@ export interface ContactRow {
   context?: { label: string; href: string } | null;
 }
 
-const STATUSES: ContactStatus[] = ["NOT_CONTACTED", "SENT", "REPLIED", "REFERRED"];
+export const STATUSES: ContactStatus[] = ["NOT_CONTACTED", "SENT", "ACCEPTED", "REPLIED", "REFERRED"];
 export const STATUS_DOT: Record<ContactStatus, string> = {
   NOT_CONTACTED: "bg-border",
   SENT: "bg-foreground",
+  ACCEPTED: "bg-primary",
   REPLIED: "bg-caution",
   REFERRED: "bg-fit",
 };
