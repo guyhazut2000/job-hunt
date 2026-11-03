@@ -798,7 +798,7 @@ export const FEATURES: Feature[] = [
     routes: ["/settings/notifications", "/notifications"],
     href: "/settings/notifications",
     added: "2026-11-03",
-    prs: [100],
+    prs: [102],
     issue: 96,
     keywords: ["alert", "high match", "personal fit", "instant", "telegram", "push", "threshold", "התאמה"],
   },
