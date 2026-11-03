@@ -1248,6 +1248,13 @@ model NotificationPreference {
   /// Daily digest, generated once per Israel day at/after digestHour.
   digestEnabled       Boolean   @default(true)
   digestHour          Int       @default(8)
+  /// Instant alert when a newly ingested job's personal match ("התאמה אישית") reaches the threshold (#96).
+  highMatchEnabled    Boolean   @default(true)
+  highMatchThreshold  Int       @default(80)
+  /// Max high-match alerts per Israel day (each alert may list several jobs).
+  highMatchDailyCap   Int       @default(3)
+  /// Jobs created after this were not checked yet (null = start from the next run).
+  highMatchCheckedAt  DateTime?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }

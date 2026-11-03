@@ -17,12 +17,18 @@ import type { EffectivePrefs } from "@/lib/notifications/prefs";
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 const hh = (h: number) => `${String(h).padStart(2, "0")}:00`;
 
+/** Threshold choices; keep the saved value selectable even if it is not on the list. */
+const HIGH_THRESHOLD_STEPS = [60, 65, 70, 75, 80, 85, 90, 95];
+
 const selectCls =
   "border-input bg-background focus-visible:ring-ring/50 h-10 rounded-md border px-2 text-sm tabular-nums outline-none focus-visible:ring-3";
 const checkCls = "accent-primary size-4.5 shrink-0";
 
 export function PrefsForm({ prefs, s, r }: { prefs: EffectivePrefs; s: NotificationStrings; r: ReminderStrings }) {
   const [state, action, pending] = useActionState<PrefsFormState, FormData>(saveNotificationPrefs, undefined);
+  const HIGH_THRESHOLDS = HIGH_THRESHOLD_STEPS.includes(prefs.highMatchThreshold)
+    ? HIGH_THRESHOLD_STEPS
+    : [...HIGH_THRESHOLD_STEPS, prefs.highMatchThreshold].sort((a, b) => a - b);
   return (
     <form action={action} className="flex flex-col gap-6" data-testid="prefs-form">
       <section aria-labelledby="what-h" className="card flex flex-col gap-3">
@@ -103,6 +109,49 @@ export function PrefsForm({ prefs, s, r }: { prefs: EffectivePrefs; s: Notificat
             {s.modeDigestOff}
           </p>
         ) : null}
+      </section>
+
+      <section aria-labelledby="high-h" className="card flex flex-col gap-3" data-testid="high-match-prefs">
+        <h2 id="high-h" className="font-heading text-lg font-bold">
+          {s.highSection}
+        </h2>
+        <p className="text-muted-foreground text-sm">{s.highLead}</p>
+        <label className="flex min-h-10 items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" name="highMatchEnabled" defaultChecked={prefs.highMatchEnabled} className={checkCls} />
+          {s.highEnabled}
+        </label>
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2 text-sm">
+            {s.highThreshold}
+            <select
+              name="highMatchThreshold"
+              defaultValue={prefs.highMatchThreshold}
+              className={selectCls}
+              dir="ltr"
+              data-testid="high-match-threshold"
+            >
+              {HIGH_THRESHOLDS.map((t) => (
+                <option key={t} value={t}>
+                  {`${t}%`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            {s.highCap}
+            <input
+              type="number"
+              name="highMatchDailyCap"
+              min={1}
+              max={10}
+              defaultValue={prefs.highMatchDailyCap}
+              className={`${selectCls} w-20`}
+              dir="ltr"
+              data-testid="high-match-cap"
+            />
+          </label>
+        </div>
+        <p className="text-muted-foreground text-xs">{s.highChannels}</p>
       </section>
 
       <section aria-labelledby="quiet-h" className="card flex flex-col gap-3">

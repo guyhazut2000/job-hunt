@@ -18,6 +18,10 @@ export interface EffectivePrefs extends QuietPrefs {
   interviewEnabled: boolean;
   digestEnabled: boolean;
   digestHour: number;
+  /** Instant alert for new jobs whose personal match reaches the threshold (#96). */
+  highMatchEnabled: boolean;
+  highMatchThreshold: number;
+  highMatchDailyCap: number;
 }
 
 export const DEFAULT_PREFS: EffectivePrefs = {
@@ -34,6 +38,9 @@ export const DEFAULT_PREFS: EffectivePrefs = {
   interviewEnabled: true,
   digestEnabled: true,
   digestHour: 8,
+  highMatchEnabled: true,
+  highMatchThreshold: 80,
+  highMatchDailyCap: 3,
 };
 
 /** Valid, sorted, unique weekdays (0–6). */
@@ -61,6 +68,9 @@ export function toEffective(p: NotificationPreference | null | undefined): Effec
     interviewEnabled: p.interviewEnabled ?? DEFAULT_PREFS.interviewEnabled,
     digestEnabled: p.digestEnabled ?? DEFAULT_PREFS.digestEnabled,
     digestHour: p.digestHour ?? DEFAULT_PREFS.digestHour,
+    highMatchEnabled: p.highMatchEnabled ?? DEFAULT_PREFS.highMatchEnabled,
+    highMatchThreshold: p.highMatchThreshold ?? DEFAULT_PREFS.highMatchThreshold,
+    highMatchDailyCap: p.highMatchDailyCap ?? DEFAULT_PREFS.highMatchDailyCap,
   };
 }
 

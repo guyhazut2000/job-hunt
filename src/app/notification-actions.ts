@@ -55,6 +55,8 @@ const prefsSchema = z.object({
   learningHour: z.coerce.number().int().min(0).max(23),
   learningIdleDays: z.coerce.number().int().min(1).max(30),
   digestHour: z.coerce.number().int().min(0).max(23),
+  highMatchThreshold: z.coerce.number().int().min(50).max(100),
+  highMatchDailyCap: z.coerce.number().int().min(1).max(10),
 });
 
 export async function saveNotificationPrefs(_: PrefsFormState, formData: FormData): Promise<PrefsFormState> {
@@ -79,6 +81,7 @@ export async function saveNotificationPrefs(_: PrefsFormState, formData: FormDat
     learningDays: cleanWeekdays(formData.getAll("learningDays")),
     interviewEnabled: on("interviewEnabled"),
     digestEnabled: on("digestEnabled"),
+    highMatchEnabled: on("highMatchEnabled"),
     channels,
     modes,
   };
