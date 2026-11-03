@@ -15,6 +15,7 @@ import { NotificationBell } from "./notifications/NotificationBell";
 import { Brand } from "./Brand";
 import { NavLinks, type NavLink } from "./NavLinks";
 import { conceptStrings } from "@/lib/i18n/concepts";
+import { salaryHubStrings } from "@/lib/i18n/salary-hub";
 import { statsStrings } from "@/lib/i18n/stats";
 
 export async function Header() {
@@ -43,6 +44,7 @@ export async function Header() {
           { href: "/chat", label: chatStrings(locale).short, priority: "more" as const },
         ]
       : []),
+    { href: "/salary", label: salaryHubStrings[locale].title, priority: "more" as const },
     { href: "/features", label: t.nav.features, priority: "more" as const },
     ...(user?.role === "ADMIN" ? [{ href: "/admin", label: t.nav.admin, priority: "more" as const }] : []),
   ];

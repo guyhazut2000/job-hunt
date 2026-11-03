@@ -4,6 +4,7 @@ import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } fr
 import { AutoBadge, AutoUndoButton, StatusTimeline, type AutoLabels } from "./email/AutoChanges";
 import { FollowUpCardControl } from "./followup/FollowUp";
 import { InterviewDate, type InterviewDateLabels } from "./InterviewDate";
+import { AskedSalary, type AskedSalaryLabels } from "./salary-hub/AskedSalary";
 import { TruncatedText } from "./TruncatedText";
 import type { ApplicationStatus } from "@prisma/client";
 import { ExternalLink, FileText, GripVertical, MessagesSquare, Trash2, Undo2, Users } from "lucide-react";
@@ -26,6 +27,9 @@ export interface KanbanItem {
   contacts?: { total: number; referred: number };
   /** Interview date (Israel wall time for the input + a formatted label), when set. */
   interview?: { value: string; display: string; note: string | null } | null;
+  /** Salary the user asked for (gross ₪/month) + note (#91). */
+  askedSalaryMonthly?: number | null;
+  salaryNote?: string | null;
   /** Status history (oldest first) and, when the current status came from an email automatically, undo info. */
   history?: TimelineEntry[];
   auto?: AutoInfo | null;
@@ -51,6 +55,8 @@ export function Kanban({
   emptyLabel,
   contactsLabel,
   interviewLabels,
+  askedLabels,
+  locale = "he",
   autoLabels,
   prepLabels,
   followUpLabels,
@@ -64,6 +70,9 @@ export function Kanban({
   emptyLabel: string;
   contactsLabel?: { count: string; referred: string };
   interviewLabels?: InterviewDateLabels;
+  /** "Salary I asked for" editor labels; omitted = no editor. */
+  askedLabels?: AskedSalaryLabels;
+  locale?: string;
   autoLabels?: AutoLabels;
   /** Per-card prep links (tailored CV, interview practice); only the labels given are shown. */
   prepLabels?: { cv?: string; interview?: string };
@@ -247,6 +256,18 @@ export function Kanban({
                                 note={i.interview?.note ?? null}
                                 display={i.interview?.display ?? null}
                                 labels={interviewLabels}
+                              />
+                            </div>
+                          )}
+                          {askedLabels && (i.status !== "REJECTED" || i.askedSalaryMonthly) && (
+                            <div className="mt-1">
+                              <AskedSalary
+                                applicationId={i.id}
+                                title={i.title}
+                                value={i.askedSalaryMonthly ?? null}
+                                note={i.salaryNote ?? null}
+                                labels={askedLabels}
+                                locale={locale}
                               />
                             </div>
                           )}

@@ -26,6 +26,7 @@ import { formatInterviewTime } from "@/lib/notifications/interviews";
 import { toIsraelLocalInput } from "@/lib/notifications/israel-time";
 import { getPrefs } from "@/lib/notifications/prefs";
 import { requireUser } from "@/lib/session";
+import { salaryHubStrings } from "@/lib/i18n/salary-hub";
 import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         status: true,
         interviewAt: true,
         interviewNote: true,
+        askedSalaryMonthly: true,
+        salaryNote: true,
         appliedAt: true,
         createdAt: true,
         statusChangedAt: true,
@@ -306,6 +309,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         openFollowUp={openFollowUp}
         contactsLabel={{ count: t.people.trackerCount, referred: t.people.trackerReferred }}
         prepLabels={{ cv: cvTailorStrings(locale).appCta, interview: interviewStrings(locale).practiceCta }}
+        askedLabels={salaryHubStrings[locale].field}
+        locale={locale}
         interviewLabels={{
           set: rs.interviewSet,
           date: rs.interviewDate,
