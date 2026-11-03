@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import {
   DEFAULT_PREFS,
   followUpDue,
+  statusCheckDue,
   goalProgress,
   pickQueue,
   QUEUE_AUDIENCE,
@@ -47,6 +48,8 @@ export interface TrackerContact {
   /** Outbound LinkedIn people search for this person when no profile URL was saved. */
   searchUrl: string | null;
   due: { kind: FollowUpDue["kind"]; days: number; drafts: Record<OutreachLang, FollowUpMessage> } | null;
+  /** Halfway to the nudge with no status change: ask "did they accept?" (#95). */
+  check: boolean;
 }
 
 export interface OutreachDashboard {
@@ -160,6 +163,7 @@ export async function loadOutreachDashboard(userId: string, now = new Date()): P
 
   const tracker: TrackerContact[] = contacts.map((c) => {
     const due = followUpDue(c, prefs.followUpDays, now);
+    const check = !due && !!statusCheckDue(c, prefs.followUpDays, now);
     const ctx = c.company ? outreachContext(c.company, c.job, profile, user?.name) : null;
     const searchUrl =
       !c.linkedinUrl && c.company
@@ -194,9 +198,10 @@ export async function loadOutreachDashboard(userId: string, now = new Date()): P
               },
             }
           : null,
+      check,
     };
   });
-  // Due follow-ups first, then by most recent activity.
-  tracker.sort((a, b) => Number(!!b.due) - Number(!!a.due));
+  // Due follow-ups first, then "did they accept?" checks, then by most recent activity.
+  tracker.sort((a, b) => Number(!!b.due) - Number(!!a.due) || Number(b.check) - Number(a.check));
   return { prefs, progress, queue, contacts: tracker, dueCount: tracker.filter((c) => c.due).length };
 }

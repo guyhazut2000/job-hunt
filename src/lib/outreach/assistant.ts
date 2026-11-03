@@ -104,6 +104,49 @@ export function followUpDue(c: FollowUpContact, followUpDays: number, now = new 
   return null;
 }
 
+/**
+ * "Did they accept?" check (#95): halfway to the nudge, ask the user to look at LinkedIn and tap
+ * the status. We can't (and won't) read LinkedIn, so this is the least-friction legal option.
+ * Only for requests still marked SENT; never at or after the nudge day (the nudge covers it).
+ */
+export function statusCheckDays(followUpDays: number): number {
+  return Math.max(1, Math.floor(followUpDays / 2));
+}
+
+export function statusCheckDue(
+  c: FollowUpContact,
+  followUpDays: number,
+  now = new Date(),
+): { days: number; anchor: Date } | null {
+  if (c.followedUpAt || c.status !== "SENT") return null;
+  const anchor = c.sentAt ?? c.statusAt ?? c.createdAt;
+  const days = Math.floor((now.getTime() - anchor.getTime()) / DAY);
+  const at = statusCheckDays(followUpDays);
+  return days >= at && days < followUpDays ? { days, anchor } : null;
+}
+
+export const statusCheckDedupeKey = (contactId: string, anchor: Date) =>
+  `outreach:${contactId}:check:${israelDay(anchor)}`;
+
+/** One-tap next steps for a tracker row, most likely first. The select stays for everything else. */
+export function quickNextStatuses(status: ContactStatus): ContactStatus[] {
+  switch (status) {
+    case "NOT_CONTACTED":
+      return ["SENT"];
+    case "SENT":
+      return ["ACCEPTED", "REPLIED"];
+    case "ACCEPTED":
+      return ["REPLIED"];
+    case "REPLIED":
+      return ["REFERRED"];
+    default:
+      return [];
+  }
+}
+
+/** Max contacts one bulk update may touch (one request, one transaction). */
+export const BULK_MAX = 100;
+
 /** Stable per contact + kind + anchor, so the cron never reminds twice for the same step. */
 export const followUpDedupeKey = (contactId: string, due: FollowUpDue) =>
   `outreach:${contactId}:${due.kind}:${israelDay(due.anchor)}`;

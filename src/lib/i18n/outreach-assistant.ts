@@ -63,6 +63,17 @@ export const outreachAssistantStrings = {
     notifyAccepted: "{name} אישר/ה את הבקשה. יש טיוטת המשך מוכנה ב-{company}.",
     notifyNudge: "אין תגובה מ-{name} ({company}) כבר {days} ימים. יש טיוטת תזכורת מוכנה.",
     lang: "שפת ההודעה",
+    notifyCheckTitle: "האם {name} אישר/ה את הבקשה?",
+    notifyCheck:
+      "עברו {days} ימים מאז הבקשה ל-{name} ב-{company}. כדאי להציץ בלינקדין ולעדכן את הסטטוס בלחיצה אחת, כדי שהתזכורות יהיו מדויקות.",
+    checkChip: "לבדוק אם אישר/ה",
+    quickLabel: "עדכון מהיר",
+    bulkSelect: "בחירה לעדכון מרוכז",
+    bulkSelectAll: "בחירת הכול",
+    bulkSelected: "נבחרו {n}",
+    bulkApply: "עדכון הנבחרים",
+    bulkTo: "סטטוס חדש",
+    bulkDone: "עודכנו {n} פניות",
   },
   en: {
     kicker: "LinkedIn outreach",
@@ -125,6 +136,17 @@ export const outreachAssistantStrings = {
     notifyAccepted: "{name} accepted your request. A follow-up draft for {company} is ready.",
     notifyNudge: "No reply from {name} ({company}) for {days} days. A reminder draft is ready.",
     lang: "Message language",
+    notifyCheckTitle: "Did {name} accept your request?",
+    notifyCheck:
+      "It's been {days} days since your request to {name} at {company}. Take a quick look on LinkedIn and update the status in one tap, so reminders stay accurate.",
+    checkChip: "Check if accepted",
+    quickLabel: "Quick update",
+    bulkSelect: "Select for bulk update",
+    bulkSelectAll: "Select all",
+    bulkSelected: "{n} selected",
+    bulkApply: "Update selected",
+    bulkTo: "New status",
+    bulkDone: "Updated {n} contacts",
   },
 } satisfies Record<Locale, Record<string, unknown>>;
 

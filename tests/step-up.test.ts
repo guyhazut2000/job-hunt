@@ -162,7 +162,7 @@ describe("ordering and targets", () => {
   });
 });
 
-describe("technical track regression (#91: the tab showed 0)", () => {
+describe("technical track regression (#95: the tab showed 0)", () => {
   it("opens at Mid with one-rung platform / architecture moves", () => {
     expect(stepUpMove(pos("fullstack", "MID"), job("Senior Platform Engineer", "backend", "SENIOR"))?.kind).toBe(
       "technical",

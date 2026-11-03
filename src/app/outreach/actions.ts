@@ -11,7 +11,7 @@ import { db } from "@/lib/db";
 import { CONTACT_CATEGORIES, isLinkedinProfileUrl } from "@/lib/outreach/links";
 import { outreachContext } from "@/lib/outreach/context";
 import { generateOutreach, type OutreachLang, type OutreachMessage } from "@/lib/outreach/messages";
-import { followUpDue, prefsSchema, statusPatch } from "@/lib/outreach/assistant";
+import { BULK_MAX, followUpDue, prefsSchema, statusPatch } from "@/lib/outreach/assistant";
 import { generateFollowUp, type FollowUpMessage } from "@/lib/outreach/followup";
 import { loadPrefs } from "@/lib/outreach/server";
 import { requireUser } from "@/lib/session";
@@ -111,6 +111,28 @@ export async function updateContactStatus(id: string, status: ContactStatus) {
   await db.contact.update({ where: { id }, data: statusPatch(c, status) });
   track("contact_status_changed", { status });
   await revalidateFor(c.jobId, c.companyId);
+}
+
+/** Bulk status update (#95): one transaction, only the user's own contacts, sentAt kept per contact. */
+export async function bulkUpdateContactStatus(ids: string[], status: ContactStatus): Promise<{ updated: number }> {
+  const user = await requireUser();
+  if (!STATUSES.includes(status) || !Array.isArray(ids)) return { updated: 0 };
+  const unique = [...new Set(ids.filter((id) => typeof id === "string" && id.length <= 64))].slice(0, BULK_MAX);
+  if (!unique.length) return { updated: 0 };
+  const owned = await db.contact.findMany({
+    where: { id: { in: unique }, userId: user.id },
+    select: { id: true, jobId: true, companyId: true, sentAt: true },
+  });
+  if (!owned.length) return { updated: 0 };
+  const now = new Date();
+  await db.$transaction(
+    owned.map((c) => db.contact.update({ where: { id: c.id }, data: statusPatch(c, status, now) })),
+  );
+  track("contact_status_bulk", { status, n: owned.length });
+  revalidatePath("/dashboard");
+  revalidatePath("/outreach");
+  for (const jobId of new Set(owned.map((c) => c.jobId).filter(Boolean) as string[])) revalidatePath(`/jobs/${jobId}`);
+  return { updated: owned.length };
 }
 
 export async function deleteContact(id: string) {

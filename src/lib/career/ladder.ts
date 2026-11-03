@@ -55,7 +55,7 @@ const PLATFORM = /\bplatform\b|פלטפורמ/i;
 /**
  * Title words for a DB pre-filter on the technical track (case-insensitive `contains`). The main
  * scan is capped and newest-first, so without a dedicated query older Staff/Architect postings were
- * cut off by the cap and the technical tab came out (nearly) empty (#91).
+ * cut off by the cap and the technical tab came out (nearly) empty (#95).
  */
 export const TECH_TITLE_TERMS = ["staff", "principal", "architect", "distinguished", "platform", "ארכיטקט", "פלטפורמ"];
 
