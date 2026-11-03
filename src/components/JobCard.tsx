@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { MapPin, Users } from "lucide-react";
 import type { Company, Job } from "@prisma/client";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { formatAge } from "@/lib/format";
@@ -17,6 +17,7 @@ import type { CommuteResult } from "@/lib/commute/types";
 import { jobsMapStrings } from "@/lib/i18n/jobs-map";
 import { CommuteChips } from "./map/CommuteChips";
 import { DomainBadge } from "./DomainBadge";
+import { fillRef, referralStrings } from "@/lib/i18n/referrals";
 
 export function JobCard({
   job,
@@ -26,6 +27,7 @@ export function JobCard({
   commute,
   commuteMode,
   why,
+  insider,
 }: {
   job: Job & { company: Company };
   t: Dictionary;
@@ -37,7 +39,10 @@ export function JobCard({
   commuteMode?: CommuteMode;
   /** Optional explanation under the card (e.g. the personal-ranking "why"), above the card link overlay. */
   why?: React.ReactNode;
+  /** "יש לך מכר בפנים" (#92): the user knows someone at this company. */
+  insider?: { count: number; contactId: string };
 }) {
+  const rs = insider ? referralStrings[localeOf(t)] : null;
   return (
     <article className="group hover:bg-muted/60 relative grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 px-4 py-5 transition-colors sm:px-5">
       <div className="flex min-w-0 flex-col gap-1.5">
@@ -68,8 +73,18 @@ export function JobCard({
             <TruncatedText text={job.title} lines={2} className="relative z-[1]" highlight={highlight} />
           </Link>
         </h3>
-        <div className="flex min-w-0">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <DomainBadge domain={job.domain} locale={localeOf(t)} />
+          {insider && rs && (
+            <Link
+              href={`/referrals?contact=${insider.contactId}&job=${job.id}#contact-${insider.contactId}`}
+              className="relative z-10 inline-flex min-h-8 items-center gap-1 rounded-full border border-emerald-600/40 bg-emerald-600/10 px-2 text-xs font-semibold text-emerald-800 hover:underline dark:text-emerald-300"
+              data-testid="job-card-insider"
+            >
+              <Users className="size-3.5" aria-hidden />
+              {insider.count > 1 ? fillRef(rs.insiderBadgeN, { n: insider.count }) : rs.insiderBadge}
+            </Link>
+          )}
         </div>
         <p className="text-foreground/75 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
           {[

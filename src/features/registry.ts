@@ -250,6 +250,26 @@ export const FEATURES: Feature[] = [
       },
     ],
     keywords: ["linkedin", "outreach", "referral", "follow-up", "streak", "daily goal", "networking"],
+    updates: [
+      { date: "2026-11-03", text: "חיבור שאושר אפשר להוסיף בלחיצה כמכר להפניה (חבר מביא חבר)", pr: 0 },
+    ],
+  },
+  {
+    id: "referrals",
+    name: "חבר מביא חבר",
+    description:
+      "רשימת מכרים שעובדים בחברות שמעניינות אותך (הוספה ידנית או ייבוא CSV, כולל Connections.csv מלינקדין), תג 'יש לך מכר בפנים' בכרטיסי משרות ובדף החברה, טיוטת בקשת הפניה בעברית ובאנגלית (AI עם תבנית גיבוי, העתקה בלבד), מעקב ביקשתי / הסכים / הוגש דרכו / תשובה מקושר למועמדות, ותזכורות פולואפ בהתראות. שום דבר לא נשלח אוטומטית.",
+    howTo:
+      "בתפריט 'עוד': 'חבר מביא חבר'. מוסיפים מכר (או מייבאים CSV), לוחצים 'בקשת הפניה', בוחרים משרה ושפה, מעתיקים ושולחים בעצמך, ומסמנים 'ביקשתי'. מעדכנים סטטוס במעקב; תזכורת מגיעה כשעבר זמן בלי שינוי.",
+    category: "companies",
+    status: "live",
+    audience: "user",
+    routes: ["/referrals"],
+    href: "/referrals",
+    added: "2026-11-03",
+    prs: [0],
+    issue: 92,
+    keywords: ["referral", "friend", "חבר מביא חבר", "insider", "contacts", "csv", "networking"],
   },
   {
     id: "suggest-company",

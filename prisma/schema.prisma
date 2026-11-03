@@ -140,6 +140,7 @@ model User {
   applicationFollowUps ApplicationFollowUp[]
   workStories          WorkStory[]
   jobOffers            JobOffer[]
+  referrals            Referral[]
   salaryDataPoints     SalaryDataPoint[]
   rankingPrefs         RankingPrefs?
   outreachPrefs        OutreachPrefs?
@@ -402,6 +403,7 @@ model Job {
   updatedAt         DateTime           @updatedAt
   applications      Application[]
   contacts          Contact[]
+  referrals         Referral[]
   hiringProcesses   HiringProcess[]
   tailoredCvs       TailoredCv[]
   interviews        InterviewSession[]
@@ -489,6 +491,7 @@ model Application {
   /// Free text next to the asked salary ("asked 32-34k", "they said budget is 30k").
   salaryNote           String?
   offers               JobOffer[]
+  referrals            Referral[]
 
   @@unique([userId, jobId])
   @@index([userId, status])
@@ -633,12 +636,59 @@ model Contact {
   statusAt     DateTime?
   /// When the user marked the follow-up message as sent (#86). Null = no follow-up yet.
   followedUpAt DateTime?
+  /// "יש לך מכר בפנים": the user knows this person and may ask them for a referral (#92).
+  insider      Boolean         @default(false)
+  /// Company name as typed / imported when it doesn't match a Company row (#92).
+  companyName  String?
+  email        String?
+  /// How the user knows them (free text, e.g. "עבדנו יחד ב-Wix").
+  relationship String?
+  referrals    Referral[]
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
   @@index([userId, jobId])
   @@index([userId, sentAt])
   @@index([userId, companyId])
+}
+
+enum ReferralStatus {
+  /// ביקשתי
+  ASKED
+  /// הסכים
+  AGREED
+  /// הוגש דרכו
+  SUBMITTED
+  /// התקבלה תשובה (outcome says which)
+  ANSWERED
+  /// לא הסתדר
+  DECLINED
+}
+
+/// A referral request to a contact for a job / application (#92). Tracked only — nothing is sent.
+model Referral {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contactId     String
+  contact       Contact        @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   Application?   @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  jobId         String?
+  job           Job?           @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  status        ReferralStatus @default(ASKED)
+  /// For ANSWERED: "positive" | "negative" | null.
+  outcome       String?
+  note          String?
+  askedAt       DateTime       @default(now())
+  statusAt      DateTime       @default(now())
+  /// When the user marked the follow-up as done (reminders stop).
+  followedUpAt  DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([status, statusAt])
 }
 
 // ---------------------------------------------------------------------------

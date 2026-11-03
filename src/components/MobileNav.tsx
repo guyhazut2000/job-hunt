@@ -25,6 +25,7 @@ type Labels = Record<
   | "digest"
   | "stats"
   | "salary"
+  | "referrals"
   | "admin"
   | "features"
   | "language"
@@ -118,6 +119,13 @@ export function MobileNav({ user, labels, locale }: { user: { role: string } | n
                     <Link href="/salary">{labels.salary}</Link>
                   </Button>
                 </SheetClose>
+                {user && (
+                  <SheetClose asChild>
+                    <Button asChild variant="outline" className="justify-start">
+                      <Link href="/referrals">{labels.referrals}</Link>
+                    </Button>
+                  </SheetClose>
+                )}
                 {user && (
                   <SheetClose asChild>
                     <Button asChild variant="outline" className="justify-start">

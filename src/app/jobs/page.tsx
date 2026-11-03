@@ -2,6 +2,7 @@ import type { Company, Job } from "@prisma/client";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { auth } from "@/auth";
+import { insidersByCompany } from "@/lib/referrals/server";
 import { FilterSheet } from "@/components/FilterSheet";
 import { ScrollFade } from "@/components/ScrollFade";
 import { JobCard, JobList } from "@/components/JobCard";
@@ -374,6 +375,15 @@ export default async function JobsPage({
     ...techRows.map((r) => ({ kind: "skill" as const, label: r.tag, params: { tech: r.tag } })),
   ];
   const clearSearchHref = href({ ...filters, q: undefined, page: 1 });
+  // "יש לך מכר בפנים" (#92): the signed-in user's insider contacts at these companies.
+  const insiders = await insidersByCompany(
+    userId,
+    [...new Map([...top, ...rows].map(({ job }) => [job.company.id, job.company])).values()],
+  );
+  const insiderFor = (companyId: string) => {
+    const list = insiders.get(companyId);
+    return list?.length ? { count: list.length, contactId: list[0].id } : undefined;
+  };
 
   return (
     <div className="grid gap-8 lg:grid-cols-[17rem_minmax(0,1fr)]">
@@ -613,7 +623,7 @@ export default async function JobsPage({
             </div>
             <JobList>
               {top.map(({ job, score }) => (
-                <JobCard key={job.id} job={job} t={t} score={score} />
+                <JobCard key={job.id} job={job} t={t} score={score} insider={insiderFor(job.company.id)} />
               ))}
             </JobList>
           </section>
@@ -690,6 +700,7 @@ export default async function JobsPage({
                 highlight={marks}
                 commute={rowCommute?.get(job.id)?.commute}
                 commuteMode={filters.cmode}
+                insider={insiderFor(job.company.id)}
               />
             ))}
           </JobList>

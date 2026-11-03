@@ -47,6 +47,8 @@ export interface TrackerContact {
   job: { id: string; title: string } | null;
   /** Outbound LinkedIn people search for this person when no profile URL was saved. */
   searchUrl: string | null;
+  /** Marked as a referral contact on /referrals (#92). */
+  insider: boolean;
   due: { kind: FollowUpDue["kind"]; days: number; drafts: Record<OutreachLang, FollowUpMessage> } | null;
   /** Halfway to the nudge with no status change: ask "did they accept?" (#95). */
   check: boolean;
@@ -71,7 +73,8 @@ export async function loadOutreachDashboard(userId: string, now = new Date()): P
     db.profile.findUnique({ where: { userId } }),
     db.user.findUnique({ where: { id: userId }, select: { name: true } }),
     db.contact.findMany({
-      where: { userId },
+      // Referral-only contacts (#92, manual/CSV, never messaged) live on /referrals.
+      where: { userId, NOT: { insider: true, sentAt: null, status: "NOT_CONTACTED" } },
       orderBy: [{ updatedAt: "desc" }],
       take: 300,
       include: {
@@ -187,6 +190,7 @@ export async function loadOutreachDashboard(userId: string, now = new Date()): P
       company: c.company,
       job: c.job ? { id: c.job.id, title: c.job.title } : null,
       searchUrl,
+      insider: c.insider,
       due:
         due && ctx
           ? {

@@ -3,7 +3,9 @@
 import { startTransition, useActionState, useId, useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import type { ContactStatus } from "@prisma/client";
-import { CheckCheck, ExternalLink, Sparkles, X } from "lucide-react";
+import { CheckCheck, ExternalLink, Sparkles, UserCheck, X } from "lucide-react";
+import { markAsInsider } from "@/app/referrals/actions";
+import { referralStrings } from "@/lib/i18n/referrals";
 import {
   bulkUpdateContactStatus,
   draftFollowUp,
@@ -571,9 +573,47 @@ function Tracker({
                 ))}
               </select>
             </div>
+            {(c.insider || c.status === "ACCEPTED" || c.status === "REPLIED" || c.status === "REFERRED") && (
+              <InsiderLink id={c.id} insider={c.insider} locale={locale} />
+            )}
           </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+/** An accepted connection can become a referral contact (#92). */
+function InsiderLink({ id, insider, locale }: { id: string; insider: boolean; locale: OutreachLang }) {
+  const rs = referralStrings[locale];
+  const [done, setDone] = useState(insider);
+  const [pending, start] = useTransition();
+  if (done)
+    return (
+      <Link
+        href={`/referrals?contact=${id}#contact-${id}`}
+        className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-300"
+        data-testid="tracker-insider-link"
+      >
+        <UserCheck className="size-4" aria-hidden />
+        {rs.addedAsReferral}
+      </Link>
+    );
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      disabled={pending}
+      onClick={() =>
+        start(async () => {
+          const res = await markAsInsider(id);
+          if ("ok" in res) setDone(true);
+        })
+      }
+      data-testid="tracker-add-referral"
+    >
+      <UserCheck data-icon="inline-start" aria-hidden />
+      {rs.addAsReferral}
+    </Button>
   );
 }
