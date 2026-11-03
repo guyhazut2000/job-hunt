@@ -71,7 +71,8 @@ const en = {
   rec: {
     follow_up_stuck: {
       title: "Follow up on {count} stuck applications",
-      detail: "{stageCount} are stuck at “{stage}”; the oldest hasn't moved in {days} days. A short follow-up or closing them keeps the board honest.",
+      detail:
+        "{stageCount} are stuck at “{stage}”; the oldest hasn't moved in {days} days. A short follow-up or closing them keeps the board honest.",
     },
     complete_profile: {
       title: "Complete your profile",
@@ -87,11 +88,13 @@ const en = {
     },
     boost_response: {
       title: "Change the approach: response rate is {rate}%",
-      detail: "{responded} responses out of {applied} applications. Ask for a referral or send a tailored CV instead of applying cold.",
+      detail:
+        "{responded} responses out of {applied} applications. Ask for a referral or send a tailored CV instead of applying cold.",
     },
     interview_prep: {
       title: "Prepare for interviews",
-      detail: "The biggest drop-off is {from} → {to} ({rate}%). Practice with an interview simulation before the next one.",
+      detail:
+        "The biggest drop-off is {from} → {to} ({rate}%). Practice with an interview simulation before the next one.",
     },
     outreach_follow_up: {
       title: "Follow up with {count} contacts",
@@ -99,7 +102,8 @@ const en = {
     },
     outreach_more: {
       title: "Reach out to {target} people",
-      detail: "{sent} outreach messages last week ({replies} replies). People at the company are the fastest way to a response.",
+      detail:
+        "{sent} outreach messages last week ({replies} replies). People at the company are the fastest way to a response.",
     },
     keep_pace: {
       title: "Keep the pace",
@@ -183,7 +187,8 @@ const he: CoachStrings = {
   rec: {
     follow_up_stuck: {
       title: "לעקוב אחרי {count} הגשות תקועות",
-      detail: "{stageCount} תקועות בשלב „{stage}”; הוותיקה לא זזה {days} ימים. הודעת מעקב קצרה, או סגירה שלהן, שומרת על לוח אמין.",
+      detail:
+        "{stageCount} תקועות בשלב „{stage}”; הוותיקה לא זזה {days} ימים. הודעת מעקב קצרה, או סגירה שלהן, שומרת על לוח אמין.",
     },
     complete_profile: {
       title: "להשלים את הפרופיל",
@@ -199,7 +204,8 @@ const he: CoachStrings = {
     },
     boost_response: {
       title: "לשנות גישה: אחוז התגובה {rate}%",
-      detail: "{responded} תגובות מתוך {applied} הגשות. עדיף לבקש חבר מביא חבר או לשלוח קורות חיים מותאמים במקום הגשה קרה.",
+      detail:
+        "{responded} תגובות מתוך {applied} הגשות. עדיף לבקש חבר מביא חבר או לשלוח קורות חיים מותאמים במקום הגשה קרה.",
     },
     interview_prep: {
       title: "להתכונן לראיונות",

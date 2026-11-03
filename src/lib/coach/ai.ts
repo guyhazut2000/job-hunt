@@ -18,7 +18,10 @@ export interface CoachAi {
 
 export const coachAiSchema = z.object({
   summary: z.string(),
-  recs: z.array(z.object({ id: z.string(), title: z.string(), detail: z.string() })).min(1).max(3),
+  recs: z
+    .array(z.object({ id: z.string(), title: z.string(), detail: z.string() }))
+    .min(1)
+    .max(3),
 });
 
 /** Digits in a string (to check the AI didn't invent numbers). */

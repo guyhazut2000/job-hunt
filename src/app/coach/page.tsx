@@ -92,7 +92,9 @@ export default async function CoachPage() {
           <h2 id="coach-week" className="font-heading text-xl font-bold" data-testid="coach-week">
             {fill(s.weekOf, { from: shortDay(data.week), to: shortDay(data.weekEnd) })}
           </h2>
-          <RefreshCoach labels={{ label: s.regenerate, pending: s.regenerating, ok: s.regenerated, failed: s.failed }} />
+          <RefreshCoach
+            labels={{ label: s.regenerate, pending: s.regenerating, ok: s.regenerated, failed: s.failed }}
+          />
         </div>
         <p className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <span className="inline-flex items-center gap-1" data-testid="coach-source">
@@ -135,8 +137,7 @@ export default async function CoachPage() {
                       {basis.map(([k, v], j) => (
                         <span key={k}>
                           {j ? " · " : ""}
-                          {s.basisLabel[k] ?? k}{" "}
-                          <bdi className="font-mono font-semibold">{basisValue(k, v)}</bdi>
+                          {s.basisLabel[k] ?? k} <bdi className="font-mono font-semibold">{basisValue(k, v)}</bdi>
                         </span>
                       ))}
                     </p>
@@ -161,7 +162,12 @@ export default async function CoachPage() {
           {s.numbersTitle}
         </h2>
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label={s.applied} value={data.activity.applied} hint={fill(s.prevApplied, { n: data.prevWeek.applied })} testid="coach-applied" />
+          <Stat
+            label={s.applied}
+            value={data.activity.applied}
+            hint={fill(s.prevApplied, { n: data.prevWeek.applied })}
+            testid="coach-applied"
+          />
           <Stat label={s.responses} value={data.activity.responses} />
           <Stat label={s.interviews} value={data.activity.interviews} />
           <Stat label={s.rejections} value={data.activity.rejections} />
@@ -195,7 +201,8 @@ export default async function CoachPage() {
                 <ul className="text-muted-foreground flex flex-col gap-0.5">
                   {data.stuck.top.map((t, i) => (
                     <li key={i}>
-                      <bdi>{t.title}</bdi> · <bdi>{t.company}</bdi>: {fill(s.stuckDays, { days: t.days, stage: stage(t.status) })}
+                      <bdi>{t.title}</bdi> · <bdi>{t.company}</bdi>:{" "}
+                      {fill(s.stuckDays, { days: t.days, stage: stage(t.status) })}
                     </li>
                   ))}
                 </ul>

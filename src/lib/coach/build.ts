@@ -213,7 +213,11 @@ export function recommend(d: Omit<CoachData, "recommendations">): Recommendation
     });
   }
   if (d.outreach.waiting > 0) {
-    add({ id: "outreach_follow_up", href: "/outreach", basis: { count: d.outreach.waiting, days: OUTREACH_WAIT_DAYS } });
+    add({
+      id: "outreach_follow_up",
+      href: "/outreach",
+      basis: { count: d.outreach.waiting, days: OUTREACH_WAIT_DAYS },
+    });
   }
   if (d.outreach.sent < WEEKLY_OUTREACH_TARGET) {
     add({
@@ -223,7 +227,11 @@ export function recommend(d: Omit<CoachData, "recommendations">): Recommendation
     });
   }
   // Fallbacks (always applicable, still grounded in numbers).
-  add({ id: "keep_pace", href: "/jobs?sort=personal", basis: { applied: d.activity.applied, prev: d.prevWeek.applied } });
+  add({
+    id: "keep_pace",
+    href: "/jobs?sort=personal",
+    basis: { applied: d.activity.applied, prev: d.prevWeek.applied },
+  });
   add({
     id: "review_stats",
     href: "/stats",
@@ -234,5 +242,4 @@ export function recommend(d: Omit<CoachData, "recommendations">): Recommendation
 }
 
 /** Nothing at all to summarize: no applications ever and no outreach. */
-export const coachIsEmpty = (d: CoachData) =>
-  d.totals.applied === 0 && d.totals.saved === 0 && d.outreach.total === 0;
+export const coachIsEmpty = (d: CoachData) => d.totals.applied === 0 && d.totals.saved === 0 && d.outreach.total === 0;
