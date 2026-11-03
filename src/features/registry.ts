@@ -1089,7 +1089,7 @@ export const FEATURES: Feature[] = [
     routes: ["/coach"],
     href: "/coach",
     added: "2026-11-03",
-    prs: [],
+    prs: [103],
     issue: 97,
     keywords: ["coach", "weekly", "summary", "recommendations", "מאמן", "סיכום שבועי"],
   },
