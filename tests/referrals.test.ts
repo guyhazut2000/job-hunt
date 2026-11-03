@@ -128,7 +128,10 @@ describe("referral request message", () => {
     expect(m).not.toMatch(/[[{]/);
   });
   it("English template without a job or relationship still reads well", () => {
-    const m = templateMessage({ ...facts, jobTitle: null, jobUrl: null, relationship: null, highlight: null, skills: [] }, "en");
+    const m = templateMessage(
+      { ...facts, jobTitle: null, jobUrl: null, relationship: null, highlight: null, skills: [] },
+      "en",
+    );
     expect(m).toContain("Hi Dana,");
     expect(m).toContain("Wix is hiring and");
     expect(m).not.toContain("undefined");
@@ -138,7 +141,12 @@ describe("referral request message", () => {
     expect(validateAiMessage({ body: good }, facts)).toBe(good);
     expect(validateAiMessage({ body: good.replace("Dana", "[name]") }, facts)).toBeNull();
     const noUrl = { ...facts, jobUrl: null };
-    expect(validateAiMessage({ body: "Hi Dana! The company is hiring a Senior Frontend Engineer, could you refer me?" }, noUrl)).toBeNull();
+    expect(
+      validateAiMessage(
+        { body: "Hi Dana! The company is hiring a Senior Frontend Engineer, could you refer me?" },
+        noUrl,
+      ),
+    ).toBeNull();
     expect(validateAiMessage({ body: good.replace(facts.jobUrl!, "") }, facts)).toBeNull();
   });
 });
@@ -158,7 +166,7 @@ describe("generateReferralMessage (guardedLLM)", () => {
     expect(await generateReferralMessage("u1", facts, "en")).toEqual({ body, source: "ai" });
     store.llm.complete.mockResolvedValueOnce(JSON.stringify({ body: "too short" }));
     expect((await generateReferralMessage("u1", facts, "en")).source).toBe("template");
-    store.llm.complete.mockRejectedValueOnce(new AiLimitError("daily"));
+    store.llm.complete.mockRejectedValueOnce(new AiLimitError("user_daily"));
     expect((await generateReferralMessage("u1", facts, "en")).source).toBe("limited");
     store.llm.name = "mock";
   });
@@ -183,7 +191,10 @@ describe("company matching and insiders", () => {
       { id: "k2", name: "Avi", companyId: null, companyName: "Wix Ltd." },
       { id: "k3", name: "Noa", companyId: null, companyName: "Unknown" },
     ];
-    const m = await insidersByCompany("u1", [{ id: "c-wix", name: "Wix" }, { id: "c-mon", name: "monday.com" }]);
+    const m = await insidersByCompany("u1", [
+      { id: "c-wix", name: "Wix" },
+      { id: "c-mon", name: "monday.com" },
+    ]);
     expect(m.get("c-wix")?.map((c) => c.id)).toEqual(["k1", "k2"]);
     expect(m.has("c-mon")).toBe(false);
     expect((await insidersByCompany(null, [{ id: "c-wix", name: "Wix" }])).size).toBe(0);

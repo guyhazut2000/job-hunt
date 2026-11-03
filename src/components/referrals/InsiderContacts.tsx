@@ -173,7 +173,11 @@ function RequestPanel({
     });
 
   return (
-    <div ref={ref} className="bg-muted/40 flex flex-col gap-3 rounded-md border p-3" data-testid="referral-request-panel">
+    <div
+      ref={ref}
+      className="bg-muted/40 flex flex-col gap-3 rounded-md border p-3"
+      data-testid="referral-request-panel"
+    >
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-bold">{fillRef(s.draftTitle, { name: contact.name })}</h3>
         <Button size="icon" variant="ghost" aria-label={s.close} onClick={onClose}>

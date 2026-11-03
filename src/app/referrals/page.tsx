@@ -108,8 +108,12 @@ export default async function ReferralsPage({
       companyId: a.job?.companyId ?? null,
       companyName: a.company,
     })),
-    ...[...jobs, ...(deepJob ? [deepJob] : [])]
-      .map((j) => ({ value: `j:${j.id}`, label: `${j.title} · ${j.company.name}`, companyId: j.companyId, companyName: j.company.name })),
+    ...[...jobs, ...(deepJob ? [deepJob] : [])].map((j) => ({
+      value: `j:${j.id}`,
+      label: `${j.title} · ${j.company.name}`,
+      companyId: j.companyId,
+      companyName: j.company.name,
+    })),
   ];
   const rows: ReferralRow[] = referrals.map((r) => ({
     id: r.id,
@@ -169,7 +173,8 @@ export default async function ReferralsPage({
 
       <section className="flex flex-col gap-3" aria-labelledby="ref-contacts">
         <h2 id="ref-contacts" className="font-heading text-lg font-bold">
-          {s.contactsTitle} {contactRows.length > 0 && <span className="text-muted-foreground">({contactRows.length})</span>}
+          {s.contactsTitle}{" "}
+          {contactRows.length > 0 && <span className="text-muted-foreground">({contactRows.length})</span>}
         </h2>
         <p className="text-muted-foreground -mt-2 text-sm">{s.contactsLead}</p>
         <InsiderContacts

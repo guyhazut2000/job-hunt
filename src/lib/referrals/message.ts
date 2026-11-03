@@ -38,7 +38,10 @@ export function templateMessage(f: ReferralFacts, lang: ReferralLang): string {
       "Totally fine if not, thanks either way!",
       f.senderName ? f.senderName : "",
     ];
-    return lines.filter((l, i, a) => !(l === "" && a[i - 1] === "")).join("\n").trim();
+    return lines
+      .filter((l, i, a) => !(l === "" && a[i - 1] === ""))
+      .join("\n")
+      .trim();
   }
   const lines = [
     `היי ${name},`,
@@ -52,7 +55,10 @@ export function templateMessage(f: ReferralFacts, lang: ReferralLang): string {
     "ואם לא מתאים, הכול בסדר. תודה בכל מקרה!",
     f.senderName ? f.senderName : "",
   ];
-  return lines.filter((l, i, a) => !(l === "" && a[i - 1] === "")).join("\n").trim();
+  return lines
+    .filter((l, i, a) => !(l === "" && a[i - 1] === ""))
+    .join("\n")
+    .trim();
 }
 
 export const aiMessageSchema = z.object({ body: z.string().min(40).max(1200) });
@@ -62,7 +68,7 @@ export function messagePrompt(f: ReferralFacts, lang: ReferralLang) {
     {
       role: "system" as const,
       content:
-        "You write a short, warm message asking an acquaintance for an employee referral (\"חבר מביא חבר\"). " +
+        'You write a short, warm message asking an acquaintance for an employee referral ("חבר מביא חבר"). ' +
         "Use ONLY the facts given: never invent shared history, experience, numbers or names. No placeholders in brackets. " +
         "At most 90 words, plain text, 3-4 short lines, friendly and low-pressure (make it easy to say no). Mention the " +
         "company and the job title if given, offer to send a CV. If a job URL is given, include it as-is on its own line. " +
@@ -77,7 +83,10 @@ export function messagePrompt(f: ReferralFacts, lang: ReferralLang) {
 export function validateAiMessage(raw: unknown, f: ReferralFacts): string | null {
   const p = aiMessageSchema.safeParse(raw);
   if (!p.success) return null;
-  const body = p.data.body.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  const body = p.data.body
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   if (/[[{<][^\]}>]{1,30}[\]}>]/.test(body)) return null;
   if (!body.toLowerCase().includes(f.company.toLowerCase())) return null;
   if (f.jobUrl && !body.includes(f.jobUrl)) return null;

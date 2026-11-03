@@ -9,7 +9,10 @@ import { notify } from "./create";
  */
 export async function runReferralFollowUps(now = new Date()): Promise<{ reminded: number }> {
   const rows = await db.referral.findMany({
-    where: { status: { in: ["ASKED", "AGREED", "SUBMITTED"] }, statusAt: { lte: new Date(now.getTime() - 86_400_000) } },
+    where: {
+      status: { in: ["ASKED", "AGREED", "SUBMITTED"] },
+      statusAt: { lte: new Date(now.getTime() - 86_400_000) },
+    },
     select: {
       id: true,
       userId: true,
@@ -32,7 +35,8 @@ export async function runReferralFollowUps(now = new Date()): Promise<{ reminded
       company: r.application?.company ?? r.contact.company?.name ?? r.contact.companyName ?? "",
       days: due.days,
     };
-    const body = due.kind === "ask_again" ? s.notifyAskAgain : due.kind === "send_cv" ? s.notifySendCv : s.notifyAskAnswer;
+    const body =
+      due.kind === "ask_again" ? s.notifyAskAgain : due.kind === "send_cv" ? s.notifySendCv : s.notifyAskAnswer;
     const created = await notify(
       r.userId,
       {

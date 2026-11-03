@@ -60,10 +60,9 @@ function TrackerItem({
       router.refresh();
     });
   const dueText = r.due
-    ? fillRef(
-        r.due.kind === "ask_again" ? s.dueAskAgain : r.due.kind === "send_cv" ? s.dueSendCv : s.dueAskAnswer,
-        { days: r.due.days },
-      )
+    ? fillRef(r.due.kind === "ask_again" ? s.dueAskAgain : r.due.kind === "send_cv" ? s.dueSendCv : s.dueAskAnswer, {
+        days: r.due.days,
+      })
     : null;
 
   return (

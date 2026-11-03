@@ -29,4 +29,5 @@ export function referralFollowUpDue(r: ReferralLike, now = new Date()): { kind: 
   return days >= wait ? { kind, days } : null;
 }
 
-export const referralDedupeKey = (r: ReferralLike) => `referral:${r.id}:${r.status}:${r.statusAt.toISOString().slice(0, 10)}`;
+export const referralDedupeKey = (r: ReferralLike) =>
+  `referral:${r.id}:${r.status}:${r.statusAt.toISOString().slice(0, 10)}`;

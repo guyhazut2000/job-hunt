@@ -45,7 +45,8 @@ export async function insidersByCompany(
   });
   const byNorm = new Map(companies.map((c) => [normalizeCompany(c.name), c.id]));
   for (const r of rows) {
-    const cid = r.companyId ?? (r.companyName ? byNorm.get(normalizeCompany(cleanCompanyName(r.companyName))) : undefined);
+    const cid =
+      r.companyId ?? (r.companyName ? byNorm.get(normalizeCompany(cleanCompanyName(r.companyName))) : undefined);
     if (!cid || !ids.includes(cid)) continue;
     const list = out.get(cid) ?? [];
     list.push({ id: r.id, name: r.name });

@@ -248,11 +248,9 @@ export const FEATURES: Feature[] = [
         text: 'למעקב פניות נוספו כפתורי סטטוס בלחיצה אחת, עדכון סטטוס לכמה אנשים יחד, ותזכורת "התקבלה?" באמצע הדרך לפולואפ (בדיקה ידנית בלינקדין, בלי קריאה אוטומטית)',
         pr: 99,
       },
-    ],
-    keywords: ["linkedin", "outreach", "referral", "follow-up", "streak", "daily goal", "networking"],
-    updates: [
       { date: "2026-11-03", text: "חיבור שאושר אפשר להוסיף בלחיצה כמכר להפניה (חבר מביא חבר)", pr: 0 },
     ],
+    keywords: ["linkedin", "outreach", "referral", "follow-up", "streak", "daily goal", "networking"],
   },
   {
     id: "referrals",

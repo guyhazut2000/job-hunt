@@ -85,14 +85,17 @@ function mapHeader(rows: string[][]): { start: number; cols: Partial<Record<Col,
   return null;
 }
 
-const cell = (row: string[], i: number | undefined, max: number) => (i == null ? "" : (row[i] ?? "").trim().slice(0, max));
+const cell = (row: string[], i: number | undefined, max: number) =>
+  i == null ? "" : (row[i] ?? "").trim().slice(0, max);
 
 const linkedinOk = (u: string) => /^https:\/\/([a-z]+\.)?linkedin\.com\/in\//i.test(u);
 const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
-export function contactsFromCsv(
-  text: string,
-): { contacts: CsvContact[]; skipped: CsvSkip[]; error?: "no_header" | "too_big" | "too_many" } {
+export function contactsFromCsv(text: string): {
+  contacts: CsvContact[];
+  skipped: CsvSkip[];
+  error?: "no_header" | "too_big" | "too_many";
+} {
   if (text.length > CSV_MAX_BYTES) return { contacts: [], skipped: [], error: "too_big" };
   const rows = parseCsv(text);
   const head = mapHeader(rows);

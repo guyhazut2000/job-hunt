@@ -376,10 +376,9 @@ export default async function JobsPage({
   ];
   const clearSearchHref = href({ ...filters, q: undefined, page: 1 });
   // "יש לך מכר בפנים" (#92): the signed-in user's insider contacts at these companies.
-  const insiders = await insidersByCompany(
-    userId,
-    [...new Map([...top, ...rows].map(({ job }) => [job.company.id, job.company])).values()],
-  );
+  const insiders = await insidersByCompany(userId, [
+    ...new Map([...top, ...rows].map(({ job }) => [job.company.id, job.company])).values(),
+  ]);
   const insiderFor = (companyId: string) => {
     const list = insiders.get(companyId);
     return list?.length ? { count: list.length, contactId: list[0].id } : undefined;

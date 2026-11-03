@@ -23,7 +23,10 @@ const contactSchema = z.object({
   name: z.string().trim().min(1).max(120),
   company: z.string().trim().min(1).max(120),
   title: z.string().trim().max(120).optional().default(""),
-  email: z.union([z.literal(""), z.string().trim().email().max(200)]).optional().default(""),
+  email: z
+    .union([z.literal(""), z.string().trim().email().max(200)])
+    .optional()
+    .default(""),
   linkedinUrl: z.string().trim().max(300).optional().default(""),
   relationship: z.string().trim().max(200).optional().default(""),
   notes: z.string().trim().max(500).optional().default(""),
@@ -121,7 +124,10 @@ export async function markAsInsider(contactId: string): Promise<{ ok: true } | {
 
 export async function removeReferralContact(contactId: string): Promise<{ ok: true } | { error: string }> {
   const user = await requireUser();
-  const c = await db.contact.findFirst({ where: { id: contactId, userId: user.id }, select: { id: true, sentAt: true } });
+  const c = await db.contact.findFirst({
+    where: { id: contactId, userId: user.id },
+    select: { id: true, sentAt: true },
+  });
   if (!c) return { error: "not_found" };
   // Outreach contacts stay in /outreach; manual/imported ones are deleted.
   if (c.sentAt) await db.contact.update({ where: { id: c.id }, data: { insider: false } });
@@ -238,7 +244,10 @@ export async function updateReferral(input: z.input<typeof updateSchema>): Promi
   const r = await db.referral.findFirst({ where: { id: d.id, userId: user.id }, select: { id: true, status: true } });
   if (!r) return { error: "not_found" };
   if (d.applicationId) {
-    const ok = await db.application.findFirst({ where: { id: d.applicationId, userId: user.id }, select: { id: true } });
+    const ok = await db.application.findFirst({
+      where: { id: d.applicationId, userId: user.id },
+      select: { id: true },
+    });
     if (!ok) return { error: "invalid" };
   }
   const now = new Date();
