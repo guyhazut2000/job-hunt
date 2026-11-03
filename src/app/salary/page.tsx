@@ -119,7 +119,7 @@ export default async function SalaryPage({
           </h2>
           <p className="text-muted-foreground text-sm">{s.monthlyGross}</p>
         </div>
-        <dl className="grid grid-cols-3 gap-2 text-center">
+        <dl className="grid grid-cols-3 gap-1 text-center sm:gap-2">
           {(
             [
               ["p25", band.p25],
@@ -127,9 +127,12 @@ export default async function SalaryPage({
               ["p75", band.p75],
             ] as const
           ).map(([k, v]) => (
-            <div key={k} className={k === "median" ? "bg-muted rounded-md p-2" : "rounded-md p-2"}>
+            <div
+              key={k}
+              className={k === "median" ? "bg-muted min-w-0 rounded-md px-1 py-2" : "min-w-0 rounded-md px-1 py-2"}
+            >
               <dt className="text-muted-foreground text-xs">{s[k]}</dt>
-              <dd className="font-heading text-2xl font-black tabular-nums" dir="ltr">
+              <dd className="font-heading text-lg font-black tabular-nums sm:text-2xl" dir="ltr">
                 {ils(v)}
               </dd>
             </div>
