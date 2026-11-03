@@ -6,12 +6,16 @@ import { tr } from "@/lib/algo/types";
 import { getLocale } from "@/lib/i18n";
 import { problemSolvingStrings } from "@/lib/i18n/problem-solving";
 import { localizedTitle } from "@/lib/i18n/titles";
+import { IndustrySection, sessionUserId } from "@/components/stories/IndustrySection";
+import { storiesFor } from "@/lib/stories/server";
 
 export const generateMetadata = localizedTitle("psDataStructures");
 
 export default async function DataStructuresPage() {
   const locale = await getLocale();
   const t = problemSolvingStrings(locale);
+  const userId = await sessionUserId();
+  const stories = await storiesFor(userId, "ds");
   return (
     <div className="flex flex-col gap-8">
       <PageHead kicker={t.title} title={t.dsTitle} lead={t.dsLead} />
@@ -72,6 +76,15 @@ export default async function DataStructuresPage() {
                   </ul>
                 </div>
               </div>
+              <IndustrySection
+                kind="ds"
+                itemId={d.id}
+                name={d.name}
+                locale={locale}
+                story={stories.get(`ds:${d.id}`) ?? null}
+                signedIn={!!userId}
+                returnTo={`/learn/problem-solving/data-structures#${d.id}`}
+              />
               {users.length > 0 && (
                 <ul className="flex flex-wrap gap-1.5">
                   {users.map((p) => (

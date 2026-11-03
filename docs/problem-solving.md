@@ -59,3 +59,24 @@ feedback, source, createdAt). From it:
 - Pattern ranking is a heuristic aid; several patterns can be valid. Problems list an "also OK" set.
 - Paste-mode detection is regex-based; the AI walkthrough is better when a key is configured.
 - Problem data ships in the client bundle (the guide uses it); fine for a self-practice tool.
+
+## In industry + "My story" (#83)
+
+Every data structure (`/learn/problem-solving/data-structures`) and pattern (`/patterns/[id]`) has an
+**איך משתמשים בזה בתעשייה** block: 2–3 concrete day-to-day situations and the tools where the
+structure shows up (static content in [`src/lib/algo/industry.ts`](../src/lib/algo/industry.ts); a
+test makes sure every DS and pattern id has an entry).
+
+Below it, the **הסיפור שלי** card prepares the answer to _"Have you used X at work?"_:
+
+- Four short prompts — situation, what I built, why this structure, result/metric — each with a voice mic.
+- Saved per user in `WorkStory` (unique per user + kind + item). Editing the notes clears the polished answer.
+- **ליטוש לתשובת STAR** uses `guardedLLM("work_story")` (cached, daily cap) to rephrase into a 30–60s
+  spoken answer. The prompt forbids new facts, and `validatePolish` rejects any answer that adds
+  numbers or tool names the user didn't write; then (and with no AI key) the answer is composed from
+  the user's own words (`templateAnswer`). The card says which one it is.
+- Empty form → placeholders and a collapsible example answer, labelled **דוגמה**.
+- **תרגול** shows the question and reveals the answer on demand.
+
+`/learn/problem-solving/stories` (**הסיפורים שלי**, signed-in) lists all saved stories with a
+flash-card practice deck. Linked from the nav, the "In the interview" page and the interview simulator.
