@@ -11,6 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { getDictionary, isRtl } from "@/lib/i18n";
 import { documentStrings } from "@/lib/i18n/documents";
 import { salaryHubStrings } from "@/lib/i18n/salary-hub";
+import { referralStrings } from "@/lib/i18n/referrals";
 import { statsStrings } from "@/lib/i18n/stats";
 import { reminderStrings } from "@/lib/i18n/reminders";
 import { learningStrings } from "@/lib/i18n/learning";
@@ -99,6 +100,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 digest: reminderStrings(locale).nav,
                 stats: statsStrings(locale).nav,
                 salary: salaryHubStrings[locale].title,
+                referrals: referralStrings[locale].kicker,
                 admin: t.nav.admin,
                 features: t.nav.features,
                 language: t.nav.language,

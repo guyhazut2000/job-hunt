@@ -65,7 +65,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       },
     }),
     db.contact.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, NOT: { insider: true, sentAt: null, status: "NOT_CONTACTED" } },
       orderBy: { updatedAt: "desc" },
       include: {
         job: { select: { id: true, title: true } },

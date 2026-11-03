@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, ArrowRight, ExternalLink, Hand } from "lucide-react";
+import { AlertTriangle, ArrowRight, ExternalLink, Hand, Users } from "lucide-react";
 import { auth } from "@/auth";
 import { JobCard, JobList } from "@/components/JobCard";
 import { LinkedinCompanyLinks } from "@/components/LinkedinCompanyLink";
@@ -10,6 +10,8 @@ import { HiringProcessSection } from "@/components/hiring/HiringProcessSection";
 import { CompanyConceptsSection } from "@/components/concepts/CompanyConceptsSection";
 import { careersLink, isManualCompany, isSyncFailing, safeHttpUrl } from "@/lib/companies/status";
 import { db } from "@/lib/db";
+import { insidersByCompany } from "@/lib/referrals/server";
+import { referralStrings } from "@/lib/i18n/referrals";
 import { MAX_FOLLOWED_COMPANIES } from "@/lib/notifications/company-follow";
 import { formatDateTime } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
@@ -48,6 +50,9 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
       )
     : false;
   const ns = notificationStrings(locale);
+  const insiders = (await insidersByCompany(userId, [company])).get(company.id) ?? [];
+  const insider = insiders.length ? { count: insiders.length, contactId: insiders[0].id } : undefined;
+  const rs = referralStrings[locale];
   return (
     <div className="flex flex-col gap-6">
       <Link
@@ -156,6 +161,31 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
           </div>
         </section>
       )}
+      {insiders.length > 0 && (
+        <section
+          aria-labelledby="insider-h"
+          className="flex flex-col gap-2 rounded-lg border border-emerald-600/40 bg-emerald-600/5 p-4"
+          data-testid="company-insiders"
+        >
+          <h2 id="insider-h" className="font-heading flex items-center gap-2 text-lg font-bold">
+            <Users className="size-5 text-emerald-700" aria-hidden />
+            {rs.insiderOnCompany}
+          </h2>
+          <p className="text-foreground/85 text-sm">{rs.insiderOnCompanyLead}</p>
+          <ul className="flex flex-wrap gap-2">
+            {insiders.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/referrals?contact=${c.id}#contact-${c.id}`}
+                  className="bg-card inline-flex min-h-11 items-center gap-1 rounded-md border px-3 text-sm font-semibold hover:underline"
+                >
+                  <bdi>{c.name}</bdi> · {rs.insiderCta}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <People company={company} userId={session?.user?.id} t={t} />
       <CompanySalaryBands company={company} jobs={company.jobs} loggedIn={!!session?.user?.id} locale={locale} />
       <HiringProcessSection
@@ -176,7 +206,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
       {company.jobs.length > 0 && (
         <JobList>
           {company.jobs.map((j) => (
-            <JobCard key={j.id} job={j} t={t} />
+            <JobCard key={j.id} job={j} t={t} insider={insider} />
           ))}
         </JobList>
       )}

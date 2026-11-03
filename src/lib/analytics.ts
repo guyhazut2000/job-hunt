@@ -28,7 +28,12 @@ export type AnalyticsEvent =
   | "followup_sent"
   | "salary_asked_saved"
   | "salary_datapoint_saved"
-  | "offer_saved";
+  | "offer_saved"
+  | "referral_contact_added"
+  | "referral_contacts_imported"
+  | "referral_requested"
+  | "referral_status"
+  | "referral_draft";
 
 type Props = Record<string, string | number | boolean | null | undefined>;
 type Sink = (event: AnalyticsEvent, props: Props) => void;

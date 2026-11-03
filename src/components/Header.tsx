@@ -16,6 +16,7 @@ import { Brand } from "./Brand";
 import { NavLinks, type NavLink } from "./NavLinks";
 import { conceptStrings } from "@/lib/i18n/concepts";
 import { salaryHubStrings } from "@/lib/i18n/salary-hub";
+import { referralStrings } from "@/lib/i18n/referrals";
 import { statsStrings } from "@/lib/i18n/stats";
 
 export async function Header() {
@@ -39,6 +40,7 @@ export async function Header() {
           { href: "/learn/problem-solving", label: problemSolvingStrings(locale).nav, priority: "more" as const },
           { href: "/learn/me", label: learningHubStrings(locale).navMine, priority: "more" as const },
           { href: "/learn/concepts", label: conceptStrings(locale).nav, priority: "more" as const },
+          { href: "/referrals", label: referralStrings[locale].kicker, priority: "more" as const },
           { href: "/stats", label: statsStrings(locale).nav, priority: "more" as const },
           { href: "/digest", label: reminderStrings(locale).nav, priority: "more" as const },
           { href: "/chat", label: chatStrings(locale).short, priority: "more" as const },

@@ -31,7 +31,12 @@ export async function People({
         db.profile.findUnique({ where: { userId } }),
         db.user.findUnique({ where: { id: userId }, select: { name: true } }),
         db.contact.findMany({
-          where: { userId, companyId: company.id, ...(job ? { OR: [{ jobId: job.id }, { jobId: null }] } : {}) },
+          where: {
+            userId,
+            companyId: company.id,
+            NOT: { insider: true, sentAt: null, status: "NOT_CONTACTED" },
+            ...(job ? { OR: [{ jobId: job.id }, { jobId: null }] } : {}),
+          },
           orderBy: { createdAt: "desc" },
           select: { id: true, name: true, title: true, linkedinUrl: true, category: true, status: true, notes: true },
         }),

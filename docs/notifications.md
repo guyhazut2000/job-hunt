@@ -53,6 +53,13 @@ The changelog itself is the "מה חדש" section of `/features` (from `src/feat
 entry with `announce: true` to `src/lib/whats-new.ts`. The notify cron sends each announced entry once per
 user within 7 days of its date (skipping users who joined after it); the notice links to the changelog.
 
+### Referral follow-ups (`FOLLOW_UP`, #92)
+
+`runReferralFollowUps` (`src/lib/notifications/referrals.ts`, same notify cron) reminds you once per referral
+and status: ביקשתי with no change for 4 days → "ask again", הסכים for 3 days → "send the CV / posting",
+הוגש דרכו for 10 days → "ask if there's an answer". Dedupe `referral:<id>:<status>:<statusDay>`;
+"הזכרתי" on the row (`followedUpAt`) silences it until the status changes. Link: `/referrals#referral-<id>`.
+
 ### Follow-up reminders and drafts (`FOLLOW_UP`)
 
 Code: `src/lib/followup/` (`timing.ts` pure rules, `draft.ts` templates/links, `server.ts` DB + AI),
