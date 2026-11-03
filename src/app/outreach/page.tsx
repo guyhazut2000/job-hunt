@@ -63,7 +63,7 @@ export default async function OutreachPage() {
         </p>
         <div>
           <p className="text-muted-foreground mb-1 text-xs">{s.weekLabel}</p>
-          <ol className="flex gap-1.5" dir="ltr">
+          <ol className="flex gap-1.5">
             {progress.week.map((d) => (
               <li
                 key={d.day}

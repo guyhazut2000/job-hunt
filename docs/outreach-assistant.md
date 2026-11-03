@@ -3,6 +3,7 @@
 Route: `/outreach` (link from the dashboard's outreach section).
 
 ## What it does
+
 - **"יום בלי כוח" queue**: N ready drafts (default 5, setting 3–10), one per company:
   saved jobs → a peer (referral), applied → team lead, fresh matches in your target roles → recruiter.
   Companies you wrote to in the last 21 days are skipped.
@@ -17,10 +18,12 @@ Route: `/outreach` (link from the dashboard's outreach section).
   The notifications cron (`runOutreachFollowUps`) creates a `FOLLOW_UP` notification once per contact/step (dedupe key).
 
 ## Hard limits (by design)
+
 - **Nothing is ever sent automatically.** The app only drafts text and opens LinkedIn search URLs; you send yourself.
 - No LinkedIn scraping, fetching, API automation or browser automation.
 
 ## Code
+
 - `src/lib/outreach/assistant.ts` — pure: goal/streak, follow-up due, status timestamps, queue picking.
 - `src/lib/outreach/followup.ts` — follow-up templates + AI.
 - `src/lib/outreach/server.ts` — dashboard loader. `src/app/outreach/actions.ts` — server actions.
@@ -29,5 +32,6 @@ Route: `/outreach` (link from the dashboard's outreach section).
 - Tests: `tests/outreach-assistant.test.ts`.
 
 ## Known gaps
+
 - Streak/history comes from saved contacts — deleting a contact removes it from past counts.
 - LinkedIn "accepted" / "replied" can't be detected; you update the status yourself.

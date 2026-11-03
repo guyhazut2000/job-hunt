@@ -112,7 +112,12 @@ export async function loadOutreachDashboard(userId: string, now = new Date()): P
   if (new Set(cands.map((c) => c.companyId)).size < prefs.queueSize + recent.size) {
     const roles = profile?.targetRoles?.length ? profile.targetRoles : null;
     const fresh = await db.job.findMany({
-      where: { isActive: true, ...(roles ? { roleCategory: { in: roles } } : {}) },
+      where: {
+        isActive: true,
+        // Interns/students aren't the user's level; null seniority (unknown) stays in.
+        NOT: { seniority: "INTERN" },
+        ...(roles ? { roleCategory: { in: roles } } : {}),
+      },
       orderBy: { postedAt: "desc" },
       take: 60,
       select: { id: true, companyId: true, postedAt: true },
