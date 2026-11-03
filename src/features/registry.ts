@@ -237,7 +237,7 @@ export const FEATURES: Feature[] = [
     routes: ["/outreach"],
     href: "/outreach",
     added: "2026-11-03",
-    prs: [],
+    prs: [90],
     issue: 86,
     keywords: ["linkedin", "outreach", "referral", "follow-up", "streak", "daily goal", "networking"],
   },
