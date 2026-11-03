@@ -33,7 +33,10 @@ export type AnalyticsEvent =
   | "referral_contacts_imported"
   | "referral_requested"
   | "referral_status"
-  | "referral_draft";
+  | "referral_draft"
+  | "prep_saved"
+  | "prep_summary"
+  | "debrief_saved";
 
 type Props = Record<string, string | number | boolean | null | undefined>;
 type Sink = (event: AnalyticsEvent, props: Props) => void;

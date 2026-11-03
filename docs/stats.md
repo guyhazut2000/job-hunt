@@ -32,3 +32,9 @@ and renders.
 Percentages are hidden until there are 5 applications (`MIN_FOR_RATES`), and per-row/per-step rates
 until a row has 3 (`MIN_ROW_FOR_RATE`); counts are always shown. With no applications the page shows
 an empty state pointing to the jobs board and the tracker.
+
+## Interviews (debriefs)
+
+The "ראיונות (מסיכומים אחרי ראיון)" section is fed by post-interview debriefs saved on `/prep/[id]`
+(see [interview-prep.md](interview-prep.md)): count, average self-rating, passed / failed / waiting, per-stage
+breakdown and the latest "what to improve" notes. It is shown even before there are applications with rates.
