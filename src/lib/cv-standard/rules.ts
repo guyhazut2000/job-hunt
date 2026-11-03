@@ -116,7 +116,7 @@ export const wordCount = (s: string) => s.trim().split(/\s+/).filter(Boolean).le
 const PERSONAL_PHRASES = [
   "תעודת זהות",
   "ת.ז",
-  "ת\"ז",
+  'ת"ז',
   "ת״ז",
   "מצב משפחתי",
   "תאריך לידה",
@@ -164,7 +164,10 @@ export function personalDetail(text: string): string | null {
 }
 
 export function looksLikeStreetAddress(location: string): boolean {
-  return /\d/.test(location) || /(רחוב|רח['׳]|שד['׳]|שדרות|\bstreet\b|\bst\.|\bave\b|\bavenue\b|\broad\b|\brd\.)/i.test(location);
+  return (
+    /\d/.test(location) ||
+    /(רחוב|רח['׳]|שד['׳]|שדרות|\bstreet\b|\bst\.|\bave\b|\bavenue\b|\broad\b|\brd\.)/i.test(location)
+  );
 }
 
 // ----- dates -----
@@ -177,8 +180,10 @@ export function dateValue(s: string): number | null {
 }
 
 const allBullets = (c: CvContent) =>
-  [...c.experience.map((e, i) => ["experience", i, e] as const), ...c.projects.map((e, i) => ["projects", i, e] as const)]
-    .flatMap(([section, index, e]) => e.bullets.map((text, bullet) => ({ section, index, bullet, text })));
+  [
+    ...c.experience.map((e, i) => ["experience", i, e] as const),
+    ...c.projects.map((e, i) => ["projects", i, e] as const),
+  ].flatMap(([section, index, e]) => e.bullets.map((text, bullet) => ({ section, index, bullet, text })));
 
 export function evaluateStandard(input: StandardInput): StandardReport {
   const { content: c } = input;
@@ -205,9 +210,24 @@ export function evaluateStandard(input: StandardInput): StandardReport {
   const has = (k: string) => c.contact.some((x) => x.kind === k && x.value.trim());
   add("name", "blocking", "contact", c.name.trim().length > 1);
   add("email", "blocking", "contact", has("email"));
-  add("phone", "blocking", "contact", has("phone") && /\d{6,}/.test(c.contact.find((x) => x.kind === "phone")!.value.replace(/\D/g, "")));
-  add("link", "blocking", "contact", c.links.some((l) => /^https?:\/\/\S+\.\S+/.test(l.url.trim())));
-  add("linkedin", "warning", "contact", c.links.some((l) => l.kind === "linkedin"));
+  add(
+    "phone",
+    "blocking",
+    "contact",
+    has("phone") && /\d{6,}/.test(c.contact.find((x) => x.kind === "phone")!.value.replace(/\D/g, "")),
+  );
+  add(
+    "link",
+    "blocking",
+    "contact",
+    c.links.some((l) => /^https?:\/\/\S+\.\S+/.test(l.url.trim())),
+  );
+  add(
+    "linkedin",
+    "warning",
+    "contact",
+    c.links.some((l) => l.kind === "linkedin"),
+  );
   const location = c.contact.find((x) => x.kind === "location")?.value ?? "";
   add("noStreetAddress", "blocking", "contact", !location || !looksLikeStreetAddress(location));
 
@@ -229,24 +249,63 @@ export function evaluateStandard(input: StandardInput): StandardReport {
   add("hasEntries", "blocking", "experience", withBullets(c.experience) + withBullets(c.projects) > 0);
   const recent = c.experience.slice(0, LIMITS.recentRoles);
   const empty = recent.map((e, i) => (e.bullets.length ? -1 : i)).filter((i) => i >= 0);
-  add("bulletsPresent", "blocking", "experience", empty.length === 0, undefined, empty.map((index) => ({ section: "experience", index })));
+  add(
+    "bulletsPresent",
+    "blocking",
+    "experience",
+    empty.length === 0,
+    undefined,
+    empty.map((index) => ({ section: "experience", index })),
+  );
   const tooMany = c.experience.map((e, i) => (e.bullets.length > LIMITS.bulletsMax ? i : -1)).filter((i) => i >= 0);
-  add("bulletsMax", "blocking", "experience", tooMany.length === 0, { max: LIMITS.bulletsMax }, tooMany.map((index) => ({ section: "experience", index })));
+  add(
+    "bulletsMax",
+    "blocking",
+    "experience",
+    tooMany.length === 0,
+    { max: LIMITS.bulletsMax },
+    tooMany.map((index) => ({ section: "experience", index })),
+  );
   const offRange = recent
-    .map((e, i) => (e.bullets.length && (e.bullets.length < LIMITS.bulletsMinIdeal || e.bullets.length > LIMITS.bulletsMaxIdeal) ? i : -1))
+    .map((e, i) =>
+      e.bullets.length && (e.bullets.length < LIMITS.bulletsMinIdeal || e.bullets.length > LIMITS.bulletsMaxIdeal)
+        ? i
+        : -1,
+    )
     .filter((i) => i >= 0);
-  add("bulletsRange", "warning", "experience", offRange.length === 0, { min: LIMITS.bulletsMinIdeal, max: LIMITS.bulletsMaxIdeal }, offRange.map((index) => ({ section: "experience", index })));
+  add(
+    "bulletsRange",
+    "warning",
+    "experience",
+    offRange.length === 0,
+    { min: LIMITS.bulletsMinIdeal, max: LIMITS.bulletsMaxIdeal },
+    offRange.map((index) => ({ section: "experience", index })),
+  );
 
   const bullets = allBullets(c);
   const ref = (b: (typeof bullets)[number]): Ref => ({ section: b.section, index: b.index, bullet: b.bullet });
   const long = bullets.filter((b) => b.text.length > LIMITS.bulletMaxChars);
   add("bulletTooLong", "blocking", "experience", long.length === 0, { max: LIMITS.bulletMaxChars }, long.map(ref));
   const oddLen = bullets.filter((b) => b.text.length > LIMITS.bulletIdealMax || b.text.length < LIMITS.bulletIdealMin);
-  add("bulletLength", "warning", "experience", oddLen.length === 0, { min: LIMITS.bulletIdealMin, max: LIMITS.bulletIdealMax }, oddLen.map(ref));
+  add(
+    "bulletLength",
+    "warning",
+    "experience",
+    oddLen.length === 0,
+    { min: LIMITS.bulletIdealMin, max: LIMITS.bulletIdealMax },
+    oddLen.map(ref),
+  );
 
   const noVerb = bullets.filter((b) => !startsWithActionVerb(b.text));
   const verbShare = bullets.length ? (bullets.length - noVerb.length) / bullets.length : 1;
-  add("verbsHalf", "blocking", "experience", bullets.length < 3 || verbShare >= 0.5, { pct: Math.round(verbShare * 100) }, noVerb.map(ref));
+  add(
+    "verbsHalf",
+    "blocking",
+    "experience",
+    bullets.length < 3 || verbShare >= 0.5,
+    { pct: Math.round(verbShare * 100) },
+    noVerb.map(ref),
+  );
   add("verbsAll", "warning", "experience", noVerb.length === 0, { n: noVerb.length }, noVerb.map(ref));
 
   const metric = bullets.filter((b) => hasMetric(b.text));
@@ -260,11 +319,21 @@ export function evaluateStandard(input: StandardInput): StandardReport {
     bullets.filter((b) => !hasMetric(b.text)).map(ref),
   );
   const pron = bullets.filter((b) => hasFirstPersonPronoun(b.text));
-  add("pronouns", "warning", "experience", pron.length === 0 && !hasFirstPersonPronoun(c.summary), undefined, pron.map(ref));
+  add(
+    "pronouns",
+    "warning",
+    "experience",
+    pron.length === 0 && !hasFirstPersonPronoun(c.summary),
+    undefined,
+    pron.map(ref),
+  );
 
   // skills
   const skills = c.skills.filter((s) => s.trim());
-  add("skillsMin", "blocking", "skills", skills.length >= LIMITS.skillsMin, { n: skills.length, min: LIMITS.skillsMin });
+  add("skillsMin", "blocking", "skills", skills.length >= LIMITS.skillsMin, {
+    n: skills.length,
+    min: LIMITS.skillsMin,
+  });
   add("skillsMax", "warning", "skills", skills.length <= LIMITS.skillsMax, { n: skills.length, max: LIMITS.skillsMax });
   const cats = input.skillCategories ?? [];
   const uncategorized = cats.filter((x) => !x || x === "other").length;
@@ -283,7 +352,8 @@ export function evaluateStandard(input: StandardInput): StandardReport {
     list.forEach((e, index) => {
       const s = e.start ? dateValue(e.start) : null;
       const en = e.end ? dateValue(e.end) : null;
-      if ((needStart && s === null) || (e.start && s === null) || (e.end && en === null)) badDates.push({ section, index });
+      if ((needStart && s === null) || (e.start && s === null) || (e.end && en === null))
+        badDates.push({ section, index });
       else if (s !== null && (s > nowV + 1 || (en !== null && en < s))) badDates.push({ section, index });
     });
   checkList(c.experience, "experience", true);
@@ -305,7 +375,13 @@ export function evaluateStandard(input: StandardInput): StandardReport {
 
   // the hard one-page check
   const fit = input.fit;
-  add("onePage", "blocking", "page", fit ? fit.pages === 1 : null, fit ? { pages: fit.pages, level: fit.level } : undefined);
+  add(
+    "onePage",
+    "blocking",
+    "page",
+    fit ? fit.pages === 1 : null,
+    fit ? { pages: fit.pages, level: fit.level } : undefined,
+  );
 
   return summarize(results);
 }
@@ -343,7 +419,13 @@ export function bulletFeedback(text: string): BulletFeedback {
     verb: startsWithActionVerb(text),
     metric: hasMetric(text),
     length:
-      n > LIMITS.bulletMaxChars ? "tooLong" : n > LIMITS.bulletIdealMax ? "long" : n < LIMITS.bulletIdealMin ? "short" : "ok",
+      n > LIMITS.bulletMaxChars
+        ? "tooLong"
+        : n > LIMITS.bulletIdealMax
+          ? "long"
+          : n < LIMITS.bulletIdealMin
+            ? "short"
+            : "ok",
     pronoun: hasFirstPersonPronoun(text),
   };
 }

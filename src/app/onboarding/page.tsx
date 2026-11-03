@@ -91,7 +91,10 @@ export default async function OnboardingPage({
           {st?.passed ? cs.onboarding.passed : fillS(cs.onboarding.failed, { n: Math.max(1, st?.blocking ?? 1) })}
         </span>
         {!st?.passed && (
-          <Link href="/cv/standard?from=onboarding" className="text-primary inline-flex min-h-10 items-center font-semibold underline underline-offset-4">
+          <Link
+            href="/cv/standard?from=onboarding"
+            className="text-primary inline-flex min-h-10 items-center font-semibold underline underline-offset-4"
+          >
             {cs.onboarding.fix}
           </Link>
         )}

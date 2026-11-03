@@ -49,7 +49,12 @@ export default async function CvStandardPage({
       <p className="kicker">{t.kicker}</p>
       <h1 className="font-heading text-title font-black">{t.title}</h1>
       <p className="text-muted-foreground max-w-3xl">{t.lead}</p>
-      <a href={SOURCES_URL} target="_blank" rel="noreferrer" className="text-primary self-start text-sm font-semibold underline">
+      <a
+        href={SOURCES_URL}
+        target="_blank"
+        rel="noreferrer"
+        className="text-primary self-start text-sm font-semibold underline"
+      >
         {t.sources}
       </a>
     </header>

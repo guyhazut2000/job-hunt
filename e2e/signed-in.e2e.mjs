@@ -14,6 +14,48 @@ const SHOTS = process.env.E2E_SHOTS; // optional screenshot dir
 const DEMO = { email: "demo@job-hunt.local", password: "password123" };
 const DAY = 86_400_000;
 const db = new PrismaClient();
+
+// A CV that meets the mandatory one-page standard (#94): summary, X-Y-Z bullets with numbers.
+const PASSING_CV = {
+  headline: "מפתחת Backend",
+  summary:
+    "מפתחת Backend עם 4 שנות ניסיון ב-Node.js ו-PostgreSQL במערכות תשלומים בהיקף גבוה. בניתי שירותים שמעבדים מיליוני טרנזקציות בחודש ושיפרתי זמני תגובה ויציבות. מחפשת תפקיד Backend בחברת מוצר עם אתגרי סקייל אמיתיים.",
+  phone: "050-1234567",
+  location: "תל אביב",
+  linkedinUrl: "https://www.linkedin.com/in/e2e-demo",
+  skillItems: ["Node.js", "PostgreSQL", "AWS", "Docker", "TypeScript"].map((name) => ({
+    name,
+    level: "GOOD",
+    category: "other",
+  })),
+  experience: [
+    {
+      company: "Acme Payments",
+      title: "Backend Developer",
+      start: "2022-03",
+      end: "",
+      tech: [],
+      description:
+        "פיתחתי ממשק תשלומים ב-Node.js שמעבד 2M טרנזקציות בחודש, וקיצרתי את זמן התגובה ב-35%\nהובלתי מעבר של מסד הנתונים ל-PostgreSQL 15 בלי השבתה, וחסכתי 20% בעלויות האחסון\nבניתי שירות התראות על AWS Lambda שמגיע ל-50K משתמשים ביום בזמינות של 99.9%",
+    },
+    {
+      company: "Startup X",
+      title: "Junior Developer",
+      start: "2020-06",
+      end: "2022-02",
+      tech: [],
+      description: "פיתחתי 12 מסכים באפליקציית ניהול לקוחות ב-React, שקיצרו את זמן הטיפול בפנייה ב-25%",
+    },
+  ],
+  education: [
+    { kind: "DEGREE", institution: "אוניברסיטת תל אביב", title: "B.Sc. מדעי המחשב", start: "2016-10", end: "2020-06" },
+    { kind: "MILITARY", institution: "צה״ל", title: "תכניתנית, ממר״ם", start: "2014-08", end: "2016-08" },
+  ],
+  languages: [
+    { name: "עברית", level: "NATIVE" },
+    { name: "English", level: "FLUENT" },
+  ],
+};
 let browser, demoId, placeId;
 
 async function shot(page, name) {
@@ -128,7 +170,7 @@ after(async () => {
   await db.$disconnect();
 });
 
-test("onboarding wizard (manual path) ends on /jobs and does not restart", async () => {
+test("onboarding wizard (manual path): finishing with an empty CV is gated by the CV standard, no restart", async () => {
   const page = await newPage();
   const email = `e2e-onb-${Date.now()}@job-hunt.local`;
   await page.goto(`${BASE}/register`);
@@ -144,23 +186,31 @@ test("onboarding wizard (manual path) ends on /jobs and does not restart", async
   await Promise.all([page.waitForURL(/step=3/), page.click("button:has-text('אישור ושמירה')")]);
   await Promise.all([page.waitForURL(/step=4/), page.locator("main form button[type=submit]").last().click()]);
   await page.locator("[data-testid=onb-templates]").waitFor();
+  // A manual profile has no CV yet, so finishing is blocked by the mandatory CV standard (#94).
   await Promise.all([
-    page.waitForURL((u) => u.pathname === "/jobs" && u.searchParams.get("welcome") === "1"),
+    page.waitForURL((u) => u.pathname === "/cv/standard" && u.searchParams.get("from") === "onboarding"),
     page.click("[data-testid=onb-finish]"),
   ]);
-  await shot(page, "onboarding-done");
+  await shot(page, "onboarding-cv-standard-gate");
   await page.goto(`${BASE}/jobs`);
   assert.equal(new URL(page.url()).pathname, "/jobs", "no second onboarding redirect");
+  await page.getByTestId("cv-standard-banner").waitFor();
   await done(page);
   await db.user.delete({ where: { email } });
 });
 
-test("CV export: he/en × pdf/docx from the profile, signed-out is 401, editor reports the outcome", async () => {
+test("CV export: blocked until the CV standard passes, then he/en × pdf/docx, signed-out is 401", async () => {
   const page = await newPage({ width: 1280, height: 900 });
   const anon = await page.context().request.get(`${BASE}/api/cv/export?template=hitech&lang=he&format=pdf`);
   assert.equal(anon.status(), 401);
   await login(page);
   const req = page.context().request;
+  // Skills-only seed profile fails the mandatory standard → export redirects to the guided editor.
+  await db.profile.update({ where: { userId: demoId }, data: { summary: "", experience: [], education: [] } });
+  const gated = await req.get(`${BASE}/api/cv/export?template=hitech&lang=he&format=pdf`, { maxRedirects: 0 });
+  assert.equal(gated.status(), 303);
+  assert.match(gated.headers().location ?? "", /\/cv\/standard\?from=export/);
+  await db.profile.update({ where: { userId: demoId }, data: PASSING_CV });
   for (const lang of ["he", "en"]) {
     for (const format of ["pdf", "docx"]) {
       const r = await req.get(`${BASE}/api/cv/export?template=hitech&lang=${lang}&format=${format}`);

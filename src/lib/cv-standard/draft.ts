@@ -18,9 +18,7 @@ export const draftSchema = z.object({
   summary: z.string().max(2000),
   experience: z.array(z.object({ bullets: z.array(z.string().max(600)).max(20) })).max(30),
   projects: z.array(z.object({ bullets: z.array(z.string().max(600)).max(20) })).max(20),
-  skills: z
-    .array(z.object({ name: z.string().trim().min(1).max(40), category: z.enum(SKILL_CATEGORIES) }))
-    .max(80),
+  skills: z.array(z.object({ name: z.string().trim().min(1).max(40), category: z.enum(SKILL_CATEGORIES) })).max(80),
 });
 export type Draft = z.infer<typeof draftSchema>;
 
@@ -47,7 +45,10 @@ const joinBullets = (b: string[]) =>
     .join("\n");
 
 /** Merge the draft into the profile; existing skill levels/years are kept by name. */
-export function mergeDraft(p: Professional, d: Draft): { ok: true; professional: Professional } | { ok: false; path: string } {
+export function mergeDraft(
+  p: Professional,
+  d: Draft,
+): { ok: true; professional: Professional } | { ok: false; path: string } {
   const byName = new Map(p.skillItems.map((s) => [s.name.toLowerCase(), s]));
   const seen = new Set<string>();
   const skillItems = d.skills
@@ -57,7 +58,11 @@ export function mergeDraft(p: Professional, d: Draft): { ok: true; professional:
       seen.add(k);
       return true;
     })
-    .map((s) => ({ ...(byName.get(s.name.toLowerCase()) ?? { level: "GOOD" as const }), name: s.name, category: s.category }));
+    .map((s) => ({
+      ...(byName.get(s.name.toLowerCase()) ?? { level: "GOOD" as const }),
+      name: s.name,
+      category: s.category,
+    }));
   const merged = {
     ...p,
     phone: d.phone,
@@ -66,7 +71,9 @@ export function mergeDraft(p: Professional, d: Draft): { ok: true; professional:
     portfolioUrl: d.portfolioUrl,
     headline: d.headline.trim(),
     summary: d.summary.trim(),
-    experience: p.experience.map((e, i) => (d.experience[i] ? { ...e, description: joinBullets(d.experience[i].bullets) } : e)),
+    experience: p.experience.map((e, i) =>
+      d.experience[i] ? { ...e, description: joinBullets(d.experience[i].bullets) } : e,
+    ),
     projects: p.projects.map((x, i) => (d.projects[i] ? { ...x, description: joinBullets(d.projects[i].bullets) } : x)),
     skillItems,
   };

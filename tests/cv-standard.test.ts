@@ -16,7 +16,14 @@ import { TEMPLATES, TEMPLATE_IDS } from "@/lib/cv-templates/templates";
 const NOW = new Date("2026-11-03T12:00:00Z");
 const clone = (c: CvContent): CvContent => JSON.parse(JSON.stringify(c));
 const run = (c: CvContent, extra: Partial<Parameters<typeof evaluateStandard>[0]> = {}) =>
-  evaluateStandard({ content: c, template: "hitech", now: NOW, fit: { pages: 1, level: 0, fits: true }, yearsExperience: 5, ...extra });
+  evaluateStandard({
+    content: c,
+    template: "hitech",
+    now: NOW,
+    fit: { pages: 1, level: 0, fits: true },
+    yearsExperience: 5,
+    ...extra,
+  });
 const status = (c: CvContent, id: RuleId, extra = {}) => run(c, extra).results.find((r) => r.id === id)!.status;
 
 describe("action verbs", () => {
@@ -32,10 +39,13 @@ describe("action verbs", () => {
     "הובלת מעבר ל-Kubernetes",
     "פיתוח שירות GraphQL",
   ])("accepts %s", (b) => expect(startsWithActionVerb(b)).toBe(true));
-  it.each(["Responsible for the backend", "The team shipped", "I was part of the team", "אחראי על הצד השרת", "עבודה בצוות"])(
-    "rejects %s",
-    (b) => expect(startsWithActionVerb(b)).toBe(false),
-  );
+  it.each([
+    "Responsible for the backend",
+    "The team shipped",
+    "I was part of the team",
+    "אחראי על הצד השרת",
+    "עבודה בצוות",
+  ])("rejects %s", (b) => expect(startsWithActionVerb(b)).toBe(false));
   it("pronouns & metrics", () => {
     expect(hasFirstPersonPronoun("I built my own tool")).toBe(true);
     expect(hasFirstPersonPronoun("Built an internal tool")).toBe(false);
@@ -95,10 +105,13 @@ describe("rules engine", () => {
     expect(status(c, "bulletsMax")).toBe("fail");
     c.experience[0].bullets = ["Built " + "x".repeat(310)];
     const r = run(c);
-    expect(r.blocking.find((x) => x.id === "bulletTooLong")!.refs).toEqual([{ section: "experience", index: 0, bullet: 0 }]);
+    expect(r.blocking.find((x) => x.id === "bulletTooLong")!.refs).toEqual([
+      { section: "experience", index: 0, bullet: 0 },
+    ]);
 
     const d = clone(demoContent("en"));
-    for (const e of [...d.experience, ...d.projects]) e.bullets = e.bullets.map(() => "Responsible for the backend services");
+    for (const e of [...d.experience, ...d.projects])
+      e.bullets = e.bullets.map(() => "Responsible for the backend services");
     const rd = run(d);
     expect(rd.blocking.map((x) => x.id)).toEqual(expect.arrayContaining(["verbsHalf", "metricAny"]));
   });
@@ -208,13 +221,24 @@ describe("fit + cut suggestions", () => {
 
   it("suggests concrete cuts", () => {
     const c = clone(demoContent("en"));
-    c.experience = [0, 1, 2].map((i) => ({ ...c.experience[0], title: `Role ${i}`, bullets: Array(6).fill("Built " + "y".repeat(170)) }));
+    c.experience = [0, 1, 2].map((i) => ({
+      ...c.experience[0],
+      title: `Role ${i}`,
+      bullets: Array(6).fill("Built " + "y".repeat(170)),
+    }));
     c.summary = Array(55).fill("w").join(" ");
     c.skills = Array.from({ length: 25 }, (_, i) => `S${i}`);
     c.volunteering = [{ title: "Mentor", org: "X", start: "", end: "", bullets: [] }];
     const kinds = cutSuggestions(c, ["summary", "experience", "volunteering"]).map((s) => s.kind);
     expect(kinds).toEqual(
-      expect.arrayContaining(["hideSection", "trimOldRole", "trimRole", "shortenBullets", "shortenSummary", "fewerSkills"]),
+      expect.arrayContaining([
+        "hideSection",
+        "trimOldRole",
+        "trimRole",
+        "shortenBullets",
+        "shortenSummary",
+        "fewerSkills",
+      ]),
     );
     expect(cutSuggestions(demoContent("en"), ["summary", "experience"]).length).toBe(0);
   });

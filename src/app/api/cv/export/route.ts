@@ -58,9 +58,7 @@ export async function GET(req: Request) {
   const fit = await fitCvPdf({ content, layout, tpl, lang });
   if (!demo && !fit.fits) return blocked(`&template=${template}&lang=${lang}`);
   const buf =
-    format === "pdf"
-      ? fit.buffer
-      : await renderCvDocx({ content, layout, tpl, lang, densityLevel: fit.level });
+    format === "pdf" ? fit.buffer : await renderCvDocx({ content, layout, tpl, lang, densityLevel: fit.level });
 
   const base = `${asciiName(content.name)}-${template}-${lang}`;
   const display = `${content.name || "CV"} – ${template} (${lang}).${format}`;

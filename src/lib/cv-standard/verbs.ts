@@ -46,8 +46,22 @@ export function firstWord(text: string): string {
 
 /** Passive "duty" openers the research says to avoid — they describe a job, not an achievement. */
 const WEAK = new Set([
-  "worked", "helped", "assisted", "participated", "handled", "tasked", "involved", "responsible", "was", "were",
-  "עבדתי", "עזרתי", "סייעתי", "השתתפתי", "הייתי", "טיפלתי",
+  "worked",
+  "helped",
+  "assisted",
+  "participated",
+  "handled",
+  "tasked",
+  "involved",
+  "responsible",
+  "was",
+  "were",
+  "עבדתי",
+  "עזרתי",
+  "סייעתי",
+  "השתתפתי",
+  "הייתי",
+  "טיפלתי",
 ]);
 
 export function startsWithActionVerb(text: string): boolean {

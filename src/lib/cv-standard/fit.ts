@@ -64,7 +64,14 @@ export async function fitToOnePage(
     if (m.pages <= 1) break;
   }
   const l = last!;
-  return { pages: l.m.pages, level: l.level, fits: l.m.pages <= 1, used: tried[tried.length - 1].used, tried, buffer: l.buffer };
+  return {
+    pages: l.m.pages,
+    level: l.level,
+    fits: l.m.pages <= 1,
+    used: tried[tried.length - 1].used,
+    tried,
+    buffer: l.buffer,
+  };
 }
 
 export async function fitCvPdf(input: {
@@ -99,8 +106,10 @@ export interface CutSuggestion {
 export function cutSuggestions(c: CvContent, visible: string[]): CutSuggestion[] {
   const out: CutSuggestion[] = [];
   const shown = (id: string) => visible.includes(id);
-  if (shown("volunteering") && c.volunteering.length) out.push({ kind: "hideSection", params: { section: "volunteering" } });
-  for (const x of c.custom) if (shown(`custom:${x.id}`)) out.push({ kind: "hideSection", params: { section: x.title } });
+  if (shown("volunteering") && c.volunteering.length)
+    out.push({ kind: "hideSection", params: { section: "volunteering" } });
+  for (const x of c.custom)
+    if (shown(`custom:${x.id}`)) out.push({ kind: "hideSection", params: { section: x.title } });
   const exp = c.experience;
   if (exp.length >= 3) {
     const old = exp[exp.length - 1];
@@ -108,14 +117,17 @@ export function cutSuggestions(c: CvContent, visible: string[]): CutSuggestion[]
       out.push({ kind: "trimOldRole", params: { role: old.title || old.org, from: old.bullets.length, to: 1 } });
   }
   exp.forEach((e) => {
-    if (e.bullets.length > 4) out.push({ kind: "trimRole", params: { role: e.title || e.org, from: e.bullets.length, to: 4 } });
+    if (e.bullets.length > 4)
+      out.push({ kind: "trimRole", params: { role: e.title || e.org, from: e.bullets.length, to: 4 } });
   });
   const longB = [...exp, ...c.projects].flatMap((e) => e.bullets).filter((b) => b.length > 160).length;
   if (longB) out.push({ kind: "shortenBullets", params: { n: longB, max: 160 } });
   const sw = wordCount(c.summary);
   if (sw > 50) out.push({ kind: "shortenSummary", params: { from: sw, to: 50 } });
-  if (shown("projects") && c.projects.length > 3) out.push({ kind: "fewerProjects", params: { from: c.projects.length, to: 3 } });
-  if (c.skills.length > 20) out.push({ kind: "fewerSkills", params: { from: c.skills.length, to: Math.min(20, LIMITS.skillsMax) } });
+  if (shown("projects") && c.projects.length > 3)
+    out.push({ kind: "fewerProjects", params: { from: c.projects.length, to: 3 } });
+  if (c.skills.length > 20)
+    out.push({ kind: "fewerSkills", params: { from: c.skills.length, to: Math.min(20, LIMITS.skillsMax) } });
   if (c.education.length > 3) out.push({ kind: "fewerEducation", params: { from: c.education.length, to: 3 } });
   return out;
 }

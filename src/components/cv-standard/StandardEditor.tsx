@@ -14,7 +14,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { applyDraft, type Draft } from "@/lib/cv-standard/draft";
 import type { ImproveResult } from "@/lib/cv-standard/improve";
-import { bulletFeedback, evaluateStandard, wordCount, type RuleResult, type StandardSection } from "@/lib/cv-standard/rules";
+import {
+  bulletFeedback,
+  evaluateStandard,
+  wordCount,
+  type RuleResult,
+  type StandardSection,
+} from "@/lib/cv-standard/rules";
 import type { CvContent } from "@/lib/cv-templates/content";
 import type { LayoutEntry } from "@/lib/cv-templates/sections";
 import { TEMPLATES, TEMPLATE_IDS, type TemplateId } from "@/lib/cv-templates/templates";
@@ -83,8 +89,7 @@ export function StandardEditor({
       }),
     [content, check, draft.skills, yearsExperience, dirty],
   );
-  const failed = (s?: StandardSection) =>
-    live.results.filter((r) => r.status === "fail" && (!s || r.section === s));
+  const failed = (s?: StandardSection) => live.results.filter((r) => r.status === "fail" && (!s || r.section === s));
   const blockingCount = live.blocking.length;
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft((d) => ({ ...d, [k]: v }));
@@ -120,7 +125,11 @@ export function StandardEditor({
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]" data-testid="cv-standard-editor">
       <div className="flex min-w-0 flex-col gap-5">
         {from && from in t.from ? (
-          <p className="border-caution/40 bg-caution/10 rounded-md border p-3 text-sm" role="status" data-testid="cvs-from">
+          <p
+            className="border-caution/40 bg-caution/10 rounded-md border p-3 text-sm"
+            role="status"
+            data-testid="cvs-from"
+          >
             {t.from[from as keyof typeof t.from]}
           </p>
         ) : null}
@@ -168,31 +177,84 @@ export function StandardEditor({
 
           {step === "contact" && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field id="cvs-name" label={t.fields.name} value={draft.name} onChange={(v) => set("name", v)} locale={locale} />
+              <Field
+                id="cvs-name"
+                label={t.fields.name}
+                value={draft.name}
+                onChange={(v) => set("name", v)}
+                locale={locale}
+              />
               <div className="flex flex-col gap-1.5">
                 <Label>{t.fields.email}</Label>
                 <p dir="ltr" className="bg-muted/50 min-h-10 content-center rounded-md px-3 text-sm">
                   {email}
                 </p>
               </div>
-              <Field id="cvs-phone" label={t.fields.phone} value={draft.phone} onChange={(v) => set("phone", v)} ltr inputMode="tel" />
-              <Field id="cvs-location" label={t.fields.location} value={draft.location} onChange={(v) => set("location", v)} locale={locale} />
-              <Field id="cvs-linkedin" label={t.fields.linkedinUrl} value={draft.linkedinUrl} onChange={(v) => set("linkedinUrl", v)} ltr placeholder="https://www.linkedin.com/in/…" />
-              <Field id="cvs-github" label={t.fields.githubUrl} value={draft.githubUrl} onChange={(v) => set("githubUrl", v)} ltr placeholder="https://github.com/…" />
-              <Field id="cvs-portfolio" label={t.fields.portfolioUrl} value={draft.portfolioUrl} onChange={(v) => set("portfolioUrl", v)} ltr placeholder="https://…" />
+              <Field
+                id="cvs-phone"
+                label={t.fields.phone}
+                value={draft.phone}
+                onChange={(v) => set("phone", v)}
+                ltr
+                inputMode="tel"
+              />
+              <Field
+                id="cvs-location"
+                label={t.fields.location}
+                value={draft.location}
+                onChange={(v) => set("location", v)}
+                locale={locale}
+              />
+              <Field
+                id="cvs-linkedin"
+                label={t.fields.linkedinUrl}
+                value={draft.linkedinUrl}
+                onChange={(v) => set("linkedinUrl", v)}
+                ltr
+                placeholder="https://www.linkedin.com/in/…"
+              />
+              <Field
+                id="cvs-github"
+                label={t.fields.githubUrl}
+                value={draft.githubUrl}
+                onChange={(v) => set("githubUrl", v)}
+                ltr
+                placeholder="https://github.com/…"
+              />
+              <Field
+                id="cvs-portfolio"
+                label={t.fields.portfolioUrl}
+                value={draft.portfolioUrl}
+                onChange={(v) => set("portfolioUrl", v)}
+                ltr
+                placeholder="https://…"
+              />
             </div>
           )}
 
           {step === "summary" && (
             <div className="flex flex-col gap-3">
-              <Field id="cvs-headline" label={t.fields.headline} value={draft.headline} onChange={(v) => set("headline", v)} locale={locale} />
+              <Field
+                id="cvs-headline"
+                label={t.fields.headline}
+                value={draft.headline}
+                onChange={(v) => set("headline", v)}
+                locale={locale}
+              />
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <Label htmlFor="cvs-summary">{t.fields.summary}</Label>
-                  <span className="text-muted-foreground text-xs">{fillS(t.words, { n: wordCount(draft.summary) })}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {fillS(t.words, { n: wordCount(draft.summary) })}
+                  </span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Textarea id="cvs-summary" rows={4} value={draft.summary} onChange={(e) => set("summary", e.target.value)} />
+                  <Textarea
+                    id="cvs-summary"
+                    rows={4}
+                    value={draft.summary}
+                    onChange={(e) => set("summary", e.target.value)}
+                  />
                   <VoiceInputButton
                     locale={locale}
                     compact
@@ -315,7 +377,12 @@ export function StandardEditor({
         <Meter t={t} check={check} dirty={dirty} />
         <div className="hidden lg:block">
           <ScaledSheet label={templateNames[check.template]}>
-            <CvPreview content={content} layout={layouts[check.template]} tpl={TEMPLATES[check.template]} lang={check.lang} />
+            <CvPreview
+              content={content}
+              layout={layouts[check.template]}
+              tpl={TEMPLATES[check.template]}
+              lang={check.lang}
+            />
           </ScaledSheet>
         </div>
       </aside>
@@ -356,7 +423,9 @@ function Field({
           inputMode={inputMode}
           onChange={(e) => onChange(e.target.value)}
         />
-        {!ltr && <VoiceInputButton locale={locale} compact onText={onChange} getValue={() => value} testId={`${id}-voice`} />}
+        {!ltr && (
+          <VoiceInputButton locale={locale} compact onText={onChange} getValue={() => value} testId={`${id}-voice`} />
+        )}
       </div>
     </div>
   );
@@ -453,7 +522,9 @@ function EntriesEditor({
           <p className="font-semibold">
             {e.title}
             {e.org ? <span className="text-muted-foreground font-normal"> · {e.org}</span> : null}
-            {e.period ? <bdi className="text-muted-foreground ms-2 font-mono text-xs font-normal">{e.period}</bdi> : null}
+            {e.period ? (
+              <bdi className="text-muted-foreground ms-2 font-mono text-xs font-normal">{e.period}</bdi>
+            ) : null}
           </p>
           {(draft[i]?.bullets ?? []).map((b, bi) => (
             <BulletRow
@@ -539,7 +610,12 @@ function BulletRow({
         </Button>
       </div>
       {res && (
-        <div className="bg-muted/50 flex flex-col gap-2 rounded-md p-3 text-sm" role="status" data-testid={`${id}-improve-result`} data-status={res.status}>
+        <div
+          className="bg-muted/50 flex flex-col gap-2 rounded-md p-3 text-sm"
+          role="status"
+          data-testid={`${id}-improve-result`}
+          data-status={res.status}
+        >
           {res.status === "ok" && res.rewrite ? (
             <>
               <p>
@@ -586,7 +662,13 @@ function BulletRow({
                       className="max-w-72"
                       data-testid={`${id}-metric`}
                     />
-                    <Button type="button" size="sm" variant="outline" onClick={improve} disabled={busy || !metric.trim()}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={improve}
+                      disabled={busy || !metric.trim()}
+                    >
                       {t.improve.retry}
                     </Button>
                   </div>
@@ -629,7 +711,9 @@ function SkillsEditor({
               aria-label={`${t.fields.category}: ${s.name}`}
               value={s.category}
               onChange={(e) =>
-                onChange(skills.map((x, xi) => (xi === i ? { ...x, category: e.target.value as typeof x.category } : x)))
+                onChange(
+                  skills.map((x, xi) => (xi === i ? { ...x, category: e.target.value as typeof x.category } : x)),
+                )
               }
               className="bg-background h-9 rounded-md border px-2 text-sm"
             >
@@ -680,19 +764,36 @@ function Meter({ t, check, dirty }: { t: T; check: CheckView; dirty: boolean }) 
   const pct = Math.round(Math.min(check.used, 2) * 100);
   const bar = Math.min(100, Math.round(check.used * 100));
   return (
-    <div className="bg-card flex flex-col gap-2 rounded-lg border p-4" data-testid="cvs-meter" data-pages={check.pages} data-level={check.level}>
+    <div
+      className="bg-card flex flex-col gap-2 rounded-lg border p-4"
+      data-testid="cvs-meter"
+      data-pages={check.pages}
+      data-level={check.level}
+    >
       <p className="flex items-center gap-2 text-sm font-bold">
         <FileText aria-hidden className="size-4" />
         {t.meter.title}
       </p>
-      <div className="bg-muted h-2.5 overflow-hidden rounded-full" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={bar} aria-label={t.meter.title}>
-        <div className={cn("h-full rounded-full", check.fits ? "bg-fit" : "bg-destructive")} style={{ width: `${bar}%` }} />
+      <div
+        className="bg-muted h-2.5 overflow-hidden rounded-full"
+        role="meter"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={bar}
+        aria-label={t.meter.title}
+      >
+        <div
+          className={cn("h-full rounded-full", check.fits ? "bg-fit" : "bg-destructive")}
+          style={{ width: `${bar}%` }}
+        />
       </div>
       <p className={cn("text-sm font-semibold", check.fits ? "text-fit" : "text-destructive")}>
         {check.fits ? t.meter.fits : fillS(t.meter.over, { pages: check.pages })}
         <span className="text-muted-foreground font-normal"> · {fillS(t.meter.used, { pct })}</span>
       </p>
-      {check.level > 0 && <p className="text-muted-foreground text-xs">{fillS(t.meter.tightened, { level: check.level })}</p>}
+      {check.level > 0 && (
+        <p className="text-muted-foreground text-xs">{fillS(t.meter.tightened, { level: check.level })}</p>
+      )}
       {dirty && <p className="text-muted-foreground text-xs">{t.meter.stale}</p>}
       {!check.fits && check.cuts.length > 0 && (
         <div className="flex flex-col gap-1">
@@ -730,7 +831,12 @@ function PageCheck({
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="cvs-tpl">{t.meter.template}</Label>
-          <select id="cvs-tpl" value={tpl} onChange={(e) => setTpl(e.target.value as TemplateId)} className="bg-background h-10 rounded-md border px-2 text-sm">
+          <select
+            id="cvs-tpl"
+            value={tpl}
+            onChange={(e) => setTpl(e.target.value as TemplateId)}
+            className="bg-background h-10 rounded-md border px-2 text-sm"
+          >
             {TEMPLATE_IDS.map((id) => (
               <option key={id} value={id}>
                 {templateNames[id]}
@@ -740,12 +846,23 @@ function PageCheck({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="cvs-lang">{t.meter.lang}</Label>
-          <select id="cvs-lang" value={lang} onChange={(e) => setLang(e.target.value as "he" | "en")} className="bg-background h-10 rounded-md border px-2 text-sm">
+          <select
+            id="cvs-lang"
+            value={lang}
+            onChange={(e) => setLang(e.target.value as "he" | "en")}
+            className="bg-background h-10 rounded-md border px-2 text-sm"
+          >
             <option value="he">עברית</option>
             <option value="en">English</option>
           </select>
         </div>
-        <Button type="button" variant="outline" onClick={() => onRecheck(tpl, lang)} disabled={busy || dirty} data-testid="cvs-recheck">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onRecheck(tpl, lang)}
+          disabled={busy || dirty}
+          data-testid="cvs-recheck"
+        >
           {busy ? <Loader2 className="animate-spin" data-icon="inline-start" /> : null}
           {t.meter.recheck}
         </Button>

@@ -106,8 +106,7 @@ export async function updateApplicationStatus(
   if (!prev) return;
   // Mandatory CV standard (#94): a manual "sent" (SAVED → APPLIED, or straight to a later stage)
   // needs a CV that meets it. Email-detected applications are not gated (the CV already went out).
-  if (sendsCv(prev.status, status) && !(await requireCvStandard(user.id)).ok)
-    return { blocked: "cv" };
+  if (sendsCv(prev.status, status) && !(await requireCvStandard(user.id)).ok) return { blocked: "cv" };
   await db.application.updateMany({
     where: { id, userId: user.id },
     data: { status, statusChangedAt: new Date(), ...(status === "APPLIED" ? { appliedAt: new Date() } : {}) },

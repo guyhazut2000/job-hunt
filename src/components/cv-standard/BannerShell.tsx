@@ -19,7 +19,10 @@ export function BannerShell({ text, cta }: { text: string; cta: string }) {
         <CircleAlert aria-hidden className="text-caution size-4 shrink-0" />
         {text}
       </span>
-      <Link href="/cv/standard" className="text-primary inline-flex min-h-10 items-center font-semibold underline underline-offset-4">
+      <Link
+        href="/cv/standard"
+        className="text-primary inline-flex min-h-10 items-center font-semibold underline underline-offset-4"
+      >
         {cta}
       </Link>
     </div>

@@ -100,7 +100,12 @@ export async function checkCvStandard(
   return {
     report,
     fit: fitInfo as FitResult,
-    cuts: fit.fits ? [] : cutSuggestions(i.source.content, i.layout.filter((l) => l.visible).map((l) => l.id)),
+    cuts: fit.fits
+      ? []
+      : cutSuggestions(
+          i.source.content,
+          i.layout.filter((l) => l.visible).map((l) => l.id),
+        ),
     template: i.template,
     lang: i.lang,
     empty: i.source.empty,

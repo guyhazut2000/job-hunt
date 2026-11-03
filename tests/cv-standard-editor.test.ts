@@ -39,7 +39,10 @@ describe("improve — never invents facts", () => {
   });
   it("accepts a number the user supplied", () => {
     expect(
-      acceptRewrite({ ...base, metric: "40% lower latency" }, "Built the payments API in Node.js, cutting latency by 40%"),
+      acceptRewrite(
+        { ...base, metric: "40% lower latency" },
+        "Built the payments API in Node.js, cutting latency by 40%",
+      ),
     ).not.toBeNull();
   });
   it("rejects an invented technology but allows one from the CV", () => {
@@ -70,13 +73,19 @@ describe("improveBullet", () => {
     expect(r.ask).toEqual(["metric", "verb"]);
   });
   it("ok rewrite + question for the missing metric", async () => {
-    llm.provider = provider({ rewrite: "Built the payments API in Node.js", missingMetricQuestion: "How much faster did it get?" });
+    llm.provider = provider({
+      rewrite: "Built the payments API in Node.js",
+      missingMetricQuestion: "How much faster did it get?",
+    });
     const r = await improveBullet(base, "u1");
     expect(r).toMatchObject({ status: "ok", rewrite: "Built the payments API in Node.js", ask: ["metric"] });
     expect(r.question).toBe("How much faster did it get?");
   });
   it("rejected when the model invents a metric; question with digits dropped", async () => {
-    llm.provider = provider({ rewrite: "Built the payments API in Node.js for 2M users", missingMetricQuestion: "Was it 2M users?" });
+    llm.provider = provider({
+      rewrite: "Built the payments API in Node.js for 2M users",
+      missingMetricQuestion: "Was it 2M users?",
+    });
     const r = await improveBullet(base, "u1");
     expect(r.status).toBe("rejected");
     expect(r.rewrite).toBeNull();
@@ -133,7 +142,12 @@ describe("draft", () => {
   it("applyDraft feeds the live rules", () => {
     const c = demoContent("en");
     const d = { ...draftFromProfile(p, { name: "", location: "" }), experience: [], projects: [] };
-    const r = evaluateStandard({ content: applyDraft(c, d, "a@b.co"), template: "hitech", skillCategories: [], fit: null });
+    const r = evaluateStandard({
+      content: applyDraft(c, d, "a@b.co"),
+      template: "hitech",
+      skillCategories: [],
+      fit: null,
+    });
     expect(r.blocking.map((x) => x.id)).toContain("name");
     const ok = applyDraft(c, { ...d, name: "Dana Levi" }, "a@b.co");
     expect(ok.name).toBe("Dana Levi");

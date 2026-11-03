@@ -84,9 +84,7 @@ export function acceptRewrite(i: ImproveInput, out: string): string | null {
   const allowedSrc = `${i.text}\n${i.metric ?? ""}\n${i.role ?? ""}\n${i.company ?? ""}\n${i.corpus}`;
   const allowedTech = new Set(extractTech(allowedSrc));
   // Numbers must come from the bullet itself or the user's metric — not from elsewhere in the CV.
-  const allowedNums = new Set(
-    (`${i.text} ${i.metric ?? ""}`.match(NUM_RE) ?? []).map((n) => n.replace(",", ".")),
-  );
+  const allowedNums = new Set((`${i.text} ${i.metric ?? ""}`.match(NUM_RE) ?? []).map((n) => n.replace(",", ".")));
   if (introducesFacts(r, allowedTech, allowedNums)) return null;
   if (hasFirstPersonPronoun(r) && !hasFirstPersonPronoun(i.text)) return null;
   const ratio = r.length / Math.max(1, i.text.length + (i.metric?.length ?? 0));

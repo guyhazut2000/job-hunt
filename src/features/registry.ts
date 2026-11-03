@@ -1015,14 +1015,12 @@ export const FEATURES: Feature[] = [
         text: "הורדה שנכשלה או שלא תורגמה מציגה הודעה במקום לשמור דף שגיאה, וייצוא באנגלית תמיד מתרגם שאריות בעברית",
         pr: 99,
       },
-    ],
-    keywords: ["cv templates", "resume", "pdf", "docx", "word", "drag and drop", "rtl"],
-    updates: [
       {
         date: "2026-11-03",
         text: "כל 5 התבניות נכנסות לעמוד אחד: אם התוכן גולש, הריווח והגופן מתהדקים אוטומטית בגבולות בטוחים (לא פחות מ-9.5pt), ואם עדיין לא נכנס — מקבלים רשימה מה לקצר. הייצוא דורש קורות חיים שעומדים בתקן",
       },
     ],
+    keywords: ["cv templates", "resume", "pdf", "docx", "word", "drag and drop", "rtl"],
   },
   {
     id: "interview-sim",

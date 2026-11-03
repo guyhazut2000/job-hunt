@@ -17,10 +17,16 @@ const heRules: RuleText = {
   bulletsPresent: { title: "נקודות בכל תפקיד אחרון", tip: "לכל אחד מ-3 התפקידים האחרונים צריך לפחות נקודה אחת." },
   bulletsMax: { title: "עד {max} נקודות לתפקיד", tip: "יותר מזה לא נקרא. בחר/י את ההישגים החזקים." },
   bulletTooLong: { title: "נקודה עד {max} תווים", tip: "נקודה ארוכה מדי — פצל/י לשתיים או קצר/י." },
-  verbsHalf: { title: "רוב הנקודות מתחילות בפועל", tip: "פתח/י בפועל: הובלתי, פיתחתי, קיצרתי — לא «אחראי על». כרגע {pct}%." },
+  verbsHalf: {
+    title: "רוב הנקודות מתחילות בפועל",
+    tip: "פתח/י בפועל: הובלתי, פיתחתי, קיצרתי — לא «אחראי על». כרגע {pct}%.",
+  },
   metricAny: { title: "לפחות הישג אחד עם מספר", tip: "מספר אחד (%, זמן, כסף, משתמשים) שווה יותר מפסקה." },
   skillsMin: { title: "לפחות {min} כישורים", tip: "יש {n}. הוסף/י את הכלים והטכנולוגיות שאת/ה באמת עובד/ת איתם." },
-  noPersonal: { title: "בלי פרטים אישיים", tip: "בלי ת.ז., מצב משפחתי, גיל או תאריך לידה. לא נדרש ולא עוזר (נמצא: «{found}»)." },
+  noPersonal: {
+    title: "בלי פרטים אישיים",
+    tip: "בלי ת.ז., מצב משפחתי, גיל או תאריך לידה. לא נדרש ולא עוזר (נמצא: «{found}»).",
+  },
   noStreetAddress: { title: "עיר בלבד, בלי כתובת", tip: "מספיק לכתוב עיר מגורים." },
   datesValid: { title: "תאריכים תקינים", tip: "לכל תפקיד תאריך התחלה; סיום אחרי ההתחלה; לא בעתיד." },
   onePage: { title: "עמוד אחד בדיוק", tip: "קורות החיים צריכים להיכנס לעמוד אחד בתבנית ובשפה שבחרת." },
@@ -29,7 +35,10 @@ const heRules: RuleText = {
   bulletsRange: { title: "{min}–{max} נקודות לתפקיד", tip: "בתפקידים האחרונים 2–5 נקודות זה האיזון הטוב." },
   bulletLength: { title: "נקודות באורך שורה–שתיים", tip: "בין {min} ל-{max} תווים לנקודה." },
   verbsAll: { title: "כל נקודה מתחילה בפועל", tip: "{n} נקודות לא פותחות בפועל." },
-  metricThird: { title: "שליש מהנקודות עם מספר", tip: "{n} מתוך {total} עם מדד. נסה/י: בכמה, תוך כמה זמן, לכמה משתמשים." },
+  metricThird: {
+    title: "שליש מהנקודות עם מספר",
+    tip: "{n} מתוך {total} עם מדד. נסה/י: בכמה, תוך כמה זמן, לכמה משתמשים.",
+  },
   pronouns: { title: "בלי «אני»", tip: "בקורות חיים כותבים בלי גוף ראשון: «הובלתי», לא «אני הובלתי»." },
   skillsMax: { title: "עד {max} כישורים", tip: "יש {n}. רשימה ארוכה מטשטשת את החשוב." },
   skillsGrouped: { title: "כישורים מקובצים", tip: "שייך/י כישורים לקטגוריות (Frontend, Backend, DevOps…) בפרופיל." },
@@ -37,7 +46,10 @@ const heRules: RuleText = {
   datesFormat: { title: "פורמט תאריכים אחיד", tip: "כולם שנה בלבד או כולם חודש+שנה." },
   education: { title: "השכלה / שירות", tip: "הוסף/י השכלה, קורס או שירות צבאי/לאומי." },
   juniorProjects: { title: "פרויקטים לג׳וניור", tip: "עם פחות משנתיים ניסיון — פרויקטים מראים יכולת." },
-  twoColumns: { title: "שתי עמודות", tip: "תבנית בשתי עמודות נקראת פחות טוב במערכות ATS. לשליחה רשמית עדיף Hi-Tech / Classic." },
+  twoColumns: {
+    title: "שתי עמודות",
+    tip: "תבנית בשתי עמודות נקראת פחות טוב במערכות ATS. לשליחה רשמית עדיף Hi-Tech / Classic.",
+  },
 };
 
 const enRules: RuleText = {
@@ -52,10 +64,16 @@ const enRules: RuleText = {
   bulletsPresent: { title: "Bullets for recent roles", tip: "Each of your last 3 roles needs at least one bullet." },
   bulletsMax: { title: "Up to {max} bullets per role", tip: "More won't be read. Keep the strongest wins." },
   bulletTooLong: { title: "Bullets up to {max} characters", tip: "Too long — split it or cut it down." },
-  verbsHalf: { title: "Most bullets start with a verb", tip: "Open with a verb: Led, Built, Cut — not “Responsible for”. Now {pct}%." },
+  verbsHalf: {
+    title: "Most bullets start with a verb",
+    tip: "Open with a verb: Led, Built, Cut — not “Responsible for”. Now {pct}%.",
+  },
   metricAny: { title: "At least one quantified result", tip: "One number (%, time, money, users) beats a paragraph." },
   skillsMin: { title: "At least {min} skills", tip: "You have {n}. Add the tools you actually use." },
-  noPersonal: { title: "No personal details", tip: "No ID number, marital status, age or birth date (found: “{found}”)." },
+  noPersonal: {
+    title: "No personal details",
+    tip: "No ID number, marital status, age or birth date (found: “{found}”).",
+  },
   noStreetAddress: { title: "City only, no address", tip: "Your city is enough." },
   datesValid: { title: "Valid dates", tip: "Every role needs a start date; end after start; nothing in the future." },
   onePage: { title: "Exactly one page", tip: "Your CV must fit one page in the template and language you picked." },
@@ -64,15 +82,27 @@ const enRules: RuleText = {
   bulletsRange: { title: "{min}–{max} bullets per role", tip: "2–5 bullets for recent roles is the sweet spot." },
   bulletLength: { title: "One–two line bullets", tip: "Between {min} and {max} characters each." },
   verbsAll: { title: "Every bullet starts with a verb", tip: "{n} bullets don't." },
-  metricThird: { title: "A third of bullets quantified", tip: "{n} of {total} have a metric. Try: how much, how fast, for how many." },
+  metricThird: {
+    title: "A third of bullets quantified",
+    tip: "{n} of {total} have a metric. Try: how much, how fast, for how many.",
+  },
   pronouns: { title: "No “I”", tip: "CVs drop the first person: “Led…”, not “I led…”." },
   skillsMax: { title: "Up to {max} skills", tip: "You have {n}. A long list blurs what matters." },
-  skillsGrouped: { title: "Grouped skills", tip: "Give skills categories (Frontend, Backend, DevOps…) in your profile." },
+  skillsGrouped: {
+    title: "Grouped skills",
+    tip: "Give skills categories (Frontend, Backend, DevOps…) in your profile.",
+  },
   datesOrder: { title: "Reverse-chronological", tip: "Most recent role first." },
   datesFormat: { title: "Consistent date format", tip: "All year-only or all month+year." },
   education: { title: "Education / service", tip: "Add a degree, course or military/national service." },
-  juniorProjects: { title: "Projects for juniors", tip: "With under 2 years of experience, projects show what you can do." },
-  twoColumns: { title: "Two columns", tip: "Two-column layouts parse worse in ATS. For formal applications prefer Hi-Tech / Classic." },
+  juniorProjects: {
+    title: "Projects for juniors",
+    tip: "With under 2 years of experience, projects show what you can do.",
+  },
+  twoColumns: {
+    title: "Two columns",
+    tip: "Two-column layouts parse worse in ATS. For formal applications prefer Hi-Tech / Classic.",
+  },
 };
 
 const he = {
@@ -238,7 +268,12 @@ const en: Strings = {
     onboarding: "Almost done. Sign-up completes once your CV meets the standard.",
     print: "To print, your CV needs to meet the standard.",
   },
-  status: { passed: "Meets the standard", failed: "{n} required fixes", score: "Score {score}/100", warnings: "{n} suggestions" },
+  status: {
+    passed: "Meets the standard",
+    failed: "{n} required fixes",
+    score: "Score {score}/100",
+    warnings: "{n} suggestions",
+  },
   steps: {
     contact: "Contact & links",
     summary: "Headline & summary",
