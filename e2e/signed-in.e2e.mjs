@@ -102,6 +102,7 @@ before(async () => {
   await db.contact.deleteMany({ where: { userId: demoId, name: { startsWith: "e2e-" } } });
   await db.savedPlace.deleteMany({ where: { userId: demoId } });
   await db.rankingPrefs.deleteMany({ where: { userId: demoId } });
+  await db.notification.deleteMany({ where: { userId: demoId, dedupeKey: { startsWith: "e2e-" } } });
   await db.company.deleteMany({ where: { slug: { startsWith: "e2e-" } } });
 
   // 60 manual companies → two pages under a filter (48 per page).
@@ -324,5 +325,42 @@ test("outreach tracker: 'התקבלה?' check, one-tap status, bulk update", asy
   assert.equal(by["e2e-אורי"], "ACCEPTED");
   assert.equal(by["e2e-נועה"], "SENT");
   assert.equal(by["e2e-דנה"], "SENT");
+  await done(page);
+});
+
+test("high-match alert: settings save threshold/cap, alert shows in the notifications page", async () => {
+  const page = await newPage();
+  await login(page);
+  await page.goto(`${BASE}/settings/notifications`);
+  const box = page.getByTestId("high-match-prefs");
+  await box.waitFor();
+  await page.getByTestId("high-match-threshold").selectOption("85");
+  await page.getByTestId("high-match-cap").fill("5");
+  await page.getByTestId("prefs-save").click();
+  await page.getByText("נשמר", { exact: true }).waitFor();
+  await box.scrollIntoViewIfNeeded();
+  await shot(page, "high-match-settings");
+  const prefs = await db.notificationPreference.findUnique({ where: { userId: demoId } });
+  assert.equal(prefs.highMatchEnabled, true);
+  assert.equal(prefs.highMatchThreshold, 85);
+  assert.equal(prefs.highMatchDailyCap, 5);
+  // The runner itself is unit-tested; here we check a HIGH_MATCH row renders for the user.
+  await db.notification.create({
+    data: {
+      userId: demoId,
+      kind: "HIGH_MATCH",
+      title: "91% התאמה אישית: e2e Full Stack Engineer",
+      body: "E2E Load Co 00 · Tel Aviv. למה: התאמת פרופיל 91",
+      url: "/jobs?sort=personal",
+      dedupeKey: "e2e-highmatch",
+    },
+  });
+  await page.goto(`${BASE}/notifications`);
+  await page.getByText("91% התאמה אישית: e2e Full Stack Engineer").waitFor();
+  await shot(page, "high-match-notification");
+  await db.notificationPreference.update({
+    where: { userId: demoId },
+    data: { highMatchThreshold: 80, highMatchDailyCap: 3 },
+  });
   await done(page);
 });

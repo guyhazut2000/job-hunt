@@ -9,6 +9,7 @@ import { resolvePendingLinkedinJobs } from "@/lib/linkedin/resolve";
 import { processDeliveries } from "@/lib/notifications/deliver";
 import { runFollowedCompanyAlerts } from "@/lib/notifications/company-follow";
 import { runSavedSearchAlerts } from "@/lib/notifications/saved-search";
+import { runHighMatchAlerts } from "@/lib/notifications/high-match";
 import { runScanFailureAlerts } from "@/lib/notifications/scan-failures";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +64,7 @@ async function handle(req: Request) {
     notifications: await runSavedSearchAlerts()
       .then(async (alerts) => ({
         ...alerts,
+        highMatch: await runHighMatchAlerts().catch(() => null),
         companies: await runFollowedCompanyAlerts().catch(() => null),
         failures: await runScanFailureAlerts().catch(() => null),
         deliveries: await processDeliveries(),

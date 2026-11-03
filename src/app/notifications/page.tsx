@@ -15,6 +15,7 @@ import {
   Newspaper,
   Settings,
   Sparkles,
+  Target,
   XCircle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -36,6 +37,7 @@ export const generateMetadata = localizedTitle("notifications");
 
 const ICONS: Record<string, LucideIcon> = {
   JOB_MATCH: BriefcaseBusiness,
+  HIGH_MATCH: Target,
   COMPANY_JOBS: Building2,
   SCAN_FAILED: AlertTriangle,
   SAVED_JOB_CLOSED: XCircle,

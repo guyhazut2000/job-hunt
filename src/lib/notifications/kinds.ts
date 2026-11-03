@@ -1,6 +1,7 @@
 /** Notification kinds and external channels (plain strings in the DB; validated here). */
 export const NOTIFICATION_KINDS = [
   "JOB_MATCH",
+  "HIGH_MATCH",
   "COMPANY_JOBS",
   "SAVED_JOB_CLOSED",
   "SAVED_JOB_UPDATED",
@@ -42,6 +43,7 @@ export type ChannelOverrides = Partial<Record<NotificationKind, Partial<Record<E
  */
 const DEFAULT_ON: Record<NotificationKind, Record<ExternalChannel, boolean>> = {
   JOB_MATCH: { push: true, telegram: true },
+  HIGH_MATCH: { push: true, telegram: true },
   COMPANY_JOBS: { push: true, telegram: true },
   SAVED_JOB_CLOSED: { push: true, telegram: true },
   SAVED_JOB_UPDATED: { push: true, telegram: true },

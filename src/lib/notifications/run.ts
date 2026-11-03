@@ -2,6 +2,7 @@ import { processDeliveries } from "./deliver";
 import { runFollowUpReminders, runSavedJobClosed, runSavedJobUpdated, runWhatsNew } from "./reminders";
 import { runFollowedCompanyAlerts } from "./company-follow";
 import { runSavedSearchAlerts } from "./saved-search";
+import { runHighMatchAlerts } from "./high-match";
 import { runScanFailureAlerts } from "./scan-failures";
 import { runOutreachFollowUps } from "./outreach";
 
@@ -9,6 +10,7 @@ import { runOutreachFollowUps } from "./outreach";
 export async function runNotifications(now = new Date()) {
   const safe = <T>(p: Promise<T>) => p.catch((e: unknown) => ({ error: e instanceof Error ? e.message : "error" }));
   const searches = await safe(runSavedSearchAlerts(now));
+  const highMatch = await safe(runHighMatchAlerts(now));
   const companies = await safe(runFollowedCompanyAlerts(now));
   const scanFailures = await safe(runScanFailureAlerts(now));
   const followUps = await safe(runFollowUpReminders(now));
@@ -17,5 +19,5 @@ export async function runNotifications(now = new Date()) {
   const updated = await safe(runSavedJobUpdated(now));
   const whatsNew = await safe(runWhatsNew(now));
   const deliveries = await safe(processDeliveries({ now }));
-  return { searches, companies, scanFailures, followUps, outreach, closed, updated, whatsNew, deliveries };
+  return { searches, highMatch, companies, scanFailures, followUps, outreach, closed, updated, whatsNew, deliveries };
 }

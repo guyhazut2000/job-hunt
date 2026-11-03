@@ -23,7 +23,7 @@ export async function collectDigestData(
   const d = emptyDigestData(day, since, now);
   const [alerts, apps, profile, searches, runs, learningPrefs, hasLearning, held] = await Promise.all([
     db.notification.findMany({
-      where: { userId, kind: { in: ["JOB_MATCH", "COMPANY_JOBS"] }, createdAt: { gt: since, lte: now } },
+      where: { userId, kind: { in: ["JOB_MATCH", "HIGH_MATCH", "COMPANY_JOBS"] }, createdAt: { gt: since, lte: now } },
       select: { data: true },
       take: 200,
     }),
@@ -65,7 +65,7 @@ export async function collectDigestData(
       where: {
         userId,
         createdAt: { gt: since, lte: now },
-        kind: { notIn: ["JOB_MATCH", "COMPANY_JOBS", "DIGEST"] },
+        kind: { notIn: ["JOB_MATCH", "HIGH_MATCH", "COMPANY_JOBS", "DIGEST"] },
         data: { path: ["delivery"], equals: HELD_FOR_DIGEST },
       },
       select: { id: true, kind: true, title: true, url: true },

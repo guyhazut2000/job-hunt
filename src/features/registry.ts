@@ -791,6 +791,23 @@ export const FEATURES: Feature[] = [
     keywords: ["follow-up", "followup", "פולואפ", "email", "draft"],
   },
   {
+    id: "high-match-alert",
+    name: "התראה מיידית על משרה עם התאמה גבוהה",
+    description:
+      "אחרי כל סריקה (כל 15 דקות בשעות היום) נבדקות המשרות החדשות לפי ציון „התאמה אישית” (פרופיל, מילות המפתח שלך, טריות, חברות שהגיבו). משרה שעוברת את הסף שלך (ברירת מחדל 80%) שולחת התראה בפעמון, בטלגרם ובהתראת דפדפן, עם הציון והסיבות. כל משרה נשלחת פעם אחת, שעות שקט נשמרות, ויש מגבלה יומית; כמה משרות באותה סריקה מתקבצות להתראה אחת.",
+    howTo:
+      "בהגדרות ההתראות: 'התראה מיידית על משרה עם התאמה גבוהה' – מפעילים, בוחרים סף ומגבלה יומית. את הערוצים בוחרים בשורה 'התאמה אישית גבוהה' בטבלה. כדי שהציון יהיה אישי צריך פרופיל עם כישורים או מילות מפתח בדירוג האישי בעמוד המשרות.",
+    category: "notifications",
+    status: "live",
+    audience: "user",
+    routes: ["/settings/notifications", "/notifications"],
+    href: "/settings/notifications",
+    added: "2026-11-03",
+    prs: [102],
+    issue: 96,
+    keywords: ["alert", "high match", "personal fit", "instant", "telegram", "push", "threshold", "התאמה"],
+  },
+  {
     id: "daily-digest",
     name: "סיכום יומי",
     description:

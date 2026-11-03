@@ -6,6 +6,7 @@ import { ingestAllDetailed } from "@/lib/ingestion/run";
 import { runFollowedCompanyAlerts } from "@/lib/notifications/company-follow";
 import { processDeliveries } from "@/lib/notifications/deliver";
 import { runSavedSearchAlerts } from "@/lib/notifications/saved-search";
+import { runHighMatchAlerts } from "@/lib/notifications/high-match";
 import { runScanFailureAlerts } from "@/lib/notifications/scan-failures";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ async function handle(req: Request) {
   }
   const safe = <T>(p: Promise<T>) => p.catch((e: unknown) => ({ error: e instanceof Error ? e.message : "error" }));
   const searches = await safe(runSavedSearchAlerts());
+  const highMatch = await safe(runHighMatchAlerts());
   const companies = await safe(runFollowedCompanyAlerts());
   const failures = await safe(runScanFailureAlerts());
   const deliveries = await safe(processDeliveries());
@@ -53,7 +55,7 @@ async function handle(req: Request) {
       updated: results.reduce((n, r) => n + r.updated, 0),
       deactivated: results.reduce((n, r) => n + r.deactivated, 0),
     },
-    notifications: { searches, companies, failures, deliveries },
+    notifications: { searches, highMatch, companies, failures, deliveries },
   });
 }
 
