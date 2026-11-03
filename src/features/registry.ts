@@ -237,8 +237,15 @@ export const FEATURES: Feature[] = [
     routes: ["/outreach"],
     href: "/outreach",
     added: "2026-11-03",
-    prs: [90],
+    prs: [90, 99],
     issue: 86,
+    updates: [
+      {
+        date: "2026-11-03",
+        text: 'למעקב פניות נוספו כפתורי סטטוס בלחיצה אחת, עדכון סטטוס לכמה אנשים יחד, ותזכורת "התקבלה?" באמצע הדרך לפולואפ (בדיקה ידנית בלינקדין, בלי קריאה אוטומטית)',
+        pr: 99,
+      },
+    ],
     keywords: ["linkedin", "outreach", "referral", "follow-up", "streak", "daily goal", "networking"],
   },
   {
@@ -648,8 +655,15 @@ export const FEATURES: Feature[] = [
     routes: ["/jobs/step-up"],
     href: "/jobs/step-up",
     added: "2026-11-03",
-    prs: [89],
+    prs: [89, 99],
     issue: 85,
+    updates: [
+      {
+        date: "2026-11-03",
+        text: "המסלול הטכני (Staff / ארכיטקט / פלטפורמה) כבר לא ריק: חיפוש ייעודי, נפתח כבר מדרגת Mid, והסבר ברור כשאין משרות",
+        pr: 99,
+      },
+    ],
     keywords: ["step up", "career ladder", "seniority", "gap analysis", "senior", "staff", "tech lead"],
   },
   {
@@ -969,8 +983,15 @@ export const FEATURES: Feature[] = [
     routes: ["/cv", "/cv/templates/[id]"],
     href: "/cv",
     added: "2026-10-31",
-    prs: [81],
+    prs: [81, 99],
     issue: 78,
+    updates: [
+      {
+        date: "2026-11-03",
+        text: "הורדה שנכשלה או שלא תורגמה מציגה הודעה במקום לשמור דף שגיאה, וייצוא באנגלית תמיד מתרגם שאריות בעברית",
+        pr: 99,
+      },
+    ],
     keywords: ["cv templates", "resume", "pdf", "docx", "word", "drag and drop", "rtl"],
   },
   {

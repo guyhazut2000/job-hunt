@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ContactStatus } from "@prisma/client";
 import { CheckCheck, ExternalLink, Sparkles, X } from "lucide-react";
 import {
+  bulkUpdateContactStatus,
   draftFollowUp,
   draftOutreach,
   logOutreachSent,
@@ -17,6 +18,7 @@ import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { fillO, type OutreachAssistantStrings } from "@/lib/i18n/outreach-assistant";
 import type { FollowUpMessage } from "@/lib/outreach/followup";
+import { BULK_MAX, quickNextStatuses } from "@/lib/outreach/assistant";
 import {
   budgetLength,
   personalize,
@@ -407,84 +409,171 @@ function Tracker({
   t: Dictionary["people"];
 }) {
   const [, start] = useTransition();
-  const [items, apply] = useOptimistic(contacts, (state, u: { id: string; status: ContactStatus }) =>
-    state.map((c) => (c.id === u.id ? { ...c, status: u.status } : c)),
+  const [items, apply] = useOptimistic(contacts, (state, u: { ids: string[]; status: ContactStatus }) =>
+    state.map((c) => (u.ids.includes(c.id) ? { ...c, status: u.status, check: false } : c)),
   );
+  const [selected, setSelected] = useState<string[]>([]);
+  const [bulkTo, setBulkTo] = useState<ContactStatus>("ACCEPTED");
+  const [bulkMsg, setBulkMsg] = useState<string | null>(null);
   const fmt = new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", {
     day: "numeric",
     month: "short",
     timeZone: "Asia/Jerusalem",
   });
   const date = (iso: string | null) => (iso ? fmt.format(new Date(iso)) : null);
+  const setOne = (id: string, status: ContactStatus) =>
+    start(async () => {
+      apply({ ids: [id], status });
+      await updateContactStatus(id, status);
+    });
+  const toggle = (id: string) => setSelected((x) => (x.includes(id) ? x.filter((y) => y !== id) : [...x, id]));
+  const allIds = items.map((c) => c.id).slice(0, BULK_MAX);
+  const allOn = selected.length > 0 && allIds.every((id) => selected.includes(id));
   return (
-    <ul className="bg-card divide-border flex flex-col divide-y rounded-lg border">
-      {items.map((c) => (
-        <li
-          key={c.id}
-          id={`contact-${c.id}`}
-          className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center"
-          data-testid="tracker-row"
+    <div className="flex flex-col gap-2">
+      <div
+        className="bg-card flex flex-wrap items-center gap-2 rounded-lg border p-3 text-sm"
+        data-testid="tracker-bulk"
+      >
+        <label className="inline-flex min-h-11 items-center gap-2 sm:min-h-8">
+          <input
+            type="checkbox"
+            className="size-4"
+            checked={allOn}
+            onChange={() => setSelected(allOn ? [] : allIds)}
+            data-testid="tracker-select-all"
+          />
+          {s.bulkSelectAll}
+        </label>
+        <span className="text-muted-foreground" role="status" data-testid="tracker-selected">
+          {bulkMsg ?? fillO(s.bulkSelected, { n: selected.length })}
+        </span>
+        <select
+          aria-label={s.bulkTo}
+          className="select-native min-h-11 py-1 text-sm sm:min-h-8"
+          value={bulkTo}
+          onChange={(e) => setBulkTo(e.target.value as ContactStatus)}
+          data-testid="tracker-bulk-status"
         >
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span aria-hidden className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[c.status])} />
-              <span className="font-heading font-bold break-words" dir="auto">
-                {c.name}
-              </span>
-              <span className="chip">{t.categories[c.category]}</span>
-              {c.due && <span className="chip border-amber-500/40 bg-amber-500/10">{s.followTitle}</span>}
-            </p>
-            {(c.job || c.company) && (
-              <p className="text-muted-foreground text-sm break-words" dir="auto">
-                {c.job ? (
-                  <Link href={`/jobs/${c.job.id}`} className="hover:text-primary underline-offset-4 hover:underline">
-                    {c.job.title}
-                  </Link>
-                ) : null}
-                {c.job && c.company ? " · " : ""}
-                {c.company?.name}
+          {STATUSES.map((st) => (
+            <option key={st} value={st}>
+              {t.statuses[st]}
+            </option>
+          ))}
+        </select>
+        <Button
+          size="sm"
+          className="min-h-11 sm:min-h-8"
+          disabled={!selected.length}
+          data-testid="tracker-bulk-apply"
+          onClick={() => {
+            const ids = selected;
+            start(async () => {
+              apply({ ids, status: bulkTo });
+              const r = await bulkUpdateContactStatus(ids, bulkTo);
+              setSelected([]);
+              setBulkMsg(fillO(s.bulkDone, { n: r.updated }));
+            });
+          }}
+        >
+          {s.bulkApply}
+        </Button>
+      </div>
+      <ul className="bg-card divide-border flex flex-col divide-y rounded-lg border">
+        {items.map((c) => (
+          <li
+            key={c.id}
+            id={`contact-${c.id}`}
+            className="flex flex-col gap-2 p-4 sm:flex-row sm:items-start"
+            data-testid="tracker-row"
+          >
+            <label className="inline-flex min-h-11 items-center sm:min-h-6">
+              <input
+                type="checkbox"
+                className="size-4"
+                checked={selected.includes(c.id)}
+                onChange={() => toggle(c.id)}
+                aria-label={`${s.bulkSelect}: ${c.name}`}
+                data-testid="tracker-select"
+              />
+            </label>
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span aria-hidden className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[c.status])} />
+                <span className="font-heading font-bold break-words" dir="auto">
+                  {c.name}
+                </span>
+                <span className="chip">{t.categories[c.category]}</span>
+                {c.due && <span className="chip border-amber-500/40 bg-amber-500/10">{s.followTitle}</span>}
+                {c.check && (
+                  <span className="chip border-sky-500/40 bg-sky-500/10" data-testid="tracker-check">
+                    {s.checkChip}
+                  </span>
+                )}
               </p>
-            )}
-            <p className="text-muted-foreground text-xs" data-testid="tracker-dates">
-              {[
-                c.sentAt && fillO(s.sentOn, { date: date(c.sentAt)! }),
-                c.statusAt && c.statusAt !== c.sentAt && fillO(s.statusOn, { date: date(c.statusAt)! }),
-                c.followedUpAt && fillO(s.followedOn, { date: date(c.followedUpAt)! }),
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 sm:w-56">
-            {(c.linkedinUrl ?? c.searchUrl) && (
-              <Button asChild variant="ghost" size="icon" aria-label={`${s.openLinkedin}: ${c.name}`}>
-                <a href={(c.linkedinUrl ?? c.searchUrl)!} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink aria-hidden />
-                </a>
-              </Button>
-            )}
-            <select
-              aria-label={`${t.status}: ${c.name}`}
-              className="select-native min-h-11 flex-1 py-1 text-sm"
-              value={c.status}
-              data-testid="tracker-status"
-              onChange={(e) => {
-                const status = e.target.value as ContactStatus;
-                start(async () => {
-                  apply({ id: c.id, status });
-                  await updateContactStatus(c.id, status);
-                });
-              }}
-            >
-              {STATUSES.map((st) => (
-                <option key={st} value={st}>
-                  {t.statuses[st]}
-                </option>
-              ))}
-            </select>
-          </div>
-        </li>
-      ))}
-    </ul>
+              {(c.job || c.company) && (
+                <p className="text-muted-foreground text-sm break-words" dir="auto">
+                  {c.job ? (
+                    <Link href={`/jobs/${c.job.id}`} className="hover:text-primary underline-offset-4 hover:underline">
+                      {c.job.title}
+                    </Link>
+                  ) : null}
+                  {c.job && c.company ? " · " : ""}
+                  {c.company?.name}
+                </p>
+              )}
+              <p className="text-muted-foreground text-xs" data-testid="tracker-dates">
+                {[
+                  c.sentAt && fillO(s.sentOn, { date: date(c.sentAt)! }),
+                  c.statusAt && c.statusAt !== c.sentAt && fillO(s.statusOn, { date: date(c.statusAt)! }),
+                  c.followedUpAt && fillO(s.followedOn, { date: date(c.followedUpAt)! }),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+              {quickNextStatuses(c.status).length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1.5" role="group" aria-label={`${s.quickLabel}: ${c.name}`}>
+                  {quickNextStatuses(c.status).map((st) => (
+                    <Button
+                      key={st}
+                      size="sm"
+                      variant="outline"
+                      className="min-h-11 sm:min-h-8"
+                      data-testid={`tracker-quick-${st}`}
+                      onClick={() => setOne(c.id, st)}
+                    >
+                      <CheckCheck data-icon="inline-start" aria-hidden />
+                      {t.statuses[st]}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 sm:w-56">
+              {(c.linkedinUrl ?? c.searchUrl) && (
+                <Button asChild variant="ghost" size="icon" aria-label={`${s.openLinkedin}: ${c.name}`}>
+                  <a href={(c.linkedinUrl ?? c.searchUrl)!} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink aria-hidden />
+                  </a>
+                </Button>
+              )}
+              <select
+                aria-label={`${t.status}: ${c.name}`}
+                className="select-native min-h-11 flex-1 py-1 text-sm"
+                value={c.status}
+                data-testid="tracker-status"
+                onChange={(e) => setOne(c.id, e.target.value as ContactStatus)}
+              >
+                {STATUSES.map((st) => (
+                  <option key={st} value={st}>
+                    {t.statuses[st]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

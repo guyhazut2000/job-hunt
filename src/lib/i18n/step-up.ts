@@ -56,6 +56,10 @@ const he = {
   count: "{n} משרות שדרוג",
   countApply: "{n} עם פערים קטנים",
   empty: "לא מצאנו כרגע משרות שהן צעד אחד מעלייך. נסו לשנות את הדרגה או התפקיד למעלה.",
+  emptyTechnicalClosed:
+    "המסלול הטכני נפתח מדרגת Mid ומעלה: מ-Mid לתפקידי פלטפורמה וארכיטקטורה בדרגת Senior, ומ-Senior לתפקידי Staff ו-Principal. בינתיים כדאי להסתכל על הלשונית דרגה למעלה.",
+  emptyTechnical:
+    "אין כרגע משרות פתוחות במסלול הטכני שמתאימות לדרגה ולתפקיד שלך. המסלול כולל משרות Staff, Principal, ארכיטקט ופלטפורמה, והוא מתעדכן בכל סריקה.",
   noProfile: "כדי למצוא משרות שדרוג צריך פרופיל עם ניסיון או דרגה.",
   toProfile: "להשלמת הפרופיל",
   showing: "מוצגות {shown} מתוך {total}",
@@ -112,6 +116,10 @@ const en: Strings = {
   count: "{n} step-up jobs",
   countApply: "{n} with small gaps",
   empty: "No jobs one step above you right now. Try changing the level or role above.",
+  emptyTechnicalClosed:
+    "The technical track opens from Mid: Mid → Senior platform / architecture roles, Senior → Staff / Principal. Meanwhile, look at the Level up tab.",
+  emptyTechnical:
+    "No open technical-track jobs (Staff, Principal, architect, platform) match your level and role right now. It refreshes with every scan.",
   noProfile: "Step-up jobs need a profile with experience or a level.",
   toProfile: "Complete your profile",
   showing: "Showing {shown} of {total}",

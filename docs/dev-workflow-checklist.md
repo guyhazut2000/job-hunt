@@ -204,6 +204,13 @@ npm run lint && npm run format:check && npm run typecheck
 npm run build                              # לתפוס שגיאות שמופיעות רק ב-build
 ```
 
+- [ ] זרימות מחוברות (אונבורדינג, ייצוא קורות חיים, ביטול מחיקה, "טען עוד" בחברות, דירוג מילות מפתח, מקום שמור במפה, מעקב פניות) מכוסות ב-`e2e/signed-in.e2e.mjs`. משנים זרימה כזו? מעדכנים את הבדיקה.
+
+```bash
+npm run build && npm run db:seed && (npx next start -p 3000 &)   # שרת אמיתי על DB עם seed
+BASE_URL=http://localhost:3000 npm run test:e2e                  # Chrome: CHROME_PATH (ברירת מחדל /usr/bin/google-chrome)
+```
+
 **טעויות נפוצות**
 
 - בדיקות שבודקות את המימוש (קריאות פנימיות) במקום את ההתנהגות.

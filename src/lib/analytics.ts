@@ -22,6 +22,7 @@ export type AnalyticsEvent =
   | "outreach_followup_drafted"
   | "contact_saved"
   | "contact_status_changed"
+  | "contact_status_bulk"
   | "company_suggested"
   | "followup_draft"
   | "followup_sent";
