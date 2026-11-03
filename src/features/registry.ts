@@ -631,7 +631,7 @@ export const FEATURES: Feature[] = [
     routes: ["/jobs/step-up"],
     href: "/jobs/step-up",
     added: "2026-11-03",
-    prs: [],
+    prs: [89],
     issue: 85,
     keywords: ["step up", "career ladder", "seniority", "gap analysis", "senior", "staff", "tech lead"],
   },
