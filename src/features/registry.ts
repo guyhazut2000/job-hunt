@@ -602,6 +602,23 @@ export const FEATURES: Feature[] = [
     keywords: ["star", "behavioral", "industry", "story", "used at work"],
   },
   {
+    id: "personal-ranking",
+    name: "מיון אישי לפי מילות מפתח",
+    description:
+      "מילים שאני רוצה (עם חשיבות או 'חובה'), מילים שלא מעניינות אותי, ומשקלות למיון. מיון 'התאמה אישית' בעמוד המשרות משלב ציון התאמה, המילים שלי, טריות המשרה וסיכוי לתגובה (החברה ענתה לי בעבר, משרה טרייה, מעט פערים) — עם הסבר 'למה גבוה' לכל משרה. עברית ואנגלית נחשבות אותו דבר. אפשר להפוך אותו למיון ברירת המחדל.",
+    howTo:
+      "במשרות: 'הגדרת המיון האישי' ← מוסיפים מילים ושומרים, ואז בוחרים מיון 'התאמה אישית'. לוחצים 'למה X?' בכרטיס משרה.",
+    category: "jobs",
+    status: "live",
+    audience: "user",
+    routes: ["/jobs/ranking"],
+    href: "/jobs/ranking",
+    added: "2026-11-03",
+    prs: [],
+    issue: 84,
+    keywords: ["keywords", "ranking", "sort", "personal fit", "exclude", "why"],
+  },
+  {
     id: "practice",
     name: "תרגול בעיות עם משוב AI",
     description: "52 תרגילים: מזהים את התבנית, כותבים גישה וסיבוכיות ומקבלים משוב. 'נסו בעצמכם' מקשר ל-LeetCode.",

@@ -14,7 +14,7 @@ import {
 } from "../commute/keys";
 import { type CompanyMatches, searchWhere } from "./search";
 
-export const SORTS = ["relevance", "match", "newest", "updated", "company", "title", "commute"] as const;
+export const SORTS = ["relevance", "match", "personal", "newest", "updated", "company", "title", "commute"] as const;
 export type SortKey = (typeof SORTS)[number];
 
 export const POSTED_WINDOWS = { "1d": 1, "7d": 7, "30d": 30 } as const;
@@ -145,13 +145,22 @@ export function hasSearch(f: Pick<JobFilters, "q">): boolean {
   return parseSearchQuery(f.q).length > 0;
 }
 
+/** Personal ranking (#84): available for signed-in users; `personalDefault` = they opted in to it as the default. */
+export interface SortContext {
+  personal?: boolean;
+  personalDefault?: boolean;
+}
+
 /**
  * The sort actually applied: an explicit choice, else relevance while searching, else best match for
  * users with a profile, else newest.
  */
-export function effectiveSort(f: JobFilters, hasProfile: boolean): SortKey {
+export function effectiveSort(f: JobFilters, hasProfile: boolean, ctx: SortContext = {}): SortKey {
   const searching = hasSearch(f);
   const fallback: SortKey = searching ? "relevance" : hasProfile ? "match" : "newest";
+  if (f.sort === "personal" && !ctx.personal) return fallback;
+  // Opt-in personal default; an active search still defaults to relevance (pick "personal" explicitly).
+  if (!f.sort && ctx.personal && ctx.personalDefault && !searching) return "personal";
   if (f.sort === "match" && !hasProfile) return searching ? "relevance" : "newest";
   if (f.sort === "relevance" && !searching) return hasProfile ? "match" : "newest";
   if (f.sort === "commute" && !hasOrigin(f)) return fallback;
@@ -159,8 +168,8 @@ export function effectiveSort(f: JobFilters, hasProfile: boolean): SortKey {
 }
 
 /** Whether results must be scored in memory (match sort / match threshold / company fit). */
-export function needsScoring(f: JobFilters, hasProfile: boolean): boolean {
-  return hasProfile && (effectiveSort(f, hasProfile) === "match" || f.minMatch !== undefined || !!f.fit);
+export function needsScoring(f: JobFilters, hasProfile: boolean, ctx: SortContext = {}): boolean {
+  return hasProfile && (effectiveSort(f, hasProfile, ctx) === "match" || f.minMatch !== undefined || !!f.fit);
 }
 
 export interface WhereContext {
