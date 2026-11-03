@@ -186,6 +186,8 @@ model Profile {
   avoidTech         String[]      @default([])
   availability      Availability?
   onboardedAt       DateTime?
+  /// Last mandatory-CV-standard check (src/lib/cv-standard/server.ts): { hash, passed, contentPassed, pages, level, template, lang, score, checkedAt }.
+  cvStandard        Json?
   /// Furthest onboarding wizard step reached (1-4), so /onboarding resumes there. Null = not started.
   onboardingStep    Int?
 }

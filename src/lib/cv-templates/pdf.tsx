@@ -15,6 +15,7 @@ import { FONT_FILES, fontPath } from "./fonts";
 import { levelLabel, resolveBlocks, tint, type Block } from "./resolve";
 import type { LayoutEntry } from "./sections";
 import type { CvTemplate } from "./templates";
+import { density as densityFor, tightenTemplate } from "@/lib/cv-standard/density";
 
 let registered = false;
 function registerFonts() {
@@ -44,6 +45,8 @@ interface Ctx {
   rtl: boolean;
   lang: CvLang;
   tpl: CvTemplate;
+  /** Vertical spacing multiplier from the one-page auto-tighten level (1 = original). */
+  k: number;
 }
 
 function P({
@@ -69,7 +72,7 @@ function SectionTitle({ ctx, title }: { ctx: Ctx; title: string }) {
   const base = { fontWeight: 700, fontSize: tpl.size + 2.5, color: tpl.ink };
   if (tpl.titleStyle === "bar")
     return (
-      <View style={[row(ctx), { alignItems: "center", marginTop: 9, marginBottom: 3 }]} wrap={false}>
+      <View style={[row(ctx), { alignItems: "center", marginTop: 9 * ctx.k, marginBottom: 3 * ctx.k }]} wrap={false}>
         <View style={{ width: 4, height: tpl.size + 3, backgroundColor: tpl.accent, borderRadius: 1 }} />
         <View style={{ width: 6 }} />
         <View style={{ flex: 1 }}>
@@ -82,9 +85,9 @@ function SectionTitle({ ctx, title }: { ctx: Ctx; title: string }) {
   return (
     <View
       style={{
-        marginTop: 9,
-        marginBottom: 3,
-        paddingBottom: 2,
+        marginTop: 9 * ctx.k,
+        marginBottom: 3 * ctx.k,
+        paddingBottom: 2 * ctx.k,
         borderBottomWidth: tpl.titleStyle === "caps" ? 0.6 : tpl.titleStyle === "underline" ? 0.9 : 0.8,
         borderBottomColor: tpl.titleStyle === "underline" ? "#111111" : tpl.accent,
       }}
@@ -107,9 +110,9 @@ function SectionTitle({ ctx, title }: { ctx: Ctx; title: string }) {
 
 function Bullets({ ctx, items }: { ctx: Ctx; items: string[] }) {
   return (
-    <View style={{ marginTop: 2 }}>
+    <View style={{ marginTop: 2 * ctx.k }}>
       {items.map((b, i) => (
-        <View key={i} style={[row(ctx), { marginBottom: 1.5 }]}>
+        <View key={i} style={[row(ctx), { marginBottom: 1.5 * ctx.k }]}>
           <Text style={{ width: 10, textAlign: "center", color: ctx.tpl.accent }}>•</Text>
           <View style={{ flex: 1 }}>
             <P ctx={ctx}>{b}</P>
@@ -124,7 +127,7 @@ function Entry({ ctx, e, compact }: { ctx: Ctx; e: CvEntry; compact?: boolean })
   const when = period(e.start, e.end, CV_LABELS[ctx.lang].present);
   const muted = { color: "#4b5563" };
   return (
-    <View style={{ marginBottom: compact ? 3 : 5 }}>
+    <View style={{ marginBottom: (compact ? 3 : 5) * ctx.k }}>
       <View style={[row(ctx), { alignItems: "flex-start" }]} wrap={false}>
         <View style={{ flex: 1 }}>
           <P ctx={ctx} style={{ fontWeight: 700, fontSize: ctx.tpl.size + 0.5 }}>
@@ -241,9 +244,9 @@ function Header({ ctx, c }: { ctx: Ctx; c: CvContent }) {
   return (
     <View
       style={{
-        marginBottom: 6,
-        paddingBottom: band ? 14 : 6,
-        paddingTop: band ? 16 : 0,
+        marginBottom: 6 * ctx.k,
+        paddingBottom: (band ? 14 : 6) * ctx.k,
+        paddingTop: band ? 16 * ctx.k : 0,
         paddingHorizontal: band ? 36 : 0,
         marginHorizontal: band ? 0 : 36,
         backgroundColor: band ? tpl.accent : undefined,
@@ -297,16 +300,21 @@ function Header({ ctx, c }: { ctx: Ctx; c: CvContent }) {
 export function CvPdfDocument({
   content,
   layout,
-  tpl,
+  tpl: baseTpl,
   lang,
+  densityLevel,
 }: {
   content: CvContent;
   layout: LayoutEntry[];
   tpl: CvTemplate;
   lang: CvLang;
+  /** One-page auto-tighten level 0..3 (src/lib/cv-standard/density.ts). */
+  densityLevel?: number;
 }) {
   registerFonts();
-  const ctx: Ctx = { rtl: lang === "he", lang, tpl };
+  const d = densityFor(densityLevel);
+  const tpl = tightenTemplate(baseTpl, d.level);
+  const ctx: Ctx = { rtl: lang === "he", lang, tpl, k: d.k };
   const blocks = resolveBlocks(content, layout, tpl, lang);
   const main = blocks.filter((b) => b.column === "main");
   const side = blocks.filter((b) => b.column === "side");
@@ -315,10 +323,10 @@ export function CvPdfDocument({
       fontFamily: tpl.font === "serif" ? "CvSerif" : "CvSans",
       fontSize: tpl.size,
       color: "#111827",
-      paddingTop: tpl.header === "band" ? 0 : 32,
-      paddingBottom: 34,
+      paddingTop: tpl.header === "band" ? 0 : d.padTop,
+      paddingBottom: d.padBottom,
       paddingHorizontal: 0,
-      lineHeight: 1.35,
+      lineHeight: d.lineHeight,
     },
   });
   return (
@@ -368,6 +376,7 @@ export async function renderCvPdf(input: {
   layout: LayoutEntry[];
   tpl: CvTemplate;
   lang: CvLang;
+  densityLevel?: number;
 }): Promise<Buffer> {
   return renderToBuffer(<CvPdfDocument {...input} />);
 }
