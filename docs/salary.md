@@ -84,3 +84,9 @@ package (equity, bonus, keren hishtalmut, car).
   Reuse its `jobFunction` for family mapping once merged.
 - Job cards use survey + tier only (no per-card DB query). Reports show up on the job and company pages.
 - Delete or rotate the `reporterKey` link on account deletion (reports are already unlinkable without AUTH_SECRET).
+
+## Salary hub (#91)
+
+`/salary` shows these bands by family, level and city, plus the user's own numbers and asked
+salaries. Offer comparison and negotiation prep live under `/salary/offers` and `/salary/negotiate`.
+See [offers.md](offers.md).

@@ -139,6 +139,8 @@ model User {
   interviewSessions    InterviewSession[]
   applicationFollowUps ApplicationFollowUp[]
   workStories          WorkStory[]
+  jobOffers            JobOffer[]
+  salaryDataPoints     SalaryDataPoint[]
   rankingPrefs         RankingPrefs?
   outreachPrefs        OutreachPrefs?
 }
@@ -480,6 +482,11 @@ model Application {
   /// FollowUpDraft JSON (src/lib/followup/types.ts) for the current round — generated once, then edited.
   followUpDraft        Json?
   followUps            ApplicationFollowUp[]
+  /// Salary the user asked for / expects for this application (gross ₪/month, base). Private (#91).
+  askedSalaryMonthly   Int?
+  /// Free text next to the asked salary ("asked 32-34k", "they said budget is 30k").
+  salaryNote           String?
+  offers               JobOffer[]
 
   @@unique([userId, jobId])
   @@index([userId, status])
@@ -1598,4 +1605,40 @@ model OutreachPrefs {
   followUpDays Int      @default(5)
   queueSize    Int      @default(5)
   updatedAt    DateTime @updatedAt
+}
+
+/// An offer the user received or is considering, compared on /salary/offers (#91). `data` is an
+/// OfferInput (src/lib/offers/calc.ts) — parsed with offerInputSchema on every read.
+model JobOffer {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  label         String
+  data          Json
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId])
+}
+
+/// A salary number the user collected themselves (a friend, a recruiter, an offer, a public post).
+/// Private to the user — never mixed into the anonymous SalaryReport pool (#91).
+model SalaryDataPoint {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family          String
+  level           String
+  city            String?
+  company         String?
+  monthlyGrossIls Int
+  /// Where the number came from (free text or URL), shown next to it.
+  source          String
+  observedAt      DateTime?
+  note            String?
+  createdAt       DateTime  @default(now())
+
+  @@index([userId, family])
 }
