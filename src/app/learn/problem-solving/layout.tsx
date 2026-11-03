@@ -10,6 +10,7 @@ export default async function ProblemSolvingLayout({ children }: { children: Rea
     { href: `${base}/practice`, label: t.sections.practice },
     { href: `${base}/patterns`, label: t.sections.patterns },
     { href: `${base}/data-structures`, label: t.sections.structures },
+    { href: `${base}/stories`, label: t.sections.stories },
     { href: `${base}/interview`, label: t.sections.interview },
     { href: `${base}/analyze`, label: t.sections.analyze },
     { href: `${base}/checklist`, label: t.sections.checklist },

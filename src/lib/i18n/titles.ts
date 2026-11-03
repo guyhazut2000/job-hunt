@@ -32,6 +32,7 @@ export const PAGE_TITLES = {
   psAnalyze: { he: "ניתוח בעיה", en: "Analyze a problem" },
   psChecklist: { he: "צ'קליסט לפתרון בעיות", en: "Problem-solving checklist" },
   psDataStructures: { he: "מבני נתונים", en: "Data structures" },
+  psStories: { he: "הסיפורים שלי", en: "My stories" },
   psInterview: { he: "שיטת הראיון", en: "Interview method" },
   psPatterns: { he: "תבניות", en: "Patterns" },
   psPractice: { he: "תרגול", en: "Practice" },

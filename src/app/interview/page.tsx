@@ -1,4 +1,4 @@
-import { ArrowLeft, ListChecks, MessagesSquare } from "lucide-react";
+import { ArrowLeft, BookOpenCheck, ListChecks, MessagesSquare } from "lucide-react";
 import Link from "next/link";
 import { StartForm } from "@/components/interview/StartForm";
 import { aiRemaining } from "@/lib/ai/remaining";
@@ -11,6 +11,7 @@ import { loadInterviewTarget } from "@/lib/interview/server";
 import { isMode } from "@/lib/interview/types";
 import { requireUser } from "@/lib/session";
 import { localizedTitle } from "@/lib/i18n/titles";
+import { storyStrings } from "@/lib/i18n/stories";
 
 export const dynamic = "force-dynamic";
 export const generateMetadata = localizedTitle("interview");
@@ -54,6 +55,14 @@ export default async function InterviewPage({
         <p className="kicker">{t.kicker}</p>
         <h1 className="font-heading text-title font-black">{t.title}</h1>
         <p className="text-muted-foreground max-w-[65ch]">{t.lead}</p>
+        <Link
+          href="/learn/problem-solving/stories"
+          className="text-fit mt-1 inline-flex w-fit items-center gap-1.5 text-sm font-bold underline underline-offset-2"
+          data-testid="interview-stories-link"
+        >
+          <BookOpenCheck className="size-4" aria-hidden />
+          {storyStrings(locale).interviewLink}
+        </Link>
       </header>
 
       <section className="flex flex-col gap-4" data-testid="interview-new">

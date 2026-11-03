@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { storyStrings } from "@/lib/i18n/stories";
 import { MessageSquareQuote } from "lucide-react";
 import { PageHead } from "@/components/problem-solving/PageHead";
 import { COMMUNICATION_TIPS, EDGE_CASES, INTERVIEW_STEPS } from "@/lib/algo/best-practices";
@@ -14,7 +16,15 @@ export default async function InterviewPage() {
   const t = problemSolvingStrings(locale);
   return (
     <div className="flex flex-col gap-8">
-      <PageHead kicker={t.title} title={t.interviewTitle} lead={t.interviewLead} />
+      <PageHead kicker={t.title} title={t.interviewTitle} lead={t.interviewLead}>
+        <Link
+          href="/learn/problem-solving/stories"
+          className="text-fit w-fit text-sm font-bold underline underline-offset-2"
+          data-testid="ps-stories-link"
+        >
+          {storyStrings(locale).interviewLink}
+        </Link>
+      </PageHead>
       <ol className="flex flex-col gap-3" data-testid="interview-steps">
         {INTERVIEW_STEPS.map((s) => (
           <li key={s.id} className="bg-card flex flex-col gap-2.5 rounded-xl border p-4 sm:p-5">

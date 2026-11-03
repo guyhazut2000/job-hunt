@@ -138,6 +138,7 @@ model User {
   cvLayouts            CvLayout[]
   interviewSessions    InterviewSession[]
   applicationFollowUps ApplicationFollowUp[]
+  workStories          WorkStory[]
 }
 
 model Profile {
@@ -1535,4 +1536,30 @@ model CvLayout {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, template])
+}
+
+/// "Have you used this at work?" story per data structure / algorithm pattern (#83).
+model WorkStory {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// ds | pattern
+  kind           String
+  /// Data-structure id (data-structures.ts) or pattern id (patterns.ts).
+  itemId         String
+  situation      String    @default("")
+  built          String    @default("")
+  why            String    @default("")
+  result         String    @default("")
+  /// AI-rephrased 30–60s spoken STAR answer (only rephrases the four fields above).
+  polished       String?
+  polishedLang   String?
+  /// ai | template
+  polishedSource String?
+  polishedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, kind, itemId])
+  @@index([userId, updatedAt])
 }

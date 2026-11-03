@@ -8,6 +8,8 @@ import { PROBLEMS } from "@/lib/algo/problems";
 import { tr, type PatternId } from "@/lib/algo/types";
 import { getLocale } from "@/lib/i18n";
 import { problemSolvingStrings } from "@/lib/i18n/problem-solving";
+import { IndustrySection, sessionUserId } from "@/components/stories/IndustrySection";
+import { storiesFor } from "@/lib/stories/server";
 
 export function generateStaticParams() {
   return PATTERNS.map((p) => ({ id: p.id }));
@@ -32,6 +34,8 @@ export default async function PatternPage({ params }: { params: Promise<{ id: st
   if (!p) notFound();
   const locale = await getLocale();
   const t = problemSolvingStrings(locale);
+  const userId = await sessionUserId();
+  const story = (await storiesFor(userId, "pattern")).get(`pattern:${p.id}`) ?? null;
   const problems = PROBLEMS.filter((x) => x.patterns.includes(p.id) || x.alsoOk?.includes(p.id));
   return (
     <article className="flex flex-col gap-7">
@@ -127,6 +131,17 @@ export default async function PatternPage({ params }: { params: Promise<{ id: st
           </ul>
         </Block>
       </div>
+      <section className="bg-card rounded-xl border p-4 sm:p-5" id="industry">
+        <IndustrySection
+          kind="pattern"
+          itemId={p.id}
+          name={p.name}
+          locale={locale}
+          story={story}
+          signedIn={!!userId}
+          returnTo={`/learn/problem-solving/patterns/${p.id}#industry`}
+        />
+      </section>
       <Block title={t.examples}>
         <ul className="flex flex-col divide-y rounded-xl border">
           {problems.map((x) => (

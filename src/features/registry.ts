@@ -586,6 +586,22 @@ export const FEATURES: Feature[] = [
     keywords: ["cheat sheet", "big o"],
   },
   {
+    id: "work-stories",
+    name: "בתעשייה + הסיפורים שלי לראיון",
+    description:
+      "לכל מבנה נתונים ותבנית: איפה משתמשים בזה ביום-יום ובאילו כלים, וכרטיס 'הסיפור שלי' — 4 שאלות קצרות (עם הקלטה קולית) שהופכות לתשובת STAR מוכנה לשאלה 'השתמשת בזה בעבודה?'. ה-AI רק מנסח מחדש, לא ממציא. כולל דוגמאות ומצב תרגול.",
+    howTo: "ב'מבני נתונים' או בדף של תבנית פותחים 'הסיפור שלי', ממלאים ושומרים. כל הסיפורים ותרגול ב'הסיפורים שלי'.",
+    category: "learning",
+    status: "live",
+    audience: "user",
+    routes: ["/learn/problem-solving/stories"],
+    href: "/learn/problem-solving/stories",
+    added: "2026-11-03",
+    prs: [],
+    issue: 83,
+    keywords: ["star", "behavioral", "industry", "story", "used at work"],
+  },
+  {
     id: "practice",
     name: "תרגול בעיות עם משוב AI",
     description: "52 תרגילים: מזהים את התבנית, כותבים גישה וסיבוכיות ומקבלים משוב. 'נסו בעצמכם' מקשר ל-LeetCode.",
