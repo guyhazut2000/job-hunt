@@ -90,6 +90,9 @@ export async function saveJob(jobId: string) {
 
 const STATUSES: ApplicationStatus[] = ["SAVED", "APPLIED", "SCREENING", "INTERVIEW", "OFFER", "REJECTED"];
 
+const sendsCv = (from: ApplicationStatus, to: ApplicationStatus) =>
+  from === "SAVED" && to !== "SAVED" && to !== "REJECTED";
+
 export async function updateApplicationStatus(
   id: string,
   status: ApplicationStatus,
@@ -101,9 +104,9 @@ export async function updateApplicationStatus(
     select: { status: true, statusChangedAt: true },
   });
   if (!prev) return;
-  // Mandatory CV standard (#94): a manual "sent" (SAVED → APPLIED) needs a CV that meets it.
-  // Email-detected applications are evidence the CV already went out, so they are not gated.
-  if (status === "APPLIED" && prev.status === "SAVED" && !(await requireCvStandard(user.id)).ok)
+  // Mandatory CV standard (#94): a manual "sent" (SAVED → APPLIED, or straight to a later stage)
+  // needs a CV that meets it. Email-detected applications are not gated (the CV already went out).
+  if (sendsCv(prev.status, status) && !(await requireCvStandard(user.id)).ok)
     return { blocked: "cv" };
   await db.application.updateMany({
     where: { id, userId: user.id },

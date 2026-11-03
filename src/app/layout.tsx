@@ -4,6 +4,8 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { MobileNav } from "@/components/MobileNav";
 import { ChatFab } from "@/components/chat/ChatFab";
+import { CvStandardBanner } from "@/components/cv-standard/CvStandardBanner";
+import { Suspense } from "react";
 import { DirectionProvider } from "@/components/ui/direction";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getDictionary, isRtl } from "@/lib/i18n";
@@ -65,6 +67,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {t.ui.skip}
             </a>
             <Header />
+            {user?.id && (
+              <Suspense fallback={null}>
+                <CvStandardBanner userId={user.id} locale={locale === "en" ? "en" : "he"} />
+              </Suspense>
+            )}
             <main
               id="main"
               tabIndex={-1}

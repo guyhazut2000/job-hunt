@@ -408,7 +408,7 @@ function Chips({ t, text }: { t: T; text: string }) {
       data-ok={ok ? "1" : "0"}
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs",
-        ok ? "bg-fit/15 text-fit" : "bg-caution/15 text-caution-foreground",
+        ok ? "bg-fit-soft text-fit" : "bg-caution-soft text-caution",
       )}
     >
       {ok ? <Check aria-hidden className="size-3" /> : <X aria-hidden className="size-3" />}

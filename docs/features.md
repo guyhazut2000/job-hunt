@@ -45,3 +45,13 @@ or explain why the PR has no user-facing change.
 `jobs` חיפוש משרות · `companies` חברות · `applications` מועמדויות · `profile` מסמכים ופרופיל ·
 `email` מייל · `ai` AI · `learning` למידה · `notifications` התראות · `settings` הגדרות וחשבון ·
 `ui` ממשק ונגישות · `admin` ניהול. Labels live in `src/features/types.ts`.
+
+## Gates: the mandatory CV standard (#94)
+
+Some features are blocked until the user's CV meets the standard in
+[`src/lib/cv-standard`](../src/lib/cv-standard) (research: [`docs/cv-best-practices.md`](cv-best-practices.md)).
+`requireCvStandard(userId)` must pass before: CV export (PDF/DOCX), generating a tailored CV, printing a
+tailored CV, moving an application to APPLIED in the tracker, and finishing onboarding. A failing check
+redirects to `/cv/standard?from=<export|tailor|print|applied|onboarding>`. New features that send a CV
+outward must call the same gate. Blocking rules and warnings are listed in `RULE_IDS` / `evaluateStandard`
+in `src/lib/cv-standard/rules.ts`; the one-page check renders the real PDF (`fit.ts`).
