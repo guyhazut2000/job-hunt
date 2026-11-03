@@ -20,7 +20,7 @@ export interface FitResult {
   pages: number;
   level: number;
   fits: boolean;
-  /** Total height used in pages (e.g. 1.18 = 18% over one page). */
+  /** Height used at the chosen level, in pages (e.g. 1.18 = 18% over one page). */
   used: number;
   tried: { level: number; pages: number; used: number }[];
 }
@@ -64,7 +64,7 @@ export async function fitToOnePage(
     if (m.pages <= 1) break;
   }
   const l = last!;
-  return { pages: l.m.pages, level: l.level, fits: l.m.pages <= 1, used: tried[0].used, tried, buffer: l.buffer };
+  return { pages: l.m.pages, level: l.level, fits: l.m.pages <= 1, used: tried[tried.length - 1].used, tried, buffer: l.buffer };
 }
 
 export async function fitCvPdf(input: {

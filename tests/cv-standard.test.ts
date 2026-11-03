@@ -203,7 +203,7 @@ describe("fit + cut suggestions", () => {
     const r = await fitToOnePage(fake);
     vi.doUnmock("unpdf");
     expect(calls).toEqual([0, 1, 2]);
-    expect(r).toMatchObject({ pages: 1, level: 2, fits: true, used: 2.75 });
+    expect(r).toMatchObject({ pages: 1, level: 2, fits: true, used: 0.75 });
   });
 
   it("suggests concrete cuts", () => {
