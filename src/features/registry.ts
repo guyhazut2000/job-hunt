@@ -597,7 +597,7 @@ export const FEATURES: Feature[] = [
     routes: ["/learn/problem-solving/stories"],
     href: "/learn/problem-solving/stories",
     added: "2026-11-03",
-    prs: [],
+    prs: [87],
     issue: 83,
     keywords: ["star", "behavioral", "industry", "story", "used at work"],
   },
