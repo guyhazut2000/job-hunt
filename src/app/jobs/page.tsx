@@ -60,6 +60,11 @@ import { SaveSearchButton } from "@/components/notifications/SaveSearchButton";
 import { notificationStrings } from "@/lib/i18n/notifications";
 import { alertFilters, defaultSearchName } from "@/lib/notifications/saved-search";
 import { localizedTitle } from "@/lib/i18n/titles";
+import { getRankingPrefs, rankPersonal } from "@/lib/ranking/server";
+import { EMPTY_PREFS, hasKeywords, type PersonalResult } from "@/lib/ranking/personal";
+import { fillR, rankingStrings } from "@/lib/i18n/ranking";
+import { PersonalWhy } from "@/components/ranking/PersonalWhy";
+import { SlidersHorizontal } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 export const generateMetadata = localizedTitle("jobs");
@@ -77,11 +82,12 @@ export default async function JobsPage({
   const parsed = parseFilters(params);
   const isMap = parsed.view === "map";
   // Commute origin: ad-hoc rounded point, a saved place, or (map view) the default saved place.
-  const [profile, origin, savedPlaces, lastScan] = await Promise.all([
+  const [profile, origin, savedPlaces, lastScan, prefs] = await Promise.all([
     userId ? db.profile.findUnique({ where: { userId } }) : null,
     resolveOrigin(parsed, userId, isMap),
     listSavedPlaces(userId),
     lastScanSafe(),
+    getRankingPrefs(userId),
   ]);
   // First sign-in with an empty/incomplete profile → the onboarding wizard (once; afterwards the
   // profile banner offers "continue setup", which resumes at the saved step).
@@ -97,7 +103,10 @@ export default async function JobsPage({
   };
   const candidate = hasScorableProfile(profile) ? toCandidate(profile) : null;
   const hasProfile = !!candidate;
-  const sort = effectiveSort(filters, hasProfile);
+  // Personal ranking (#84) for signed-in users; it becomes the default only if they opted in.
+  const sortCtx = { personal: !!userId, personalDefault: !!prefs?.defaultSort };
+  const sort = effectiveSort(filters, hasProfile, sortCtx);
+  const rs = rankingStrings(locale);
   // Bilingual search: company names/aliases (אינטל ↔ Intel), glossary, keyboard-layout fixes.
   const terms = filters.q ? parseSearchQuery(filters.q, { companies: await loadCompanyLexicon() }) : [];
   const alsoShowing = expansionLabels(terms);
@@ -180,7 +189,8 @@ export default async function JobsPage({
   const fitIds = new Set(fits.map((c) => c.companyId));
 
   let total: number;
-  let rows: { job: Job & { company: Company }; score?: number }[];
+  let rows: { job: Job & { company: Company }; score?: number; personal?: PersonalResult }[];
+  let personalHidden = 0;
   async function fetchPage() {
     return db.job.findMany({
       where,
@@ -190,7 +200,24 @@ export default async function JobsPage({
       take: PAGE_SIZE,
     });
   }
-  if (needsScoring(filters, hasProfile)) {
+  if (sort === "personal" && userId) {
+    const ranked = await rankPersonal({
+      userId,
+      where,
+      prefs: prefs ?? EMPTY_PREFS,
+      candidate,
+      companies: companyRows,
+      now,
+    });
+    const list = ranked.rows
+      .filter((x) => !candidate || filters.minMatch === undefined || x.score >= filters.minMatch)
+      .filter((x) => !filters.fit || fitIds.has(x.job.companyId));
+    personalHidden = ranked.hidden;
+    total = list.length;
+    rows = list
+      .slice((filters.page - 1) * PAGE_SIZE, filters.page * PAGE_SIZE)
+      .map((x) => ({ ...x, score: candidate ? x.score : undefined }));
+  } else if (needsScoring(filters, hasProfile, sortCtx)) {
     const ids = new Set((await db.job.findMany({ where, select: { id: true } })).map((j) => j.id));
     const matching = scoredAll
       .filter((x) => ids.has(x.job.id))
@@ -293,7 +320,7 @@ export default async function JobsPage({
 
   // Strip of the best matches, only when the list itself isn't already match-ordered.
   const top =
-    candidate && !isMap && sort !== "match" && filters.page === 1 && nFilters === 0
+    candidate && !isMap && sort !== "match" && sort !== "personal" && filters.page === 1 && nFilters === 0
       ? [...scoredAll]
           .sort((a, b) => b.score - a.score)
           .slice(0, 3)
@@ -331,7 +358,7 @@ export default async function JobsPage({
     key: k,
     label: s.sorts[k],
     href: href({ ...filters, sort: k, page: 1 }),
-    disabled: (k === "match" && !hasProfile) || (k === "commute" && !origin),
+    disabled: (k === "match" && !hasProfile) || (k === "commute" && !origin) || (k === "personal" && !userId),
   }));
 
   const formProps = { t, s, filters, facets, hasProfile, signedIn: !!userId, clearHref };
@@ -399,6 +426,21 @@ export default async function JobsPage({
 
         <SearchBox s={ss.jobs} suggestions={suggestions} testId="jobs-search" />
         {filters.q && <SearchExpansionHint labels={alsoShowing} template={ss.alsoShowing} />}
+        {sort === "personal" && userId && (
+          <p
+            className="text-muted-foreground border-primary/30 bg-primary/5 rounded-md border px-3 py-2 text-sm"
+            data-testid="personal-note"
+          >
+            {!prefs || !hasKeywords(prefs)
+              ? rs.emptyPrefs
+              : personalHidden > 0
+                ? fillR(rs.hiddenCount, { n: personalHidden })
+                : rs.honest}{" "}
+            <Link href="/jobs/ranking" className="text-primary font-medium underline-offset-4 hover:underline">
+              {rs.settingsLink}
+            </Link>
+          </p>
+        )}
 
         <div className="flex flex-wrap items-center gap-2">
           <FilterSheet label={t.ui.filters} count={nFilters}>
@@ -411,6 +453,14 @@ export default async function JobsPage({
             options={sortOptions}
             hint={hasProfile ? undefined : s.matchSortHint}
           />
+          {userId && (
+            <Button asChild variant="ghost" size="sm" className="min-h-11 sm:min-h-8">
+              <Link href="/jobs/ranking" data-testid="ranking-settings-link">
+                <SlidersHorizontal data-icon="inline-start" aria-hidden />
+                {rs.settingsLink}
+              </Link>
+            </Button>
+          )}
           {userId && alertQuery && (
             <SaveSearchButton
               query={alertQuery}
@@ -621,12 +671,13 @@ export default async function JobsPage({
           </div>
         ) : (
           <JobList>
-            {rows.map(({ job, score }) => (
+            {rows.map(({ job, score, personal }) => (
               <JobCard
                 key={job.id}
                 job={job}
                 t={t}
                 score={score}
+                why={personal && <PersonalWhy result={personal} s={rs} />}
                 highlight={marks}
                 commute={rowCommute?.get(job.id)?.commute}
                 commuteMode={filters.cmode}

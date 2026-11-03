@@ -25,6 +25,7 @@ export function JobCard({
   highlight,
   commute,
   commuteMode,
+  why,
 }: {
   job: Job & { company: Company };
   t: Dictionary;
@@ -34,6 +35,8 @@ export function JobCard({
   /** Travel times from the chosen origin (shown when a commute origin is set). */
   commute?: CommuteResult;
   commuteMode?: CommuteMode;
+  /** Optional explanation under the card (e.g. the personal-ranking "why"), above the card link overlay. */
+  why?: React.ReactNode;
 }) {
   return (
     <article className="group hover:bg-muted/60 relative grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 px-4 py-5 transition-colors sm:px-5">
@@ -115,6 +118,7 @@ export function JobCard({
           </ul>
         )}
         <LinkedinJobInlineLink link={linkedinLinkFor(job)} jobId={job.id} s={linkedinStrings(localeOf(t))} />
+        {why}
       </div>
       {score !== undefined && (
         <div className="self-start pt-1">

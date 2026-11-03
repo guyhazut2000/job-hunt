@@ -139,6 +139,7 @@ model User {
   interviewSessions    InterviewSession[]
   applicationFollowUps ApplicationFollowUp[]
   workStories          WorkStory[]
+  rankingPrefs         RankingPrefs?
 }
 
 model Profile {
@@ -1562,4 +1563,18 @@ model WorkStory {
 
   @@unique([userId, kind, itemId])
   @@index([userId, updatedAt])
+}
+
+/// Personal job ranking (#84): the user's keywords and ranking weights, validated by zod in
+/// src/lib/ranking/personal.ts. `include` = [{term, weight 1-3, must}], `weights` = {match, keywords, recency, response} 0-3.
+model RankingPrefs {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  include     Json     @default("[]")
+  exclude     String[] @default([])
+  weights     Json     @default("{}")
+  /// Opt-in: "Personal fit" becomes the default sort on /jobs.
+  defaultSort Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
 }

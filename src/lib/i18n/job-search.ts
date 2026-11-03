@@ -10,6 +10,7 @@ const en = {
   sorts: {
     relevance: "Most relevant",
     match: "Best match",
+    personal: "Personal fit",
     newest: "Newest posted",
     updated: "Recently updated",
     company: "Company A–Z",
@@ -106,6 +107,7 @@ const he: JobSearchStrings = {
   sorts: {
     relevance: "הכי רלוונטיות",
     match: "הכי מתאימות לי",
+    personal: "התאמה אישית",
     newest: "פורסמו לאחרונה",
     updated: "עודכנו לאחרונה",
     company: "שם החברה (A–Z)",
