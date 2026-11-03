@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useId, useOptimistic, useState, useTransition } from "react";
+import { startTransition, useActionState, useId, useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import type { ContactStatus } from "@prisma/client";
 import { CheckCheck, ExternalLink, Sparkles, X } from "lucide-react";
