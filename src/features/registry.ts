@@ -237,7 +237,7 @@ export const FEATURES: Feature[] = [
     routes: ["/outreach"],
     href: "/outreach",
     added: "2026-11-03",
-    prs: [90],
+    prs: [90, 99],
     issue: 86,
     updates: [
       {
@@ -655,7 +655,7 @@ export const FEATURES: Feature[] = [
     routes: ["/jobs/step-up"],
     href: "/jobs/step-up",
     added: "2026-11-03",
-    prs: [89],
+    prs: [89, 99],
     issue: 85,
     updates: [
       {
@@ -983,7 +983,7 @@ export const FEATURES: Feature[] = [
     routes: ["/cv", "/cv/templates/[id]"],
     href: "/cv",
     added: "2026-10-31",
-    prs: [81],
+    prs: [81, 99],
     issue: 78,
     updates: [
       {
