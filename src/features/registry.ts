@@ -1085,7 +1085,7 @@ export const FEATURES: Feature[] = [
     audience: "user",
     routes: ["/prep/[id]"],
     added: "2026-11-03",
-    prs: [],
+    prs: [104],
     issue: 93,
     keywords: ["interview prep", "debrief", "הכנה לראיון", "questions to ask", "stories", "DS&A"],
   },
