@@ -16,6 +16,7 @@ import { Brand } from "./Brand";
 import { NavLinks, type NavLink } from "./NavLinks";
 import { conceptStrings } from "@/lib/i18n/concepts";
 import { salaryHubStrings } from "@/lib/i18n/salary-hub";
+import { closingStrings } from "@/lib/i18n/closing";
 import { referralStrings } from "@/lib/i18n/referrals";
 import { statsStrings } from "@/lib/i18n/stats";
 import { coachStrings } from "@/lib/i18n/coach";
@@ -42,6 +43,7 @@ export async function Header() {
           { href: "/learn/me", label: learningHubStrings(locale).navMine, priority: "more" as const },
           { href: "/learn/concepts", label: conceptStrings(locale).nav, priority: "more" as const },
           { href: "/referrals", label: referralStrings[locale].kicker, priority: "more" as const },
+          { href: "/closing", label: closingStrings[locale].navLabel, priority: "more" as const },
           { href: "/stats", label: statsStrings(locale).nav, priority: "more" as const },
           { href: "/coach", label: coachStrings(locale).nav, priority: "more" as const },
           { href: "/digest", label: reminderStrings(locale).nav, priority: "more" as const },

@@ -24,6 +24,7 @@ export async function runFollowUpReminders(now = new Date()): Promise<{ reminded
   const apps = await db.application.findMany({
     where: {
       status: "APPLIED",
+      archivedAt: null,
       followUpOff: false,
       noResponseAt: null,
       createdAt: { lte: new Date(now.getTime() - DAY) },
@@ -82,6 +83,7 @@ export async function runSavedJobClosed(now = new Date()): Promise<{ closed: num
   const apps = await db.application.findMany({
     where: {
       status: { in: [...WATCHED_STATUSES] },
+      archivedAt: null,
       job: { isActive: false, updatedAt: { gte: new Date(now.getTime() - 3 * DAY) } },
     },
     select: {
@@ -131,6 +133,7 @@ export async function runSavedJobUpdated(now = new Date()): Promise<{ updated: n
   const apps = await db.application.findMany({
     where: {
       status: { in: [...WATCHED_STATUSES] },
+      archivedAt: null,
       job: { isActive: true, contentChangedAt: { gte: new Date(now.getTime() - 3 * DAY) } },
     },
     select: {
