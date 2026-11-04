@@ -25,6 +25,7 @@ import { SearchExpansionHint } from "@/components/SearchExpansionHint";
 import { fillQ, searchStrings } from "@/lib/i18n/search";
 import { SearchBox } from "@/components/SearchBox";
 import { SuggestCompanyForm } from "@/components/SuggestCompanyForm";
+import { MySuggestions } from "@/components/MySuggestions";
 import { suggestCompanyStrings } from "@/lib/i18n/suggest-company";
 import { auth } from "@/auth";
 import { formatDateTime } from "@/lib/format";
@@ -34,6 +35,8 @@ import { localizedTitle } from "@/lib/i18n/titles";
 import { companiesHref, pageGroups, parseShow } from "@/lib/companies/paging";
 
 export const dynamic = "force-dynamic";
+/** The "suggest a company" action runs an instant discovery check after responding (see checkSuggestionNow). */
+export const maxDuration = 120;
 export const generateMetadata = localizedTitle("companies");
 
 export default async function CompaniesPage({
@@ -99,6 +102,14 @@ export default async function CompaniesPage({
         </div>
         <p className="text-muted-foreground text-sm">
           <span className="text-foreground font-mono font-medium">{hiring}</span> {t.ui.hiringNow}
+          {session?.user?.id && (
+            <>
+              {" · "}
+              <a href="#suggest" className="text-primary hover:underline" data-testid="suggest-jump">
+                {suggestCompanyStrings(locale).jump}
+              </a>
+            </>
+          )}
         </p>
       </header>
 
@@ -367,7 +378,12 @@ export default async function CompaniesPage({
           )}
         </div>
       )}
-      {session?.user?.id && <SuggestCompanyForm s={suggestCompanyStrings(locale)} />}
+      {session?.user?.id && (
+        <div id="suggest" className="flex scroll-mt-20 flex-col gap-4">
+          <SuggestCompanyForm s={suggestCompanyStrings(locale)} />
+          <MySuggestions userId={session.user.id} s={suggestCompanyStrings(locale)} dateLocale={t.dateLocale} />
+        </div>
+      )}
       <BackToTop label={t.ui.backToTop} />
     </div>
   );

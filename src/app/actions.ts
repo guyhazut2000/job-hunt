@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import bcrypt from "bcryptjs";
 import { requireCvStandard } from "@/lib/cv-standard/server";
 import { AuthError } from "next-auth";
@@ -20,7 +21,8 @@ import { aiLimitMessage } from "@/lib/i18n/ai";
 import { SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
 import { ingestAll } from "@/lib/ingestion/run";
 import { safeHttpUrl } from "@/lib/companies/status";
-import { addCandidateAsManual, ingestDiscovered, runDiscovery } from "@/lib/discovery/run";
+import { addCandidateAsManual, checkSuggestionNow, ingestDiscovered, runDiscovery } from "@/lib/discovery/run";
+import { notifySuggestionOutcome } from "@/lib/notifications/suggestion";
 import { requireAdmin, requireUser } from "@/lib/session";
 import { slugify } from "@/lib/taxonomy";
 import { baseDomain } from "@/lib/discovery/domain";
@@ -288,6 +290,7 @@ export async function adminApproveCandidate(formData: FormData) {
   const candidate = await db.startupCandidate.findUnique({ where: { id: String(formData.get("candidateId") ?? "") } });
   if (!candidate || candidate.status !== "PENDING") return;
   await addCandidateAsManual(candidate, "admin");
+  await notifySuggestionOutcome(candidate.id).catch(() => false);
   revalidatePath("/admin");
   revalidatePath("/companies");
 }
@@ -295,8 +298,13 @@ export async function adminApproveCandidate(formData: FormData) {
 export async function adminRejectCandidate(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("candidateId") ?? "");
-  await db.startupCandidate.updateMany({ where: { id, status: "PENDING" }, data: { status: "REJECTED" } });
+  const { count } = await db.startupCandidate.updateMany({
+    where: { id, status: "PENDING" },
+    data: { status: "REJECTED" },
+  });
+  if (count) await notifySuggestionOutcome(id).catch(() => false);
   revalidatePath("/admin");
+  revalidatePath("/companies");
 }
 
 export type SuggestState = { ok?: true; error?: "invalid" | "exists" | "queued" | "limit" } | undefined;
@@ -329,7 +337,7 @@ export async function suggestCompany(_: SuggestState, formData: FormData): Promi
   if (await db.startupCandidate.findUnique({ where: { domain: s.domain }, select: { id: true } })) {
     return { error: "queued" };
   }
-  await db.startupCandidate.create({
+  const created = await db.startupCandidate.create({
     data: {
       domain: s.domain,
       name: s.name,
@@ -340,6 +348,13 @@ export async function suggestCompany(_: SuggestState, formData: FormData): Promi
     },
   });
   track("company_suggested");
+  // Check it right away, after the response is sent (same rules as the nightly run; see checkSuggestionNow).
+  after(async () => {
+    await checkSuggestionNow(created.id).catch(() => null);
+    revalidatePath("/companies");
+    revalidatePath("/admin");
+  });
   revalidatePath("/admin");
+  revalidatePath("/companies");
   return { ok: true };
 }
