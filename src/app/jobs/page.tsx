@@ -363,7 +363,19 @@ export default async function JobsPage({
     disabled: (k === "match" && !hasProfile) || (k === "commute" && !origin) || (k === "personal" && !userId),
   }));
 
-  const formProps = { t, s, filters, facets, hasProfile, signedIn: !!userId, clearHref };
+  const formProps = {
+    t,
+    s,
+    filters,
+    facets,
+    hasProfile,
+    signedIn: !!userId,
+    clearHref,
+    total,
+    chips,
+    removeLabel: t.ui.removeFilter,
+    activeLabel: t.ui.activeFilters,
+  };
   const suggestions: SearchSuggestion[] = [
     ...facets.companies.map((c) => ({
       kind: "company" as const,

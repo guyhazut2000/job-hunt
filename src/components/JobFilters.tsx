@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { fill, type JobSearchStrings } from "@/lib/i18n/job-search";
 import { localeOf } from "@/lib/i18n/salary";
@@ -12,8 +12,8 @@ import {
   type JobFilters as Filters,
 } from "@/lib/jobs/filters";
 import { ROLE_CATEGORIES, TECH_KEYWORDS, WORK_MODES } from "@/lib/taxonomy";
-import { Button } from "@/components/ui/button";
-import { CleanGetForm } from "./CleanGetForm";
+import { AutoFilterForm } from "./AutoFilterForm";
+import { FilterStatus, NoJsSubmit, SheetApplyBar } from "./FilterApplyBar";
 import { CompanyPicker, type CompanyOption } from "./CompanyPicker";
 import { FacetList, type FacetItem } from "./FacetList";
 
@@ -30,7 +30,17 @@ export interface Facets {
   companies: CompanyOption[];
 }
 
-/** Plain GET form — works without JS. Rendered twice (sidebar + mobile sheet), hence idPrefix. */
+export interface FilterChip {
+  key: string;
+  label: string;
+  href: string;
+}
+
+/**
+ * Filters apply themselves (debounced, no reload) — no apply button to scroll to. Desktop shows a
+ * live count on top; the mobile sheet has a floating "Show N jobs" pill and the active chips.
+ * Still a plain GET form without JS. Rendered twice (sidebar + mobile sheet), hence idPrefix.
+ */
 export function JobFilterForm({
   t,
   s,
@@ -40,6 +50,10 @@ export function JobFilterForm({
   hasProfile,
   signedIn,
   clearHref,
+  total,
+  chips,
+  removeLabel,
+  activeLabel,
 }: {
   t: Dictionary;
   s: JobSearchStrings;
@@ -49,12 +63,42 @@ export function JobFilterForm({
   hasProfile: boolean;
   signedIn: boolean;
   clearHref: string;
+  total: number;
+  chips: FilterChip[];
+  removeLabel: string;
+  activeLabel: string;
 }) {
   const id = (n: string) => `${idPrefix}-${n}`;
   const keep = <T extends string>(all: readonly T[], counts: Record<string, number>, sel: readonly string[]) =>
     all.filter((v) => (counts[v] ?? 0) > 0 || sel.includes(v));
   return (
-    <CleanGetForm action="/jobs" className="flex flex-col gap-1" role="search" data-testid={`filters-${idPrefix}`}>
+    <AutoFilterForm action="/jobs" className="flex flex-col gap-1" role="search" data-testid={`filters-${idPrefix}`}>
+      {idPrefix === "d" && (
+        <FilterStatus
+          total={total}
+          clearHref={clearHref}
+          canClear={chips.length > 0}
+          labels={{ results: s.liveResults, updating: s.updating, clearAll: s.clearAll, autoApply: s.autoApply }}
+        />
+      )}
+      {idPrefix === "m" && chips.length > 0 && (
+        <ul className="flex flex-wrap gap-1.5 pt-3 pb-2" aria-label={activeLabel} data-testid="sheet-chips">
+          {chips.map((c) => (
+            <li key={c.key}>
+              <Link
+                href={c.href}
+                scroll={false}
+                className="bg-secondary hover:bg-secondary/70 inline-flex min-h-9 items-center gap-1 rounded-full ps-3 pe-2 text-sm font-semibold"
+                aria-label={`${removeLabel}: ${c.label}`}
+                dir="auto"
+              >
+                {c.label}
+                <X className="size-3.5" aria-hidden />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
       {filters.sort && <input type="hidden" name="sort" value={filters.sort} />}
       {filters.seniority && <input type="hidden" name="seniority" value={filters.seniority} />}
       {/* The free-text query has its own search bar above the results; keep it when filters are applied. */}
@@ -211,16 +255,16 @@ export function JobFilterForm({
 
       <p className="text-muted-foreground pt-2 text-xs">{s.allOpenRoles}</p>
 
-      {/* Sticky so the action stays reachable while the sheet scrolls. */}
-      <div className="filter-footer bg-popover lg:bg-background sticky bottom-0 z-10 -mx-1 mt-2 flex gap-2 border-t px-1 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-        <Button type="submit" className="flex-1">
-          {idPrefix === "m" ? t.ui.showResults : s.apply}
-        </Button>
-        <Button asChild variant="outline">
-          <Link href={clearHref}>{s.clearAll}</Link>
-        </Button>
-      </div>
-    </CleanGetForm>
+      <NoJsSubmit label={s.apply} />
+      {idPrefix === "m" && (
+        <SheetApplyBar
+          total={total}
+          clearHref={clearHref}
+          canClear={chips.length > 0}
+          labels={{ showJobs: s.showJobs, updating: s.updating, clearAll: s.clearAll }}
+        />
+      )}
+    </AutoFilterForm>
   );
 }
 
