@@ -814,3 +814,100 @@ test("skill gaps and system design pages render and fit 390px", async () => {
     await done(page);
   }
 });
+
+// Senior gaps B (#116 #119): LinkedIn workspace, hiring-manager round, offer reply email.
+test("LinkedIn workspace: live checks, saved draft, CV-based suggestion, fits 390px", async () => {
+  const page = await newPage({ width: 1440, height: 900 });
+  await login(page);
+  await page.goto(`${BASE}/cv/standard`, { waitUntil: "networkidle" });
+  assert.ok(await page.getByTestId("to-linkedin").count(), "/cv/standard links to the LinkedIn workspace");
+  await page.goto(`${BASE}/cv/linkedin`, { waitUntil: "networkidle" });
+  await page.getByTestId("li-no-auto").waitFor();
+  await page.getByTestId("li-headline").fill("x".repeat(230));
+  await page.waitForFunction(
+    () => document.querySelector("[data-testid=li-check-headlineLength]")?.getAttribute("data-status") === "fail",
+  );
+  await page.getByTestId("li-headline").fill("Senior Backend Engineer | Node.js, PostgreSQL, Kubernetes");
+  await page.waitForFunction(
+    () => document.querySelector("[data-testid=li-check-headlineLength]")?.getAttribute("data-status") === "pass",
+  );
+  await page.getByTestId("li-save").click();
+  await page.getByTestId("li-msg").filter({ hasText: /./ }).waitFor();
+  await page.reload({ waitUntil: "networkidle" });
+  assert.match(await page.getByTestId("li-headline").inputValue(), /Senior Backend Engineer/, "draft saved");
+  if (!(await page.getByTestId("li-no-cv").count())) {
+    await page.getByTestId("li-suggest").waitFor();
+    assert.ok((await page.getByTestId("li-suggest-headline").inputValue()).trim().length > 0);
+  }
+  await page.getByTestId("li-rec-draft").waitFor({ state: "attached" });
+  await shot(page, "linkedin-desktop");
+  await done(page);
+  const m = await newPage();
+  await login(m);
+  await m.goto(`${BASE}/cv/linkedin`, { waitUntil: "networkidle" });
+  assert.ok(await noHScroll(m), "/cv/linkedin: no horizontal scroll at 390px");
+  await shot(m, "linkedin-mobile");
+  await done(m);
+});
+
+test("hiring-manager round: STAR answer saved with signals and a template answer, fits 390px", async () => {
+  const page = await newPage({ width: 1440, height: 900 });
+  await login(page);
+  await page.goto(`${BASE}/interview`, { waitUntil: "networkidle" });
+  assert.ok(await page.getByTestId("interview-manager-link").count(), "/interview links to the manager round");
+  await page.goto(`${BASE}/prep/manager`, { waitUntil: "networkidle" });
+  await page.getByTestId("mgr-questions").waitFor();
+  assert.ok(await page.getByTestId("mgr-ask").count(), "questions to ask the manager");
+  const q = page.getByTestId("mgr-q-ownership-beyond");
+  await q.locator("summary").first().click();
+  const card = page.getByTestId("mgr-card-ownership-beyond");
+  await card.getByTestId("mgr-situation").fill("Checkout latency was hurting conversion and no team owned it.");
+  await card.getByTestId("mgr-task").fill("I decided to own the fix across two teams.");
+  await card
+    .getByTestId("mgr-action")
+    .fill("I led a caching design, aligned both teams and mentored a junior engineer.");
+  await card.getByTestId("mgr-result").fill("p95 latency fell by 40% and we wrote a runbook.");
+  await card.getByTestId("mgr-answer").filter({ hasText: /40%/ }).waitFor();
+  await card.getByTestId("mgr-save").click();
+  await card.getByTestId("mgr-msg").filter({ hasText: /./ }).waitFor();
+  const saved = await db.managerAnswer.findFirst({ where: { userId: demoId, questionId: "ownership-beyond" } });
+  assert.ok(saved, "answer saved");
+  await page.goto(`${BASE}/prep/manager?level=staff`, { waitUntil: "networkidle" });
+  await page.getByTestId("mgr-progress").waitFor();
+  await page.goto(`${BASE}/prep/manager`, { waitUntil: "networkidle" });
+  await shot(page, "manager-desktop");
+  await done(page);
+  const m = await newPage();
+  await login(m);
+  await m.goto(`${BASE}/prep/manager`, { waitUntil: "networkidle" });
+  assert.ok(await noHScroll(m), "/prep/manager: no horizontal scroll at 390px");
+  await shot(m, "manager-mobile");
+  await done(m);
+});
+
+test("offer reply email: accept and counter drafts from the saved offer, fits 390px", async () => {
+  const offer = await db.jobOffer.findFirst({ where: { userId: demoId, applicationId: offerAppId } });
+  if (!offer) return;
+  for (const [viewport, suffix] of [
+    [{ width: 1440, height: 900 }, "desktop"],
+    [{ width: 390, height: 844 }, "mobile"],
+  ]) {
+    const page = await newPage(viewport);
+    await login(page);
+    await page.goto(`${BASE}/closing/${offer.id}#reply`, { waitUntil: "networkidle" });
+    const box = page.getByTestId("offer-reply");
+    await box.waitFor();
+    await box.getByTestId("reply-recruiter").fill("Dana");
+    const accept = await box.getByTestId("reply-draft").inputValue();
+    assert.match(accept, /Dana/);
+    await box.getByTestId("reply-mode-counter").click();
+    await box.getByTestId("reply-asks").waitFor();
+    const target = box.getByTestId("reply-target-0");
+    if (await target.count()) await target.fill("5 extra vacation days");
+    await page.waitForFunction((a) => document.querySelector("[data-testid=reply-draft]")?.value !== a, accept);
+    if (suffix === "mobile") assert.ok(await noHScroll(page), "offer reply: no horizontal scroll at 390px");
+    await box.scrollIntoViewIfNeeded();
+    await shot(page, `offer-email-${suffix}`);
+    await done(page);
+  }
+});
