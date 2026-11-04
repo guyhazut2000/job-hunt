@@ -8,6 +8,7 @@ import { AskedSalary, type AskedSalaryLabels } from "./salary-hub/AskedSalary";
 import { TruncatedText } from "./TruncatedText";
 import type { ApplicationStatus } from "@prisma/client";
 import {
+  ClipboardCheck,
   ClipboardList,
   ExternalLink,
   FileText,
@@ -88,7 +89,7 @@ export function Kanban({
   locale?: string;
   autoLabels?: AutoLabels;
   /** Per-card prep links (tailored CV, interview practice); only the labels given are shown. */
-  prepLabels?: { cv?: string; interview?: string; prep?: string };
+  prepLabels?: { cv?: string; interview?: string; prep?: string; assignments?: string };
   followUpLabels?: FollowUpStrings;
   /** Application id whose follow-up draft should open on load (from a notification link). */
   openFollowUp?: string;
@@ -329,6 +330,16 @@ export function Kanban({
                                 >
                                   <MessagesSquare className="size-3.5" aria-hidden />
                                   {prepLabels.interview}
+                                </a>
+                              )}
+                              {prepLabels.assignments && i.status !== "SAVED" && i.status !== "REJECTED" && (
+                                <a
+                                  href={`/closing/assignments?app=${i.id}`}
+                                  className="text-primary inline-flex min-h-8 items-center gap-1 underline-offset-4 hover:underline"
+                                  data-testid="kanban-assignments"
+                                >
+                                  <ClipboardCheck className="size-3.5" aria-hidden />
+                                  {prepLabels.assignments}
                                 </a>
                               )}
                             </p>

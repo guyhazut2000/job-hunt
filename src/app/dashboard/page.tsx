@@ -28,6 +28,7 @@ import { getPrefs } from "@/lib/notifications/prefs";
 import { requireUser } from "@/lib/session";
 import { salaryHubStrings } from "@/lib/i18n/salary-hub";
 import { prepStrings } from "@/lib/i18n/prep";
+import { closingStrings } from "@/lib/i18n/closing";
 import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +43,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const ms = jobsMapStrings(locale);
   const [apps, contacts, review, prefs] = await Promise.all([
     db.application.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, archivedAt: null },
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
@@ -313,6 +314,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           cv: cvTailorStrings(locale).appCta,
           interview: interviewStrings(locale).practiceCta,
           prep: prepStrings[locale].prepCta,
+          assignments: closingStrings[locale].kanbanAssignments,
         }}
         askedLabels={salaryHubStrings[locale].field}
         locale={locale}

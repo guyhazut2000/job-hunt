@@ -28,7 +28,7 @@ export async function collectDigestData(
       take: 200,
     }),
     db.application.findMany({
-      where: { userId },
+      where: { userId, archivedAt: null },
       select: {
         id: true,
         title: true,

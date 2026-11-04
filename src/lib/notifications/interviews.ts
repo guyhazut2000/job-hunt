@@ -77,6 +77,7 @@ export async function runInterviewReminders(now = new Date()): Promise<{ reminde
     where: {
       interviewAt: { gt: now, lte: new Date(now.getTime() + DAY_WINDOW_H * HOUR) },
       status: { notIn: ["REJECTED"] },
+      archivedAt: null,
     },
     select: {
       id: true,
