@@ -183,7 +183,13 @@ export function AtsView({
               maxLength={12000}
               data-testid="ats-jd"
             />
-            <Button type="button" onClick={onPaste} disabled={pending || jd.trim().length < 20} className="self-start">
+            <Button
+              type="button"
+              onClick={onPaste}
+              disabled={pending || jd.trim().length < 20}
+              className="self-start"
+              data-testid="ats-jd-submit"
+            >
               {pending ? t.checking : t.jobCheck}
             </Button>
             {error && (
