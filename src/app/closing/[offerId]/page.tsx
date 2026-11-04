@@ -23,6 +23,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CopyButton } from "@/components/outreach/CopyButton";
 import { AcceptOffer } from "@/components/closing/AcceptOffer";
+import { OfferReply } from "@/components/closing/OfferReply";
+import { offerReplyStrings } from "@/lib/i18n/offer-reply";
+import { offerInputSchema } from "@/lib/offers/calc";
 import { ChecklistItems } from "@/components/closing/ChecklistItems";
 import { ContractScan } from "@/components/closing/ContractScan";
 import { TransitionList } from "@/components/closing/TransitionList";
@@ -114,8 +117,11 @@ export default async function OfferClosingPage({ params }: { params: Promise<{ o
     ["questions", s.oNav.questions],
     ["scan", s.oNav.scan],
     ["transition", s.oNav.transition],
+    ["reply", s.oNav.reply],
     ["accept", s.oNav.accept],
   ] as const;
+  const rs = offerReplyStrings(locale);
+  const parsedOffer = offerInputSchema.safeParse(offer.data ?? {});
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -347,6 +353,26 @@ export default async function OfferClosingPage({ params }: { params: Promise<{ o
             </Button>
           </div>
         </form>
+      </section>
+
+      <section
+        id="reply"
+        className="bg-card flex scroll-mt-20 flex-col gap-3 rounded-lg border p-4"
+        aria-labelledby="reply-title"
+        data-testid="offer-reply"
+      >
+        <h2 id="reply-title" className="font-heading text-lg font-bold">
+          {rs.title}
+        </h2>
+        <p className="text-muted-foreground -mt-1 text-sm">{rs.lead}</p>
+        <OfferReply
+          s={rs}
+          lang={locale === "en" ? "en" : "he"}
+          company={company}
+          role={role}
+          myName={myName}
+          offer={parsedOffer.success ? parsedOffer.data : null}
+        />
       </section>
 
       <section
