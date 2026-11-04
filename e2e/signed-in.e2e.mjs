@@ -399,3 +399,93 @@ test("weekly coach: 3 recommendations with their numbers, refresh stores the rep
   await shot(page, "coach-notification");
   await done(page);
 });
+
+test("jobs filters (desktop): auto-apply without reload, scroll kept, live count", async () => {
+  const page = await newPage({ width: 1280, height: 900 });
+  await login(page);
+  await page.goto(`${BASE}/jobs?sort=personal`);
+  const form = page.getByTestId("filters-d");
+  await form.waitFor();
+  await page.evaluate(() => {
+    window.__noReload = true;
+    window.scrollTo(0, 300);
+  });
+  const y = await page.evaluate(() => window.scrollY);
+  // No apply button to reach: the submit is only an sr-only Enter fallback.
+  assert.match(await form.locator("button[type=submit]").getAttribute("class"), /sr-only/);
+  await form.locator("label.toggle-chip:has(input[name=posted][value='7d'])").click();
+  await page.waitForURL(/posted=7d/);
+  assert.equal(new URL(page.url()).searchParams.get("sort"), "personal", "sort kept");
+  const live = page.getByTestId("filter-live-count");
+  await page.waitForFunction(() => !document.querySelector("[data-testid=filter-live-count][data-pending]"));
+  assert.equal(await live.getAttribute("aria-live"), "polite");
+  const total = (await page.getByTestId("result-count").locator("span").first().innerText()).trim();
+  assert.match(await live.innerText(), new RegExp(`^${total.replace(",", ",?")} תוצאות$`));
+  // Two quick changes → one navigation with both.
+  const navs = [];
+  page.on("request", (r) => r.isNavigationRequest() || (r.headers()["rsc"] && navs.push(r.url())));
+  const modes = form.locator("input[name=workMode]");
+  await modes.nth(0).check();
+  await modes.nth(1).check();
+  await page.waitForURL((u) => u.searchParams.getAll("workMode").length === 2);
+  await page.waitForFunction(() => !document.documentElement.hasAttribute("data-filter-pending"));
+  assert.ok(navs.filter((u) => u.includes("workMode")).length <= 1, `one debounced fetch, got ${navs.length}`);
+  assert.equal(await page.evaluate(() => window.__noReload), true, "no full reload");
+  assert.ok(Math.abs((await page.evaluate(() => window.scrollY)) - y) < 5, "scroll position kept");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await shot(page, "desktop-auto-apply");
+  await done(page);
+});
+
+test("jobs filters (mobile): floating 'הצג N משרות', chips in the sheet, clear all", async () => {
+  const page = await newPage();
+  await login(page);
+  await page.goto(`${BASE}/jobs?sort=personal&posted=1d`);
+  await page.getByRole("button", { name: /^סינון/ }).click();
+  const sheet = page.getByTestId("filters-m");
+  await sheet.waitFor();
+  const show = page.getByTestId("sheet-show-results");
+  const inView = async () => {
+    const b = await show.boundingBox();
+    return b && b.y >= 0 && b.y + b.height <= 844;
+  };
+  // Let the sheet's slide-in animation settle before measuring.
+  await page
+    .waitForFunction(
+      () => {
+        const el = document.querySelector('[data-testid="sheet-show-results"]');
+        const r = el?.getBoundingClientRect();
+        return r && r.bottom <= innerHeight && r.top >= 0;
+      },
+      null,
+      { timeout: 3000 },
+    )
+    .catch(() => {});
+  assert.ok(await inView(), "button visible without scrolling");
+  assert.match(await show.innerText(), /^הצג [\d,]+ משרות$/);
+  await sheet.getByTestId("sheet-chips").waitFor();
+  await shot(page, "mobile-sheet");
+  await sheet.locator("input[name=workMode]").first().check();
+  await page.waitForURL(/workMode=/);
+  await page.waitForFunction(() => !document.documentElement.hasAttribute("data-filter-pending"));
+  assert.ok(await sheet.isVisible(), "sheet stays open while applying");
+  assert.equal(await sheet.getByTestId("sheet-chips").locator("li").count(), 2);
+  assert.match(await show.innerText(), /^הצג [\d,]+ משרות$/);
+  // Scroll to the bottom of the list: the pill is still on screen.
+  await sheet.locator("select[name=tech]").scrollIntoViewIfNeeded();
+  assert.ok(await inView(), "button stays visible after scrolling the sheet");
+  await shot(page, "mobile-sheet-applied");
+  // One-tap chip removal.
+  await sheet.getByTestId("sheet-chips").locator("a").first().click();
+  await page.waitForURL((u) => !u.searchParams.has("posted"));
+  assert.ok(new URL(page.url()).searchParams.has("workMode"));
+  assert.equal(await sheet.locator("input[name=posted][value='1d']").isChecked(), false, "form reset to the URL");
+  await page.getByTestId("sheet-clear").click();
+  await page.waitForURL((u) => !u.searchParams.has("workMode"));
+  await show.click();
+  await sheet.waitFor({ state: "hidden" });
+  const total = (await page.getByTestId("result-count").locator("span").first().innerText()).trim();
+  assert.ok(Number(total.replace(/,/g, "")) > 0);
+  await shot(page, "mobile-results");
+  await done(page);
+});

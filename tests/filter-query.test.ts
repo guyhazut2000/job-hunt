@@ -13,11 +13,25 @@ describe("buildFilterQuery", () => {
     expect(q).toBe("?view=map&sort=personal&posted=3d&city=Tel+Aviv&city=Haifa");
   });
   it("drops empty values and resets pagination", () => {
-    expect(buildFilterQuery("?page=4&posted=1d", owned, [["posted", ""], ["role", ""]])).toBe("");
+    expect(
+      buildFilterQuery("?page=4&posted=1d", owned, [
+        ["posted", ""],
+        ["role", ""],
+      ]),
+    ).toBe("");
     expect(buildFilterQuery("?page=2", owned, [["role", "BACKEND"]])).toBe("?role=BACKEND");
   });
   it("de-duplicates a value submitted twice", () => {
-    expect(buildFilterQuery("", ["company"], [["company", "acme"], ["company", "acme"]])).toBe("?company=acme");
+    expect(
+      buildFilterQuery(
+        "",
+        ["company"],
+        [
+          ["company", "acme"],
+          ["company", "acme"],
+        ],
+      ),
+    ).toBe("?company=acme");
   });
 });
 

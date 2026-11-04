@@ -38,7 +38,11 @@ export function FilterStatus({
         </span>
       </span>
       {canClear && (
-        <Link href={clearHref} scroll={false} className="text-muted-foreground hover:text-foreground underline underline-offset-4">
+        <Link
+          href={clearHref}
+          scroll={false}
+          className="text-muted-foreground hover:text-foreground underline underline-offset-4"
+        >
           {labels.clearAll}
         </Link>
       )}
