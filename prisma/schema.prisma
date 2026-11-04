@@ -147,6 +147,9 @@ model User {
   rankingPrefs         RankingPrefs?
   outreachPrefs        OutreachPrefs?
   coachReports         CoachReport[]
+  homeAssignments      HomeAssignment[]
+  referees             Referee[]
+  offerClosings        OfferClosing[]
 }
 
 model Profile {
@@ -497,6 +500,12 @@ model Application {
   salaryNote           String?
   offers               JobOffer[]
   referrals            Referral[]
+  /// Final stage (#final-stage): set when the user accepted another offer and archived this one in bulk.
+  /// The status is left as is, so undo only clears these two fields (by archiveBatch).
+  archivedAt           DateTime?
+  archiveBatch         String?
+  homeAssignments      HomeAssignment[]
+  refereeLinks         RefereeLink[]
 
   @@unique([userId, jobId])
   @@index([userId, status])
@@ -1676,15 +1685,18 @@ model OutreachPrefs {
 /// An offer the user received or is considering, compared on /salary/offers (#91). `data` is an
 /// OfferInput (src/lib/offers/calc.ts) — parsed with offerInputSchema on every read.
 model JobOffer {
-  id            String       @id @default(cuid())
+  id            String        @id @default(cuid())
   userId        String
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   applicationId String?
-  application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  application   Application?  @relation(fields: [applicationId], references: [id], onDelete: SetNull)
   label         String
   data          Json
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  /// The user accepted this offer (final stage "signed"); cleared by undo.
+  acceptedAt    DateTime?
+  closing       OfferClosing?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@index([userId])
 }
@@ -1774,4 +1786,86 @@ model InterviewDebrief {
 
   @@index([userId, happenedAt])
   @@index([applicationId])
+}
+
+/// Home assignment / take-home task for an application (final stage). Reminders before dueAt.
+model HomeAssignment {
+  id             String      @id @default(cuid())
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationId  String
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  link           String?
+  receivedAt     DateTime?
+  dueAt          DateTime?
+  estimatedHours Int?
+  /// TODO | IN_PROGRESS | SUBMITTED | FEEDBACK (src/lib/closing/assignments.ts)
+  status         String      @default("TODO")
+  submittedLink  String?
+  submittedAt    DateTime?
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([userId, dueAt])
+  @@index([applicationId])
+}
+
+/// A person who agreed (or may agree) to give a reference. Never contacted by the app.
+model Referee {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  relation        String?
+  company         String?
+  email           String?
+  phone           String?
+  linkedinUrl     String?
+  fitsRoles       String[]      @default([])
+  /// NOT_ASKED | ASKED | AGREED | DECLINED
+  consent         String        @default("NOT_ASKED")
+  lastContactedAt DateTime?
+  notes           String?
+  links           RefereeLink[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+/// Referee given for a specific application: brief before the call, thank after.
+model RefereeLink {
+  id             String      @id @default(cuid())
+  refereeId      String
+  referee        Referee     @relation(fields: [refereeId], references: [id], onDelete: Cascade)
+  applicationId  String
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  expectedCallAt DateTime?
+  briefedAt      DateTime?
+  calledAt       DateTime?
+  thankedAt      DateTime?
+  createdAt      DateTime    @default(now())
+
+  @@unique([refereeId, applicationId])
+  @@index([applicationId])
+}
+
+/// Per-offer final-stage state: contract checklist, optional AI scan, transition plan, acceptance (undo data).
+model OfferClosing {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offerId    String   @unique
+  offer      JobOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  checklist  Json     @default("{}")
+  analysis   Json?
+  transition Json     @default("{}")
+  acceptance Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
 }
