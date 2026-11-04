@@ -110,4 +110,3 @@ export function defaultEmployment(targets: Seniority[]): EmploymentType[] {
   const base: EmploymentType[] = ["FULL_TIME", "PART_TIME", "CONTRACT", "TEMPORARY"];
   return targets.includes("INTERN") ? [...base, "INTERNSHIP"] : base;
 }
-

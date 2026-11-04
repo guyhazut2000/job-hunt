@@ -175,7 +175,15 @@ function Chips<T extends string>({
 }
 
 /** Criteria whose preference comes from the profile (shown as a hint with a link). */
-const FROM_PROFILE: readonly WeightKey[] = ["salary", "seniority", "tech", "location", "commute", "workMode", "companySize"];
+const FROM_PROFILE: readonly WeightKey[] = [
+  "salary",
+  "seniority",
+  "tech",
+  "location",
+  "commute",
+  "workMode",
+  "companySize",
+];
 
 export function RankingForm({
   initial,
