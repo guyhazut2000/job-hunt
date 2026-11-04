@@ -6,7 +6,7 @@ import { buildCoachData, type CoachContact, type CoachData } from "./build";
 export async function collectCoachData(userId: string, now: Date, week?: string): Promise<CoachData> {
   const [rows, contacts, profile] = await Promise.all([
     db.application.findMany({
-      where: { userId },
+      where: { userId, archivedAt: null },
       select: {
         id: true,
         title: true,

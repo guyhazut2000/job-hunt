@@ -11,6 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { getDictionary, isRtl } from "@/lib/i18n";
 import { documentStrings } from "@/lib/i18n/documents";
 import { salaryHubStrings } from "@/lib/i18n/salary-hub";
+import { closingStrings } from "@/lib/i18n/closing";
 import { referralStrings } from "@/lib/i18n/referrals";
 import { statsStrings } from "@/lib/i18n/stats";
 import { coachStrings } from "@/lib/i18n/coach";
@@ -103,6 +104,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 coach: coachStrings(locale).nav,
                 salary: salaryHubStrings[locale].title,
                 referrals: referralStrings[locale].kicker,
+                closing: closingStrings[locale].navLabel,
                 admin: t.nav.admin,
                 features: t.nav.features,
                 language: t.nav.language,
