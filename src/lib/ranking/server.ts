@@ -3,10 +3,35 @@ import type { Company, Job, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { emailResponses } from "@/lib/followup/server";
 import { matchCompanies, searchWhere, type CompanyLike } from "@/lib/jobs/search";
-import { type Candidate, scoreMatch } from "@/lib/profile/score";
+import { type Candidate, inferSeniorityFromYears, scoreMatch } from "@/lib/profile/score";
+import { estimateSalary } from "@/lib/salary/estimate";
+import { companyTier, type CompanyTier } from "@/lib/salary/company-tier";
 import { loadCompanyLexicon } from "@/lib/search/lexicon-server";
 import { parseSearchQuery } from "@/lib/search/query";
-import { compilePrefs, normalizePrefs, type PersonalResult, personalScore, type RankingPrefs } from "./personal";
+import {
+  compilePrefs,
+  isOn,
+  matchCore,
+  normalizePrefs,
+  type PersonalResult,
+  personalScore,
+  type RankingPrefs,
+  type WeightKey,
+} from "./personal";
+import {
+  companySizeValue,
+  defaultEmployment,
+  employmentValue,
+  industriesOf,
+  industryValue,
+  locationValue,
+  salaryValue,
+  seniorityValue,
+  techValue,
+  workModeValue,
+  type CompanyType,
+  type Industry,
+} from "./criteria";
 
 export async function getRankingPrefs(userId: string | undefined): Promise<RankingPrefs | null> {
   if (!userId) return null;
@@ -31,6 +56,25 @@ export async function respondedCompanies(userId: string): Promise<Set<string>> {
   return out;
 }
 
+/** Companies where the user has an insider contact (#100 referrals). */
+export async function insiderCompanies(userId: string): Promise<Set<string>> {
+  const rows = await db.contact.findMany({
+    where: { userId, insider: true, companyId: { not: null } },
+    select: { companyId: true },
+    distinct: ["companyId"],
+  });
+  return new Set(rows.map((r) => r.companyId).filter((id): id is string => !!id));
+}
+
+const TIER_TYPE: Record<CompanyTier, CompanyType> = { early: "startup", growth: "mid", established: "enterprise" };
+
+/** Top of the pay range the job is likely to offer (monthly ILS), or null when unknown / low confidence. */
+export function offeredSalary(job: Job & { company: Company }): number | null {
+  const e = estimateSalary({ job: { ...job, description: job.description ?? "" }, company: job.company });
+  if (e.posted) return e.posted.max ?? e.posted.min ?? null;
+  return e.confidence === "low" ? null : e.p75;
+}
+
 export type PersonalRow = { job: Job & { company: Company }; score: number; personal: PersonalResult };
 
 /**
@@ -48,9 +92,10 @@ export async function rankPersonal(opts: {
   const { prefs, candidate } = opts;
   const lexicon = prefs.include.length || prefs.exclude.length ? await loadCompanyLexicon() : undefined;
   const compiled = compilePrefs(prefs, (q) => parseSearchQuery(q, { companies: lexicon }));
-  const [jobs, responded, textHits] = await Promise.all([
+  const on = (k: WeightKey) => isOn(prefs, k);
+  const [jobs, responded, textHits, profile, insiders] = await Promise.all([
     db.job.findMany({ where: opts.where, include: { company: true }, omit: { description: true } }),
-    respondedCompanies(opts.userId),
+    on("response") ? respondedCompanies(opts.userId) : Promise.resolve(new Set<string>()),
     Promise.all(
       compiled.include.map(async (k) => {
         const ids = await db.job.findMany({
@@ -60,15 +105,62 @@ export async function rankPersonal(opts: {
         return new Set(ids.map((j) => j.id));
       }),
     ),
+    on("salary") || on("companySize")
+      ? db.profile.findUnique({ where: { userId: opts.userId }, select: { salaryMin: true, companyTypes: true } })
+      : Promise.resolve(null),
+    on("referral") ? insiderCompanies(opts.userId) : Promise.resolve(new Set<string>()),
   ]);
+  // Seeker preferences, derived from the profile unless set on the ranking page.
+  const expected = prefs.salaryMin ?? profile?.salaryMin ?? null;
+  const targets = candidate
+    ? candidate.targetSeniorities.length
+      ? candidate.targetSeniorities
+      : candidate.totalYears != null
+        ? [inferSeniorityFromYears(candidate.totalYears)]
+        : []
+    : [];
+  const employment = prefs.employment.length ? prefs.employment : defaultEmployment(targets);
+  const companyTypes = (prefs.companyTypes.length ? prefs.companyTypes : (profile?.companyTypes ?? [])).filter(
+    (t): t is CompanyType => t === "startup" || t === "mid" || t === "enterprise",
+  );
+  const perCompany = new Map<string, { industries: Industry[]; type: CompanyType | null }>();
+  const companyInfo = (c: Company) => {
+    let v = perCompany.get(c.id);
+    if (!v) {
+      const t = companyTier(c);
+      v = { industries: industriesOf(c.industry), type: t.basis === "default" ? null : TIER_TYPE[t.tier] };
+      perCompany.set(c.id, v);
+    }
+    return v;
+  };
   let hidden = 0;
   const rows: PersonalRow[] = [];
   for (const j of jobs) {
     const m = candidate ? scoreMatch(candidate, j) : null;
+    const ci = companyInfo(j.company);
     const personal = personalScore({
       job: j,
-      match: m ? m.score : null,
-      missingSkills: m ? m.missingSkills.length : null,
+      match: m && candidate ? matchCore(m, candidate.targetRoles.length > 0, on) : null,
+      values: {
+        salary: on("salary") ? salaryValue(expected, offeredSalary({ ...j, description: "" })) : null,
+        seniority: seniorityValue(j.seniority, targets),
+        tech:
+          m && candidate
+            ? techValue({
+                techStack: j.techStack,
+                skillShare: Math.round((m.parts.skills / 50) * 100),
+                wanted: candidate.wantedTech,
+                avoid: candidate.avoidTech,
+              })
+            : null,
+        domain: industryValue(ci.industries, prefs.industries),
+        location: locationValue(j, candidate?.regions ?? []),
+        workMode: workModeValue(j.workMode, candidate?.workModes ?? []),
+        employment: employmentValue(j.employmentType, employment),
+        companySize: companySizeValue(ci.type, companyTypes),
+        referral: insiders.has(j.companyId) ? 100 : null,
+      },
+      off: prefs.off,
       include: compiled.include,
       exclude: compiled.exclude,
       inText: (i) => textHits[i]?.has(j.id) ?? false,

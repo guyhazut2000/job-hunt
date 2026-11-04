@@ -35,12 +35,12 @@ const input = (over: Partial<PersonalInput> & { prefs?: unknown } = {}): Persona
   return {
     job: job(),
     match: 70,
-    missingSkills: 1,
     include: c.include,
     exclude: c.exclude,
     inText: () => false,
     companyResponded: false,
     weights: prefs.weights,
+    off: prefs.off,
     now,
     ...over,
   };
@@ -60,7 +60,9 @@ describe("normalizePrefs", () => {
     expect(p.include.map((k) => k.term)).toEqual(["React", "Node"]);
     expect(p.include[1]).toMatchObject({ weight: 3, must: true });
     expect(p.exclude).toEqual(["PHP"]);
-    expect(p.weights).toEqual({ ...DEFAULT_WEIGHTS, recency: 0 });
+    // Legacy weight 0 ("ignore") = switched off, keeping the default importance for when it's turned back on.
+    expect(p.weights).toEqual(DEFAULT_WEIGHTS);
+    expect(p.off).toEqual(["recency"]);
   });
   it("rejects out-of-range weights", () => {
     expect(normalizePrefs({ include: [{ term: "x", weight: 9 }] }).include).toEqual([]);
@@ -125,17 +127,17 @@ describe("personalScore", () => {
     );
   });
 
-  it("likely-response: the company answered before + few gaps", () => {
-    const a = personalScore(input({ companyResponded: true, missingSkills: 0 }));
-    const b = personalScore(input({ companyResponded: false, missingSkills: 5 }));
+  it("likely-response: only a known reply counts; no reply = no data (not 0)", () => {
+    const a = personalScore(input({ companyResponded: true }));
+    const b = personalScore(input({ companyResponded: false }));
     expect(a.parts.response).toBe(100);
-    expect(b.parts.response).toBe(20); // fresh posting only
+    expect(b.parts.response).toBeNull();
     expect(a.score).toBeGreaterThan(b.score);
-    expect(a.reasons.map((r) => r.key)).toEqual(expect.arrayContaining(["responded", "gaps", "match", "fresh"]));
+    expect(a.reasons.map((r) => r.key)).toEqual(expect.arrayContaining(["responded", "match", "fresh"]));
   });
 
   it("works without a profile (match part dropped) and stays within 0..100", () => {
-    const r = personalScore(input({ match: null, missingSkills: null }));
+    const r = personalScore(input({ match: null }));
     expect(r.parts.match).toBeNull();
     expect(r.reasons.some((x) => x.key === "match")).toBe(false);
     expect(r.score).toBeGreaterThanOrEqual(0);
@@ -185,7 +187,6 @@ describe("reason texts", () => {
     expect(reasonText({ key: "keyword", term: "React", place: "title", points: 10 }, s)).toBe("“React” בכותרת");
     expect(reasonText({ key: "fresh", days: 0, points: 5 }, s)).toBe("פורסמה היום");
     expect(reasonText({ key: "fresh", days: 3, points: 5 }, s)).toBe("פורסמה לפני 3 ימים");
-    expect(reasonText({ key: "gaps", missing: 0, points: 5 }, s)).toBe("אין פערים בכישורים");
     expect(reasonText({ key: "match", score: 82, points: 40 }, s)).toBe("התאמה לפרופיל 82%");
   });
 });
