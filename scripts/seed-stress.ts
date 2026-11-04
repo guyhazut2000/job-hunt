@@ -11,11 +11,64 @@ if (!/@(localhost|127\.0\.0\.1)(:\d+)?\//.test(url)) {
   process.exit(1);
 }
 const db = new PrismaClient();
-const N = { companies: 400, jobs: 3000, apps: 400, contacts: 300, referrals: 120, notifications: 400, searches: 60, salary: 150 };
+const N = {
+  companies: 400,
+  jobs: 3000,
+  apps: 400,
+  contacts: 300,
+  referrals: 120,
+  notifications: 400,
+  searches: 60,
+  salary: 150,
+};
 const DAY = 86_400_000;
-const pick = <T,>(a: readonly T[], i: number) => a[i % a.length];
-const TECH = ["TypeScript", "React", "Node.js", "Python", "Go", "Kubernetes", "AWS", "GCP", "PostgreSQL", "Redis", "Kafka", "Terraform", "Java", "Spring", "C++", "Rust", "GraphQL", "Docker", "Next.js", "Vue", "Angular", "Spark", "Airflow", "Snowflake", "dbt", "PyTorch", "TensorFlow", "Linux", "CI/CD", "Elasticsearch"];
-const CITIES = ["Tel Aviv", "Herzliya", "Haifa", "Jerusalem", "Petah Tikva", "Ra'anana", "Ramat Gan", "Be'er Sheva", "Netanya", "Rehovot", "Yokneam", "Hod HaSharon"];
+const pick = <T>(a: readonly T[], i: number) => a[i % a.length];
+const TECH = [
+  "TypeScript",
+  "React",
+  "Node.js",
+  "Python",
+  "Go",
+  "Kubernetes",
+  "AWS",
+  "GCP",
+  "PostgreSQL",
+  "Redis",
+  "Kafka",
+  "Terraform",
+  "Java",
+  "Spring",
+  "C++",
+  "Rust",
+  "GraphQL",
+  "Docker",
+  "Next.js",
+  "Vue",
+  "Angular",
+  "Spark",
+  "Airflow",
+  "Snowflake",
+  "dbt",
+  "PyTorch",
+  "TensorFlow",
+  "Linux",
+  "CI/CD",
+  "Elasticsearch",
+];
+const CITIES = [
+  "Tel Aviv",
+  "Herzliya",
+  "Haifa",
+  "Jerusalem",
+  "Petah Tikva",
+  "Ra'anana",
+  "Ramat Gan",
+  "Be'er Sheva",
+  "Netanya",
+  "Rehovot",
+  "Yokneam",
+  "Hod HaSharon",
+];
 const ROLES = ["fullstack", "backend", "frontend", "devops", "data", "mobile", "qa", "security", "ml"];
 const SEN = ["JUNIOR", "MID", "SENIOR", "LEAD"] as const;
 const LEVELS = ["ENTRY", "MID", "SENIOR", "LEAD", "MANAGER"] as const;
@@ -51,7 +104,8 @@ async function main() {
   await db.company.createMany({
     data: Array.from({ length: N.companies }, (_, i) => ({
       slug: `stress-co-${i}`,
-      name: i % 7 === 0 ? `Stress Company With A Very Long Legal Name International Holdings ${i} Ltd.` : `Stress Co ${i}`,
+      name:
+        i % 7 === 0 ? `Stress Company With A Very Long Legal Name International Holdings ${i} Ltd.` : `Stress Co ${i}`,
       industry: pick(["SaaS", "Fintech", "Cyber", "Health", "AdTech", "Gaming", "Semiconductors"], i),
       hqLocation: pick(CITIES, i),
       description: LONG.repeat(1 + (i % 3)),
@@ -60,7 +114,11 @@ async function main() {
       addedVia: "stress",
     })),
   });
-  const cos = await db.company.findMany({ where: { slug: { startsWith: "stress-" } }, select: { id: true, name: true, slug: true }, orderBy: { slug: "asc" } });
+  const cos = await db.company.findMany({
+    where: { slug: { startsWith: "stress-" } },
+    select: { id: true, name: true, slug: true },
+    orderBy: { slug: "asc" },
+  });
 
   for (let b = 0; b < N.jobs; b += 500) {
     await db.job.createMany({
@@ -96,7 +154,11 @@ async function main() {
       }),
     });
   }
-  const jobs = await db.job.findMany({ where: { externalId: { startsWith: "stress-" } }, select: { id: true, title: true, companyId: true }, take: N.apps });
+  const jobs = await db.job.findMany({
+    where: { externalId: { startsWith: "stress-" } },
+    select: { id: true, title: true, companyId: true },
+    take: N.apps,
+  });
   const coName = new Map(cos.map((c) => [c.id, c.name]));
 
   await db.application.createMany({
@@ -113,7 +175,10 @@ async function main() {
     })),
     skipDuplicates: true,
   });
-  const apps = await db.application.findMany({ where: { userId: demo.id, notes: { startsWith: "stress-" } }, select: { id: true, jobId: true } });
+  const apps = await db.application.findMany({
+    where: { userId: demo.id, notes: { startsWith: "stress-" } },
+    select: { id: true, jobId: true },
+  });
 
   await db.contact.createMany({
     data: Array.from({ length: N.contacts }, (_, i) => ({
@@ -132,7 +197,10 @@ async function main() {
       statusAt: new Date(now - (i % 20) * DAY),
     })),
   });
-  const contacts = await db.contact.findMany({ where: { userId: demo.id, notes: { startsWith: "stress-" } }, select: { id: true } });
+  const contacts = await db.contact.findMany({
+    where: { userId: demo.id, notes: { startsWith: "stress-" } },
+    select: { id: true },
+  });
 
   await db.referral.createMany({
     data: Array.from({ length: N.referrals }, (_, i) => ({
@@ -181,22 +249,24 @@ async function main() {
     })),
   });
 
-  await db.emailCandidate.createMany({
-    data: Array.from({ length: 200 }, (_, i) => ({
-      userId: demo.id,
-      provider: "GMAIL" as const,
-      messageId: `stress-${i}`,
-      fromAddress: `jobs@stress-${i}.example.com`,
-      subject: `Your application to Stress Co ${i} — update on the Senior Engineer role`,
-      receivedAt: new Date(now - i * 3600_000),
-      kind: "STATUS_UPDATE" as const,
-      detectedStatus: pick(STATUSES, i),
-      company: `Stress Co ${i}`,
-      title: "Senior Engineer",
-      confidence: 40 + (i % 60),
-      reasons: ["subject", "sender"],
-    })),
-  }).catch((e) => console.warn("emailCandidate skipped:", String(e).slice(0, 160)));
+  await db.emailCandidate
+    .createMany({
+      data: Array.from({ length: 200 }, (_, i) => ({
+        userId: demo.id,
+        provider: "GMAIL" as const,
+        messageId: `stress-${i}`,
+        fromAddress: `jobs@stress-${i}.example.com`,
+        subject: `Your application to Stress Co ${i} — update on the Senior Engineer role`,
+        receivedAt: new Date(now - i * 3600_000),
+        kind: "STATUS_UPDATE" as const,
+        detectedStatus: pick(STATUSES, i),
+        company: `Stress Co ${i}`,
+        title: "Senior Engineer",
+        confidence: 40 + (i % 60),
+        reasons: ["subject", "sender"],
+      })),
+    })
+    .catch((e) => console.warn("emailCandidate skipped:", String(e).slice(0, 160)));
 
   await db.companyFollow.createMany({
     data: cos.slice(0, 80).map((c) => ({ userId: demo.id, companyId: c.id })),

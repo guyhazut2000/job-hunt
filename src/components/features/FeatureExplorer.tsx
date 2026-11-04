@@ -192,7 +192,7 @@ export function FeatureExplorer({
         <h2 id="whats-new" className="text-2xl font-bold">
           מה חדש
         </h2>
-        <ol className="flex flex-col gap-5">
+        <ShowMoreList as="ol" initial={3} step={7} className="flex flex-col gap-5" s={D} testId="whats-new-days">
           {days.map((d) => (
             <li key={d} className="flex flex-col gap-2">
               <h3 className="kicker">{fmtDate(d)}</h3>
@@ -214,7 +214,7 @@ export function FeatureExplorer({
               </ul>
             </li>
           ))}
-        </ol>
+        </ShowMoreList>
       </section>
     </div>
   );
