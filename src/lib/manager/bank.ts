@@ -4,6 +4,7 @@
  * common public sources (Amazon Leadership Principles, Google re:Work structured interviewing, StaffEng, MIT CAPD
  * STAR guide, Tech Interview Handbook) — no question here is presented as "asked at" any specific company.
  */
+import type { LLMMessage } from "@/lib/ai/types";
 
 export type Lang = "he" | "en";
 type T = Record<Lang, string>;
@@ -335,4 +336,33 @@ export function checkSignals(f: Partial<StarFields>, wanted: readonly SignalId[]
     firstPerson: !!n.action && iCount >= weCount && iCount > 0,
   };
   return wanted.map((id) => ({ id, ok: test[id] }));
+}
+
+// ---------- optional AI polish (guarded; the template above is the fallback) ----------
+
+/** Maps STAR fields onto the work-story shape so the shared fact guard (validatePolish) can check them. */
+export const starAsStory = (f: StarFields) => {
+  const n = normalizeStar(f);
+  return { situation: [n.situation, n.task].filter(Boolean).join(" "), built: n.action, why: "", result: n.result };
+};
+
+export function managerPolishPrompt(q: ManagerQuestion, f: StarFields, lang: Lang): LLMMessage[] {
+  const n = normalizeStar(f);
+  const language = lang === "he" ? "Hebrew (keep technical terms and tool names in English)" : "English";
+  return [
+    {
+      role: "system",
+      content:
+        "You help a senior software engineer rehearse a hiring-manager interview answer in the STAR format. " +
+        "Rewrite the candidate's notes into a spoken answer of 90-180 words, first person singular. " +
+        "Use ONLY facts in the notes: do not add numbers, tools, team sizes, companies or outcomes that are not written there. " +
+        "If a part is missing, leave it out rather than inventing it. Plain text, no markdown, no headings.",
+    },
+    {
+      role: "user",
+      content:
+        `Question: ${q.q.en}\nAnswer in ${language}.\n` +
+        `Situation: ${n.situation || "-"}\nTask: ${n.task || "-"}\nAction: ${n.action || "-"}\nResult: ${n.result || "-"}`,
+    },
+  ];
 }
