@@ -34,6 +34,7 @@ export default async function RankingPage() {
     seniority: list(seniorities.map((x) => t.seniority[x] ?? x)),
     tech: c?.skills.length ? String(c.skills.length) : "",
     location: list((c?.regions ?? []).map((r) => t.pv2.regionNames[r] ?? r)),
+    commute: profile?.location?.trim() ?? "",
     workMode: list((c?.workModes ?? []).map((m) => t.workMode[m] ?? m)),
     companySize: list(
       (profile?.companyTypes ?? []).map((x) => (t.pv2.companyTypeNames as Record<string, string>)[x] ?? x),

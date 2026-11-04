@@ -672,8 +672,15 @@ export const FEATURES: Feature[] = [
     routes: ["/jobs/ranking"],
     href: "/jobs/ranking",
     added: "2026-11-03",
-    prs: [88, 107],
+    prs: [88, 107, 110],
     issue: 84,
+    updates: [
+      {
+        date: "2026-11-04",
+        text: "קריטריון חדש: מרחק נסיעה מעיר המגורים בפרופיל לעיר המשרה (עברית או אנגלית). המיון האישי משמש עכשיו גם את משרות השדרוג ואת ההתראות על חיפושים שמורים",
+        pr: 110,
+      },
+    ],
     keywords: [
       "keywords",
       "ranking",
@@ -688,6 +695,7 @@ export const FEATURES: Feature[] = [
       "work model",
       "company size",
       "referral",
+      "commute",
     ],
   },
   {
@@ -703,9 +711,14 @@ export const FEATURES: Feature[] = [
     routes: ["/jobs/step-up"],
     href: "/jobs/step-up",
     added: "2026-11-03",
-    prs: [89, 99],
+    prs: [89, 99, 110],
     issue: 85,
     updates: [
+      {
+        date: "2026-11-04",
+        text: "מסודר לפי הציון האישי שלך (אותם קריטריונים כמו במיון האישי), עם 'למה X?' ופירוט לפי קריטריון בכל כרטיס",
+        pr: 110,
+      },
       {
         date: "2026-11-03",
         text: "המסלול הטכני (Staff / ארכיטקט / פלטפורמה) כבר לא ריק: חיפוש ייעודי, נפתח כבר מדרגת Mid, והסבר ברור כשאין משרות",
@@ -753,7 +766,14 @@ export const FEATURES: Feature[] = [
     routes: ["/jobs", "/settings/notifications"],
     href: "/jobs",
     added: "2026-10-28",
-    prs: [48],
+    prs: [48, 110],
+    updates: [
+      {
+        date: "2026-11-04",
+        text: "ההתראה מסדרת את המשרות החדשות לפי הציון האישי שלך, וסף 'התאמה' בחיפוש השמור נבדק מול הציון האישי. משרות שהמילים שלך מסתירות לא נשלחות",
+        pr: 110,
+      },
+    ],
     keywords: ["saved search", "alert"],
   },
   {

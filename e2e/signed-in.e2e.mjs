@@ -278,6 +278,7 @@ test("keyword ranking: include/exclude keywords reorder 'התאמה אישית'"
   const page = await newPage();
   await login(page);
   await page.goto(`${BASE}/jobs/ranking`);
+  await page.getByTestId("weight-commute").waitFor(); // commute criterion (#109)
   await page.fill("[data-testid=inc-input]", "TypeScript");
   await page.click("[data-testid=inc-add]");
   await page.fill("[data-testid=exc-input]", "PHP");
@@ -292,6 +293,18 @@ test("keyword ranking: include/exclude keywords reorder 'התאמה אישית'"
   assert.ok(php === -1 || ts < php, "excluded keyword ranks lower");
   assert.ok((await page.getByTestId("personal-score").count()) > 0);
   await shot(page, "ranking-jobs");
+  await done(page);
+});
+
+test("step-up ranks by the personal score with a 'why' breakdown (#109)", async () => {
+  const page = await newPage();
+  await login(page);
+  await page.goto(`${BASE}/jobs/step-up`);
+  await page.getByTestId("stepup-ranked-by").waitFor();
+  if ((await page.getByTestId("stepup-gap").count()) > 0) {
+    assert.ok((await page.getByTestId("personal-why").count()) > 0, "breakdown on step-up cards");
+  }
+  await shot(page, "step-up-personal");
   await done(page);
 });
 

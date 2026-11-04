@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/ranking/server", () => ({ getRankingPrefs: vi.fn(), rankPersonal: vi.fn() }));
 import { backoffMs } from "@/lib/notifications/deliver";
 import { channelEnabled, channelOfType, isKind, parseOverrides } from "@/lib/notifications/kinds";
 import { clampHour, DEFAULT_QUIET, isQuiet, israelClock, nextAllowedAt } from "@/lib/notifications/quiet";

@@ -51,6 +51,7 @@ const he = {
     stretch: "יש כמה פערים. אפשר להגיש אם יש לכם פרויקט או ניסיון קרוב שממלא אותם — כדאי לציין אותו במפורש.",
     far: "הפער כרגע גדול. שווה לשמור את המשרה כיעד ולסגור קודם את הפערים.",
   } satisfies Record<Verdict, string>,
+  rankedBy: "מסודר קודם לפי מה שאפשר להגיש כבר עכשיו, ובתוך זה לפי הציון האישי שלך — אותם קריטריונים כמו במיון האישי.",
   honest:
     "כללי אצבע, לא תחזית: הבכירות מזוהה מהכותרת ומשנות הניסיון שבמודעה, ושלבי הקריירה הם מפה שבנינו ידנית. הפערים מבוססים רק על מה שכתוב בפרופיל שלך.",
   count: "{n} משרות שדרוג",
@@ -111,6 +112,8 @@ const en: Strings = {
     stretch: "A few gaps. Apply if you have a project or nearby experience that covers them — say so explicitly.",
     far: "The gap is big for now. Save it as a target and close the gaps first.",
   },
+  rankedBy:
+    "Sorted by what you can apply to now first, then by your personal score — the same criteria as your personal ranking.",
   honest:
     "Rules of thumb, not a prediction: seniority comes from the title and the years the ad asks for, and the career steps are a hand-made map. Gaps are based only on what your profile says.",
   count: "{n} step-up jobs",

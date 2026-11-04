@@ -32,6 +32,7 @@ import {
   type CompanyType,
   type Industry,
 } from "./criteria";
+import { commuteValue, homePoint } from "./commute";
 
 export async function getRankingPrefs(userId: string | undefined): Promise<RankingPrefs | null> {
   if (!userId) return null;
@@ -105,12 +106,16 @@ export async function rankPersonal(opts: {
         return new Set(ids.map((j) => j.id));
       }),
     ),
-    on("salary") || on("companySize")
-      ? db.profile.findUnique({ where: { userId: opts.userId }, select: { salaryMin: true, companyTypes: true } })
+    on("salary") || on("companySize") || on("commute")
+      ? db.profile.findUnique({
+          where: { userId: opts.userId },
+          select: { salaryMin: true, companyTypes: true, location: true },
+        })
       : Promise.resolve(null),
     on("referral") ? insiderCompanies(opts.userId) : Promise.resolve(new Set<string>()),
   ]);
   // Seeker preferences, derived from the profile unless set on the ranking page.
+  const home = on("commute") ? homePoint(profile?.location) : null;
   const expected = prefs.salaryMin ?? profile?.salaryMin ?? null;
   const targets = candidate
     ? candidate.targetSeniorities.length
@@ -155,6 +160,7 @@ export async function rankPersonal(opts: {
             : null,
         domain: industryValue(ci.industries, prefs.industries),
         location: locationValue(j, candidate?.regions ?? []),
+        commute: commuteValue(home, j),
         workMode: workModeValue(j.workMode, candidate?.workModes ?? []),
         employment: employmentValue(j.employmentType, employment),
         companySize: companySizeValue(ci.type, companyTypes),
