@@ -60,7 +60,11 @@ export default async function CvStandardPage({
       <Link href="/cv/ats" className="text-primary self-start text-sm font-semibold underline" data-testid="to-ats">
         {t.toAts}
       </Link>
-      <Link href="/cv/linkedin" className="text-primary self-start text-sm font-semibold underline" data-testid="to-linkedin">
+      <Link
+        href="/cv/linkedin"
+        className="text-primary self-start text-sm font-semibold underline"
+        data-testid="to-linkedin"
+      >
         {t.toLinkedin}
       </Link>
     </header>

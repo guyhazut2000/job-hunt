@@ -26,8 +26,16 @@ export const MAX_FEATURED = 6;
 export const DEFAULT_RECS_GOAL = 3;
 
 export const LINKEDIN_SOURCES = [
-  { id: "helpProfile", label: "LinkedIn Help: Create a good LinkedIn profile", url: "https://www.linkedin.com/help/linkedin/answer/a554351" },
-  { id: "helpAbout", label: "LinkedIn Help: Edit the About section", url: "https://www.linkedin.com/help/linkedin/answer/a553140" },
+  {
+    id: "helpProfile",
+    label: "LinkedIn Help: Create a good LinkedIn profile",
+    url: "https://www.linkedin.com/help/linkedin/answer/a554351",
+  },
+  {
+    id: "helpAbout",
+    label: "LinkedIn Help: Edit the About section",
+    url: "https://www.linkedin.com/help/linkedin/answer/a553140",
+  },
 ] as const;
 
 const urlish = z.string().trim().max(300);
@@ -132,7 +140,11 @@ function roleWords(role: string): string[] {
 }
 function mentionsRole(text: string, roles: string[]): boolean {
   const t = normText(text);
-  return roles.some((r) => contains(t, r) || (roleWords(r).length > 0 && roleWords(r).filter((w) => t.includes(w)).length >= Math.min(2, roleWords(r).length)));
+  return roles.some(
+    (r) =>
+      contains(t, r) ||
+      (roleWords(r).length > 0 && roleWords(r).filter((w) => t.includes(w)).length >= Math.min(2, roleWords(r).length)),
+  );
 }
 
 export function topSkills(cv: CvContent, n = 5): string[] {
@@ -159,7 +171,9 @@ export function evaluateLinkedin(raw: LinkedinInput, ctx: LinkedinContext): Link
       n: headline.length,
       max: HEADLINE_MAX,
     });
-    add("headlineRole", !roles.length ? "na" : mentionsRole(headline, roles) ? "pass" : "warn", { role: roles[0] ?? "" });
+    add("headlineRole", !roles.length ? "na" : mentionsRole(headline, roles) ? "pass" : "warn", {
+      role: roles[0] ?? "",
+    });
     const hit = skills.filter((s) => contains(headline, s));
     add("headlineSkills", !skills.length ? "na" : hit.length >= 2 ? "pass" : hit.length ? "warn" : "fail", {
       n: hit.length,
@@ -180,7 +194,8 @@ export function evaluateLinkedin(raw: LinkedinInput, ctx: LinkedinContext): Link
       min: ABOUT_MIN,
     });
     const hook = about.slice(0, ABOUT_HOOK);
-    const hookOk = (roles.length && mentionsRole(hook, roles)) || hasMetric(hook) || skills.some((s) => contains(hook, s));
+    const hookOk =
+      (roles.length && mentionsRole(hook, roles)) || hasMetric(hook) || skills.some((s) => contains(hook, s));
     add("aboutHook", hookOk ? "pass" : "warn", { n: ABOUT_HOOK });
     add("aboutNumbers", hasMetric(about) ? "pass" : "warn");
     add("aboutRole", !roles.length ? "na" : mentionsRole(about, roles) ? "pass" : "warn", { role: roles[0] ?? "" });
@@ -236,10 +251,14 @@ export function evaluateLinkedin(raw: LinkedinInput, ctx: LinkedinContext): Link
     n: missingTitles.length,
     total: cvTitles.length,
   });
-  add("cvSkills", !input.skills.trim() || !cvSkills.length ? "na" : missingSkills.length > cvSkills.length / 3 ? "warn" : "pass", {
-    n: missingSkills.length,
-    total: cvSkills.length,
-  });
+  add(
+    "cvSkills",
+    !input.skills.trim() || !cvSkills.length ? "na" : missingSkills.length > cvSkills.length / 3 ? "warn" : "pass",
+    {
+      n: missingSkills.length,
+      total: cvSkills.length,
+    },
+  );
 
   const scored = checks.filter((c) => c.status !== "na");
   const buzzwords = [...new Set(findBuzzwords(`${headline}\n${about}`).map((b) => b.word))];
@@ -326,7 +345,14 @@ export function cvCorpus(cv: CvContent): string {
     cv.headline,
     cv.summary,
     ...cv.skills,
-    ...[...cv.experience, ...cv.projects].flatMap((e) => [e.title, e.org, e.start, e.end, ...e.bullets, ...(e.tech ?? [])]),
+    ...[...cv.experience, ...cv.projects].flatMap((e) => [
+      e.title,
+      e.org,
+      e.start,
+      e.end,
+      ...e.bullets,
+      ...(e.tech ?? []),
+    ]),
   ].join("\n");
 }
 

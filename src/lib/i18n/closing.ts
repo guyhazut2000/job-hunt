@@ -100,7 +100,14 @@ export const closingStrings = {
     rUnlink: "הסרה",
     // offer page
     oTitle: "בדיקת חוזה ומעבר",
-    oNav: { contract: "החוזה", questions: "שאלות", scan: "בדיקת טקסט", transition: "מעבר", reply: "מייל תשובה", accept: "קבלת ההצעה" },
+    oNav: {
+      contract: "החוזה",
+      questions: "שאלות",
+      scan: "בדיקת טקסט",
+      transition: "מעבר",
+      reply: "מייל תשובה",
+      accept: "קבלת ההצעה",
+    },
     oNotFound: "ההצעה לא נמצאה.",
     cTitle: "צ'קליסט סעיפי חוזה",
     cLead: "עוברים על כל סעיף בחוזה ומסמנים: תקין, או לבירור. ההערות נשמרות להצעה הזו.",

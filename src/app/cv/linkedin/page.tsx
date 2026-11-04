@@ -26,7 +26,11 @@ export default async function LinkedinProfilePage() {
   ]);
   const initialSuggestion =
     draft.suggestions && draft.suggestions.lang === lang
-      ? { headline: draft.suggestions.headline, about: draft.suggestions.about, source: draft.aiSource === "ai" ? ("ai" as const) : ("template" as const) }
+      ? {
+          headline: draft.suggestions.headline,
+          about: draft.suggestions.about,
+          source: draft.aiSource === "ai" ? ("ai" as const) : ("template" as const),
+        }
       : { headline: suggestHeadline(ctx, lang), about: suggestAbout(ctx, lang), source: "template" as const };
 
   return (
@@ -68,7 +72,12 @@ export default async function LinkedinProfilePage() {
         <ul className="flex flex-col gap-1">
           {LINKEDIN_SOURCES.map((src) => (
             <li key={src.id}>
-              <a href={src.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline underline-offset-2">
+              <a
+                href={src.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 underline underline-offset-2"
+              >
                 <bdi dir="ltr">{src.label}</bdi>
                 <ExternalLink className="size-3" aria-hidden />
               </a>
@@ -77,9 +86,15 @@ export default async function LinkedinProfilePage() {
         </ul>
         <h2 className="mt-2 font-bold">{s.related}</h2>
         <p className="flex flex-wrap gap-x-4 gap-y-1">
-          <Link href="/cv/standard" className="underline underline-offset-2">{s.relCv}</Link>
-          <Link href="/cv/ats" className="underline underline-offset-2">{s.relAts}</Link>
-          <Link href="/outreach" className="underline underline-offset-2">{s.relOutreach}</Link>
+          <Link href="/cv/standard" className="underline underline-offset-2">
+            {s.relCv}
+          </Link>
+          <Link href="/cv/ats" className="underline underline-offset-2">
+            {s.relAts}
+          </Link>
+          <Link href="/outreach" className="underline underline-offset-2">
+            {s.relOutreach}
+          </Link>
         </p>
       </footer>
     </div>

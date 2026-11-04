@@ -1,6 +1,7 @@
 # Hiring-manager round and offer reply (#119)
 
 ## /prep/manager
+
 Lib `src/lib/manager/bank.ts`, actions `src/app/prep/manager/actions.ts`, card `src/components/manager/ManagerAnswerCard.tsx`.
 
 - **14 behavioral questions** with what each probes, the seniority signals to show, a level (all / senior / staff)
@@ -14,6 +15,7 @@ Lib `src/lib/manager/bank.ts`, actions `src/app/prep/manager/actions.ts`, card `
 - Linked from `/interview`, `/prep/[id]` and the header "More" menu, and links to the work stories.
 
 ## Offer reply email (`/closing/[offerId]#reply`)
+
 Lib `src/lib/closing/reply.ts`, UI `src/components/closing/OfferReply.tsx`.
 
 - Accept or counter (up to 4 asks: topic, target, the user's own reason). Figures come only from the saved offer

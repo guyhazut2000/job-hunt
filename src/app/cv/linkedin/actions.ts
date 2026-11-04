@@ -23,7 +23,11 @@ export async function saveLinkedinDraft(input: LinkedinInput): Promise<{ ok: boo
   const user = await requireUser(PATH);
   const d = linkedinInputSchema.parse(input);
   const data = { ...d, featured: d.featured.map((f) => f.trim()).filter(Boolean) };
-  await db.linkedinProfileDraft.upsert({ where: { userId: user.id }, create: { userId: user.id, ...data }, update: data });
+  await db.linkedinProfileDraft.upsert({
+    where: { userId: user.id },
+    create: { userId: user.id, ...data },
+    update: data,
+  });
   revalidatePath(PATH);
   return { ok: true };
 }

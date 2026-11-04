@@ -129,7 +129,10 @@ export function ManagerAnswerCard({
         <div className="bg-muted/40 flex flex-col gap-2 rounded-lg border p-3">
           <p className="flex flex-wrap items-center gap-2 text-sm font-bold">
             {s.answer}
-            <span className="bg-card rounded-full border px-2 py-0.5 text-xs font-normal" data-testid="mgr-answer-source">
+            <span
+              className="bg-card rounded-full border px-2 py-0.5 text-xs font-normal"
+              data-testid="mgr-answer-source"
+            >
               {polished && !dirty && polished.source === "ai" ? s.answerAi : s.answerTemplate}
             </span>
           </p>
@@ -143,11 +146,26 @@ export function ManagerAnswerCard({
       )}
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" size="sm" onClick={save} disabled={busy !== null || empty} data-testid="mgr-save">
-          {busy === "save" ? <Loader2 className="animate-spin" data-icon="inline-start" aria-hidden /> : <Save data-icon="inline-start" aria-hidden />}
+          {busy === "save" ? (
+            <Loader2 className="animate-spin" data-icon="inline-start" aria-hidden />
+          ) : (
+            <Save data-icon="inline-start" aria-hidden />
+          )}
           {s.save}
         </Button>
-        <Button type="button" size="sm" variant="secondary" onClick={polish} disabled={busy !== null || empty} data-testid="mgr-polish">
-          {busy === "polish" ? <Loader2 className="animate-spin" data-icon="inline-start" aria-hidden /> : <Sparkles data-icon="inline-start" aria-hidden />}
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={polish}
+          disabled={busy !== null || empty}
+          data-testid="mgr-polish"
+        >
+          {busy === "polish" ? (
+            <Loader2 className="animate-spin" data-icon="inline-start" aria-hidden />
+          ) : (
+            <Sparkles data-icon="inline-start" aria-hidden />
+          )}
           {s.polish}
         </Button>
         {msg && (

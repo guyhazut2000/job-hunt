@@ -112,14 +112,27 @@ export function LinkedinWorkspace({
             {s.headline}
             {counter(input.headline.length, HEADLINE_MAX)}
           </span>
-          <Input dir="auto" value={input.headline} maxLength={600} onChange={(e) => set("headline", e.target.value)} data-testid="li-headline" />
+          <Input
+            dir="auto"
+            value={input.headline}
+            maxLength={600}
+            onChange={(e) => set("headline", e.target.value)}
+            data-testid="li-headline"
+          />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           <span className="flex flex-wrap items-baseline justify-between gap-2 font-medium">
             {s.about}
             {counter(input.about.length, ABOUT_MAX)}
           </span>
-          <Textarea dir="auto" rows={8} value={input.about} maxLength={6000} onChange={(e) => set("about", e.target.value)} data-testid="li-about" />
+          <Textarea
+            dir="auto"
+            rows={8}
+            value={input.about}
+            maxLength={6000}
+            onChange={(e) => set("about", e.target.value)}
+            data-testid="li-about"
+          />
           {hook && (
             <span className="text-muted-foreground text-xs">
               {fillL(s.hookMark, { n: ABOUT_HOOK })}:{" "}
@@ -133,7 +146,14 @@ export function LinkedinWorkspace({
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">{s.experience}</span>
           <span className="text-muted-foreground text-xs">{s.experienceHint}</span>
-          <Textarea dir="auto" rows={8} value={input.experience} maxLength={12000} onChange={(e) => set("experience", e.target.value)} data-testid="li-experience" />
+          <Textarea
+            dir="auto"
+            rows={8}
+            value={input.experience}
+            maxLength={12000}
+            onChange={(e) => set("experience", e.target.value)}
+            data-testid="li-experience"
+          />
         </label>
         <fieldset className="flex flex-col gap-2 text-sm">
           <legend className="font-medium">{s.featured}</legend>
@@ -161,22 +181,49 @@ export function LinkedinWorkspace({
         </fieldset>
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">{s.skills}</span>
-          <Textarea dir="auto" rows={3} value={input.skills} maxLength={3000} onChange={(e) => set("skills", e.target.value)} data-testid="li-skills" />
+          <Textarea
+            dir="auto"
+            rows={3}
+            value={input.skills}
+            maxLength={3000}
+            onChange={(e) => set("skills", e.target.value)}
+            data-testid="li-skills"
+          />
         </label>
         <div className="flex flex-wrap gap-4 text-sm">
           <label className="flex flex-col gap-1">
             <span className="font-medium">{s.recsHave}</span>
-            <Input type="number" min={0} max={500} className="w-28" value={input.recsHave} onChange={(e) => set("recsHave", Number(e.target.value) || 0)} data-testid="li-recs-have" />
+            <Input
+              type="number"
+              min={0}
+              max={500}
+              className="w-28"
+              value={input.recsHave}
+              onChange={(e) => set("recsHave", Number(e.target.value) || 0)}
+              data-testid="li-recs-have"
+            />
           </label>
           <label className="flex flex-col gap-1">
             <span className="font-medium">{s.recsGoal}</span>
-            <Input type="number" min={0} max={50} className="w-28" value={input.recsGoal} onChange={(e) => set("recsGoal", Number(e.target.value) || 0)} data-testid="li-recs-goal" />
+            <Input
+              type="number"
+              min={0}
+              max={50}
+              className="w-28"
+              value={input.recsGoal}
+              onChange={(e) => set("recsGoal", Number(e.target.value) || 0)}
+              data-testid="li-recs-goal"
+            />
             <span className="text-muted-foreground text-xs">{s.recsGoalHint}</span>
           </label>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" disabled={busy !== null} data-testid="li-save">
-            {busy === "save" ? <Loader2 className="animate-spin" data-icon="inline-start" aria-hidden /> : <Save data-icon="inline-start" aria-hidden />}
+            {busy === "save" ? (
+              <Loader2 className="animate-spin" data-icon="inline-start" aria-hidden />
+            ) : (
+              <Save data-icon="inline-start" aria-hidden />
+            )}
             {s.save}
           </Button>
           {msg && (
@@ -198,9 +245,16 @@ export function LinkedinWorkspace({
               <h2 className="mb-2 text-sm font-bold">{s.groups[g]}</h2>
               <ul className="flex flex-col gap-2">
                 {items.map((c) => (
-                  <li key={c.id} className="flex flex-col gap-0.5 text-sm" data-testid={`li-check-${c.id}`} data-status={c.status}>
+                  <li
+                    key={c.id}
+                    className="flex flex-col gap-0.5 text-sm"
+                    data-testid={`li-check-${c.id}`}
+                    data-status={c.status}
+                  >
                     <span className="flex flex-wrap items-center gap-2">
-                      <span className={cn("rounded-full px-2 py-0.5 text-xs font-bold", TONE[c.status])}>{s.status[c.status]}</span>
+                      <span className={cn("rounded-full px-2 py-0.5 text-xs font-bold", TONE[c.status])}>
+                        {s.status[c.status]}
+                      </span>
                       <span className="font-medium">{s.checks[c.id].title}</span>
                     </span>
                     <span dir="auto" className="text-muted-foreground text-xs break-words">
@@ -234,7 +288,10 @@ export function LinkedinWorkspace({
         })}
       </aside>
 
-      <section className="bg-card flex min-w-0 flex-col gap-3 rounded-xl border p-4 lg:col-span-2" data-testid="li-suggest">
+      <section
+        className="bg-card flex min-w-0 flex-col gap-3 rounded-xl border p-4 lg:col-span-2"
+        data-testid="li-suggest"
+      >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-heading text-lg font-bold">{s.suggest}</h2>
           <span className="bg-muted rounded-full px-2 py-0.5 text-xs font-bold" data-testid="li-suggest-source">
@@ -264,7 +321,11 @@ export function LinkedinWorkspace({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button type="button" variant="secondary" onClick={improve} disabled={busy !== null} data-testid="li-ai">
-            {busy === "ai" ? <Loader2 className="animate-spin" data-icon="inline-start" aria-hidden /> : <Sparkles data-icon="inline-start" aria-hidden />}
+            {busy === "ai" ? (
+              <Loader2 className="animate-spin" data-icon="inline-start" aria-hidden />
+            ) : (
+              <Sparkles data-icon="inline-start" aria-hidden />
+            )}
             {s.suggestAi}
           </Button>
           <span className="text-muted-foreground text-xs">{s.aiNote}</span>

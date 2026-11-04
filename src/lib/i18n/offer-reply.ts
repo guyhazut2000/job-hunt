@@ -34,7 +34,8 @@ const en: OfferReplyStrings = {
   recruiter: "Recruiter's name",
   startDate: "Preferred start date",
   asks: "What to ask for (up to {n})",
-  asksLead: "Only what really matters to you. The reason is yours — a competing offer, salary data, the scope of the role.",
+  asksLead:
+    "Only what really matters to you. The reason is yours — a competing offer, salary data, the scope of the role.",
   kind: "Topic",
   target: "What you ask for",
   targetPh: "e.g. ₪32,000 gross",

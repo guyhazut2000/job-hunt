@@ -48,7 +48,8 @@ describe("linkedin profile rules", () => {
   it("experience quantification and CV consistency", () => {
     const input: LinkedinInput = {
       ...EMPTY_LINKEDIN,
-      experience: "- Led the migration of billing to a new service, cutting latency by 40%\n- Wrote some internal tools for the team",
+      experience:
+        "- Led the migration of billing to a new service, cutting latency by 40%\n- Wrote some internal tools for the team",
       skills: cv.skills.slice(0, 2).join(", "),
     };
     const r = evaluateLinkedin(input, ctx);
@@ -67,11 +68,20 @@ describe("linkedin profile rules", () => {
   });
 
   it("the AI guard rejects invented numbers and tools, accepts a rephrase", () => {
-    const ok = JSON.stringify({ headline: `Senior Backend Engineer | ${cv.skills[0]}`, about: `${cv.summary} I enjoy building reliable systems.` });
+    const ok = JSON.stringify({
+      headline: `Senior Backend Engineer | ${cv.skills[0]}`,
+      about: `${cv.summary} I enjoy building reliable systems.`,
+    });
     expect(validateLinkedinAi(ok, ctx, EMPTY_LINKEDIN)).not.toBeNull();
-    const nums = JSON.stringify({ headline: "Senior Backend Engineer", about: `${cv.summary} Grew revenue by 987654%.` });
+    const nums = JSON.stringify({
+      headline: "Senior Backend Engineer",
+      about: `${cv.summary} Grew revenue by 987654%.`,
+    });
     expect(validateLinkedinAi(nums, ctx, EMPTY_LINKEDIN)).toBeNull();
-    const tool = JSON.stringify({ headline: "Senior Backend Engineer", about: `${cv.summary} Expert in Kubernetes and Terraform.` });
+    const tool = JSON.stringify({
+      headline: "Senior Backend Engineer",
+      about: `${cv.summary} Expert in Kubernetes and Terraform.`,
+    });
     if (!JSON.stringify(cv).includes("Kubernetes")) expect(validateLinkedinAi(tool, ctx, EMPTY_LINKEDIN)).toBeNull();
     expect(validateLinkedinAi("not json", ctx, EMPTY_LINKEDIN)).toBeNull();
   });
@@ -104,19 +114,35 @@ describe("hiring-manager bank", () => {
       result: "p95 latency dropped by 60%. I learned to load-test earlier",
     });
     const ok = Object.fromEntries(sig.map((s) => [s.id, s.ok]));
-    expect(ok).toMatchObject({ ownership: true, scope: true, metric: true, tradeoff: true, influence: true, reflection: true, firstPerson: true });
-    const weak = Object.fromEntries(checkSignals({ action: "we did it together", result: "it worked" }).map((s) => [s.id, s.ok]));
+    expect(ok).toMatchObject({
+      ownership: true,
+      scope: true,
+      metric: true,
+      tradeoff: true,
+      influence: true,
+      reflection: true,
+      firstPerson: true,
+    });
+    const weak = Object.fromEntries(
+      checkSignals({ action: "we did it together", result: "it worked" }).map((s) => [s.id, s.ok]),
+    );
     expect(weak.firstPerson).toBe(false);
     expect(weak.metric).toBe(false);
   });
 
   it("Hebrew answers are detected too", () => {
-    const ok = Object.fromEntries(checkSignals({ action: "הובלתי את המעבר ובחרתי בתור במקום קריאות סינכרוניות", result: "הזמן ירד ב-30%" }).map((s) => [s.id, s.ok]));
+    const ok = Object.fromEntries(
+      checkSignals({ action: "הובלתי את המעבר ובחרתי בתור במקום קריאות סינכרוניות", result: "הזמן ירד ב-30%" }).map(
+        (s) => [s.id, s.ok],
+      ),
+    );
     expect(ok.ownership && ok.tradeoff && ok.metric).toBe(true);
   });
 
   it("template answer uses only the user's words", () => {
-    expect(starTemplate({ situation: "a", task: "", action: "did x", result: "" }, "en")).toBe("The situation: a. What I did: did x.");
+    expect(starTemplate({ situation: "a", task: "", action: "did x", result: "" }, "en")).toBe(
+      "The situation: a. What I did: did x.",
+    );
   });
 });
 
@@ -145,6 +171,31 @@ describe("offer reply email", () => {
 
   it("no offer data → no invented terms", () => {
     expect(offerTermLines(null, "en")).toEqual([]);
-    expect(offerTermLines({ ...EMPTY_OFFER, pensionEmployerPct: 0, severancePct: 0, khEmployerPct: 0 }, "en")).toEqual([]);
+    expect(offerTermLines({ ...EMPTY_OFFER, pensionEmployerPct: 0, severancePct: 0, khEmployerPct: 0 }, "en")).toEqual(
+      [],
+    );
+  });
+});
+
+describe("manager polish guard mapping", async () => {
+  const { starAsStory, managerPolishPrompt, QUESTIONS } = await import("@/lib/manager/bank");
+  const { validatePolish } = await import("@/lib/stories/story");
+  const f = {
+    situation: "Checkout was slow",
+    task: "I owned latency",
+    action: "I led a move to Redis caching",
+    result: "p95 fell by 40%",
+  };
+  it("rejects a polish that adds a number the user did not write", () => {
+    const bad =
+      "At work checkout was slow and I owned latency. I led a move to Redis caching with 12 engineers and p95 fell by 40%.";
+    expect(validatePolish(bad, starAsStory(f), "")).toBeNull();
+    const good = "At work checkout was slow and I owned latency. I led a move to Redis caching, and p95 fell by 40%.";
+    expect(validatePolish(good, starAsStory(f), "")).toBe(good);
+  });
+  it("prompt carries the question and forbids new facts", () => {
+    const m = managerPolishPrompt(QUESTIONS[0], f, "en");
+    expect(m[0].content).toMatch(/ONLY facts/);
+    expect(m[1].content).toContain(QUESTIONS[0].q.en);
   });
 });

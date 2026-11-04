@@ -47,7 +47,8 @@ export function OfferReply({
     [mode, company, role, myName, recruiter, offer, startDate, asks, lang],
   );
   const hasTerms = offerTermLines(offer, lang).length > 0;
-  const setAsk = (i: number, patch: Partial<CounterAsk>) => setAsks((a) => a.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const setAsk = (i: number, patch: Partial<CounterAsk>) =>
+    setAsks((a) => a.map((x, j) => (j === i ? { ...x, ...patch } : x)));
   const noAsks = !asks.some((a) => a.target.trim());
 
   return (
@@ -73,11 +74,22 @@ export function OfferReply({
       <div className="grid gap-3 sm:grid-cols-2">
         <label className={fieldCls}>
           <span>{s.recruiter}</span>
-          <Input dir="auto" value={recruiter} maxLength={80} onChange={(e) => setRecruiter(e.target.value)} data-testid="reply-recruiter" />
+          <Input
+            dir="auto"
+            value={recruiter}
+            maxLength={80}
+            onChange={(e) => setRecruiter(e.target.value)}
+            data-testid="reply-recruiter"
+          />
         </label>
         <label className={fieldCls}>
           <span>{s.startDate}</span>
-          <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} data-testid="reply-start" />
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            data-testid="reply-start"
+          />
         </label>
       </div>
       {mode === "counter" && (
@@ -85,10 +97,17 @@ export function OfferReply({
           <legend className="text-sm font-bold">{s.asks.replace("{n}", String(MAX_ASKS))}</legend>
           <p className="text-muted-foreground text-xs">{s.asksLead}</p>
           {asks.map((a, i) => (
-            <div key={i} className="grid gap-2 rounded-md border p-2 sm:grid-cols-[9rem_minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <div
+              key={i}
+              className="grid gap-2 rounded-md border p-2 sm:grid-cols-[9rem_minmax(0,1fr)_minmax(0,1fr)_auto]"
+            >
               <label className={fieldCls}>
                 <span className="text-xs">{s.kind}</span>
-                <select className={selectCls} value={a.kind} onChange={(e) => setAsk(i, { kind: e.target.value as AskKind })}>
+                <select
+                  className={selectCls}
+                  value={a.kind}
+                  onChange={(e) => setAsk(i, { kind: e.target.value as AskKind })}
+                >
                   {ASK_KINDS.map((k) => (
                     <option key={k} value={k}>
                       {ASK_LABEL[k][lang]}
@@ -98,19 +117,45 @@ export function OfferReply({
               </label>
               <label className={fieldCls}>
                 <span className="text-xs">{s.target}</span>
-                <Input dir="auto" value={a.target} maxLength={200} placeholder={s.targetPh} onChange={(e) => setAsk(i, { target: e.target.value })} data-testid={`reply-target-${i}`} />
+                <Input
+                  dir="auto"
+                  value={a.target}
+                  maxLength={200}
+                  placeholder={s.targetPh}
+                  onChange={(e) => setAsk(i, { target: e.target.value })}
+                  data-testid={`reply-target-${i}`}
+                />
               </label>
               <label className={fieldCls}>
                 <span className="text-xs">{s.why}</span>
-                <Input dir="auto" value={a.why} maxLength={400} placeholder={s.whyPh} onChange={(e) => setAsk(i, { why: e.target.value })} />
+                <Input
+                  dir="auto"
+                  value={a.why}
+                  maxLength={400}
+                  placeholder={s.whyPh}
+                  onChange={(e) => setAsk(i, { why: e.target.value })}
+                />
               </label>
-              <Button type="button" variant="ghost" size="sm" className="self-end" aria-label={s.remove} onClick={() => setAsks((x) => x.filter((_, j) => j !== i))}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="self-end"
+                aria-label={s.remove}
+                onClick={() => setAsks((x) => x.filter((_, j) => j !== i))}
+              >
                 <X aria-hidden />
               </Button>
             </div>
           ))}
           {asks.length < MAX_ASKS && (
-            <Button type="button" variant="secondary" size="sm" className="w-fit" onClick={() => setAsks((x) => [...x, { kind: "other", target: "", why: "" }])}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="w-fit"
+              onClick={() => setAsks((x) => [...x, { kind: "other", target: "", why: "" }])}
+            >
               <Plus data-icon="inline-start" aria-hidden />
               {s.addAsk}
             </Button>
@@ -128,7 +173,14 @@ export function OfferReply({
       )}
       <label className={fieldCls}>
         <span className="font-bold">{s.draft}</span>
-        <Textarea readOnly dir="auto" rows={Math.min(22, draft.split("\n").length + 1)} value={draft} className="text-sm" data-testid="reply-draft" />
+        <Textarea
+          readOnly
+          dir="auto"
+          rows={Math.min(22, draft.split("\n").length + 1)}
+          value={draft}
+          className="text-sm"
+          data-testid="reply-draft"
+        />
       </label>
       <div>
         <CopyButton text={draft} label={s.copy} copiedLabel={s.copied} />
@@ -138,7 +190,12 @@ export function OfferReply({
         <ul className="mt-1 flex flex-col gap-1">
           {REPLY_SOURCES.map((src) => (
             <li key={src.url}>
-              <a href={src.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline underline-offset-2">
+              <a
+                href={src.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 underline underline-offset-2"
+              >
                 <bdi dir="auto">{src.label[lang]}</bdi>
                 <ExternalLink className="size-3" aria-hidden />
               </a>

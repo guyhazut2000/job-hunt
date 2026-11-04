@@ -63,7 +63,8 @@ export async function polishManagerAnswer(
   questionId: string,
   lang: "he" | "en",
 ): Promise<
-  { ok: true; view: ManagerView; rejected: boolean; limited: string | null } | { ok: false; error: "invalid" | "not_found" }
+  | { ok: true; view: ManagerView; rejected: boolean; limited: string | null }
+  | { ok: false; error: "invalid" | "not_found" }
 > {
   const user = await requireUser(PATH);
   const q = QUESTION_BY_ID.get(questionId);

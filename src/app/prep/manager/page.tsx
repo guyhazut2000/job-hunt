@@ -84,7 +84,16 @@ export default async function ManagerPrepPage({ searchParams }: { searchParams: 
         ))}
       </nav>
 
-      <ShowMoreList key={level} initial={6} step={6} s={densityStrings(locale)} testId="mgr-questions" label={s.title} className="flex flex-col gap-3" anchorIds={list.map((q) => q.id)}>
+      <ShowMoreList
+        key={level}
+        initial={6}
+        step={6}
+        s={densityStrings(locale)}
+        testId="mgr-questions"
+        label={s.title}
+        className="flex flex-col gap-3"
+        anchorIds={list.map((q) => q.id)}
+      >
         {list.map((q) => {
           const a = byQ.get(q.id);
           const src = MANAGER_SOURCES[q.source];
@@ -92,10 +101,18 @@ export default async function ManagerPrepPage({ searchParams }: { searchParams: 
             <li key={q.id} id={q.id} className="bg-card min-w-0 rounded-xl border">
               <details className="group p-4" data-testid={`mgr-q-${q.id}`}>
                 <summary className="flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-bold" dir="auto">{q.q[lang]}</span>
+                  <span className="font-bold" dir="auto">
+                    {q.q[lang]}
+                  </span>
                   <span className="flex shrink-0 gap-1.5">
-                    {a && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">✓</span>}
-                    {q.level !== "all" && <span className="bg-muted rounded-full px-2 py-0.5 text-xs">{s.levels[q.level]}</span>}
+                    {a && (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
+                        ✓
+                      </span>
+                    )}
+                    {q.level !== "all" && (
+                      <span className="bg-muted rounded-full px-2 py-0.5 text-xs">{s.levels[q.level]}</span>
+                    )}
                   </span>
                 </summary>
                 <div className="mt-3 flex flex-col gap-3">
@@ -110,11 +127,24 @@ export default async function ManagerPrepPage({ searchParams }: { searchParams: 
                     lang={lang}
                     initial={
                       a
-                        ? { questionId: a.questionId, situation: a.situation, task: a.task, action: a.action, result: a.result, polished: a.polishedLang === lang ? a.polished : null, polishedSource: a.polishedSource }
+                        ? {
+                            questionId: a.questionId,
+                            situation: a.situation,
+                            task: a.task,
+                            action: a.action,
+                            result: a.result,
+                            polished: a.polishedLang === lang ? a.polished : null,
+                            polishedSource: a.polishedSource,
+                          }
                         : null
                     }
                   />
-                  <a href={src.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground inline-flex w-fit items-center gap-1 text-xs underline underline-offset-2">
+                  <a
+                    href={src.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground inline-flex w-fit items-center gap-1 text-xs underline underline-offset-2"
+                  >
                     {s.source}: <bdi dir="ltr">{src.label}</bdi>
                     <ExternalLink className="size-3" aria-hidden />
                   </a>
@@ -134,7 +164,9 @@ export default async function ManagerPrepPage({ searchParams }: { searchParams: 
             <ul className="mt-1 flex flex-col gap-1.5">
               {g.questions.map((qq) => (
                 <li key={qq} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <bdi dir="ltr" className="min-w-0 flex-1 break-words">{qq}</bdi>
+                  <bdi dir="ltr" className="min-w-0 flex-1 break-words">
+                    {qq}
+                  </bdi>
                   <CopyButton text={qq} label={s.copy} copiedLabel={s.copied} />
                 </li>
               ))}
@@ -148,7 +180,12 @@ export default async function ManagerPrepPage({ searchParams }: { searchParams: 
         <ul className="flex flex-col gap-1">
           {Object.values(MANAGER_SOURCES).map((src) => (
             <li key={src.id}>
-              <a href={src.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline underline-offset-2">
+              <a
+                href={src.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 underline underline-offset-2"
+              >
                 <bdi dir="ltr">{src.label}</bdi>
                 <ExternalLink className="size-3" aria-hidden />
               </a>
@@ -157,8 +194,12 @@ export default async function ManagerPrepPage({ searchParams }: { searchParams: 
         </ul>
         <h2 className="mt-2 font-bold">{s.related}</h2>
         <p className="flex flex-wrap gap-x-4 gap-y-1">
-          <Link href="/interview" className="underline underline-offset-2">{s.relInterview}</Link>
-          <Link href="/learn/problem-solving/stories" className="underline underline-offset-2">{s.storiesLink}</Link>
+          <Link href="/interview" className="underline underline-offset-2">
+            {s.relInterview}
+          </Link>
+          <Link href="/learn/problem-solving/stories" className="underline underline-offset-2">
+            {s.storiesLink}
+          </Link>
         </p>
       </footer>
     </div>

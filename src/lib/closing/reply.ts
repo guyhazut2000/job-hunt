@@ -82,9 +82,18 @@ export function offerTermLines(o: Partial<OfferInput> | null | undefined, lang: 
   if (!o) return [];
   const he = lang === "he";
   const out: string[] = [];
-  if (o.baseMonthly) out.push(he ? `שכר בסיס: ${money(o.baseMonthly, lang)} ברוטו לחודש` : `Base salary: ${money(o.baseMonthly, lang)} gross per month`);
-  if (o.bonusAnnual) out.push(he ? `בונוס שנתי צפוי: ${money(o.bonusAnnual, lang)}` : `Expected annual bonus: ${money(o.bonusAnnual, lang)}`);
-  if (o.signingBonus) out.push(he ? `מענק חתימה: ${money(o.signingBonus, lang)}` : `Signing bonus: ${money(o.signingBonus, lang)}`);
+  if (o.baseMonthly)
+    out.push(
+      he
+        ? `שכר בסיס: ${money(o.baseMonthly, lang)} ברוטו לחודש`
+        : `Base salary: ${money(o.baseMonthly, lang)} gross per month`,
+    );
+  if (o.bonusAnnual)
+    out.push(
+      he ? `בונוס שנתי צפוי: ${money(o.bonusAnnual, lang)}` : `Expected annual bonus: ${money(o.bonusAnnual, lang)}`,
+    );
+  if (o.signingBonus)
+    out.push(he ? `מענק חתימה: ${money(o.signingBonus, lang)}` : `Signing bonus: ${money(o.signingBonus, lang)}`);
   if (o.equityUnits)
     out.push(
       he
@@ -106,7 +115,10 @@ export function offerTermLines(o: Partial<OfferInput> | null | undefined, lang: 
   if (o.remoteDaysPerWeek)
     out.push(he ? `עבודה מהבית: ${o.remoteDaysPerWeek} ימים בשבוע` : `Remote work: ${o.remoteDaysPerWeek} days a week`);
   if (o.carBenefitMonthly) out.push(he ? "רכב חברה" : "Company car");
-  if (o.mealsMonthly) out.push(he ? `כרטיס ארוחות: ${money(o.mealsMonthly, lang)} לחודש` : `Meal card: ${money(o.mealsMonthly, lang)} per month`);
+  if (o.mealsMonthly)
+    out.push(
+      he ? `כרטיס ארוחות: ${money(o.mealsMonthly, lang)} לחודש` : `Meal card: ${money(o.mealsMonthly, lang)} per month`,
+    );
   return out;
 }
 
@@ -125,7 +137,11 @@ export interface ReplyInput {
 /** Asks with a target; blank ones are dropped, max MAX_ASKS. */
 export function cleanAsks(asks: CounterAsk[] | undefined): CounterAsk[] {
   return (asks ?? [])
-    .map((a) => ({ kind: (ASK_KINDS as readonly string[]).includes(a.kind) ? a.kind : "other", target: clean(a.target).slice(0, 200), why: clean(a.why).slice(0, 400) }))
+    .map((a) => ({
+      kind: (ASK_KINDS as readonly string[]).includes(a.kind) ? a.kind : "other",
+      target: clean(a.target).slice(0, 200),
+      why: clean(a.why).slice(0, 400),
+    }))
     .filter((a) => a.target)
     .slice(0, MAX_ASKS);
 }
@@ -135,7 +151,13 @@ const stop = (s: string) => (/[.!?]$/.test(s) ? s : `${s}.`);
 export function offerReplyDraft(p: ReplyInput, lang: Lang): string {
   const he = lang === "he";
   const me = nm(p.myName, he ? "[השם שלך]" : "[your name]");
-  const hi = clean(p.recruiter) ? (he ? `שלום ${clean(p.recruiter)},` : `Hi ${clean(p.recruiter)},`) : he ? "שלום," : "Hello,";
+  const hi = clean(p.recruiter)
+    ? he
+      ? `שלום ${clean(p.recruiter)},`
+      : `Hi ${clean(p.recruiter)},`
+    : he
+      ? "שלום,"
+      : "Hello,";
   const role = nm(p.role, he ? "[התפקיד]" : "[role]");
   const company = nm(p.company, he ? "[החברה]" : "[company]");
   const terms = offerTermLines(p.offer, lang);
@@ -150,7 +172,12 @@ export function offerReplyDraft(p: ReplyInput, lang: Lang): string {
         : `Thank you for the offer for the ${role} role at ${company}. I'm happy to confirm that I accept.`,
     );
     if (terms.length) {
-      lines.push("", he ? "כדי שנהיה מתואמים, אלה התנאים כפי שהבנתי אותם:" : "So we're aligned, these are the terms as I understood them:");
+      lines.push(
+        "",
+        he
+          ? "כדי שנהיה מתואמים, אלה התנאים כפי שהבנתי אותם:"
+          : "So we're aligned, these are the terms as I understood them:",
+      );
       lines.push(...terms.map((t) => `- ${t}`));
     }
   } else {
@@ -165,7 +192,12 @@ export function offerReplyDraft(p: ReplyInput, lang: Lang): string {
       lines.push(`- ${label}: ${a.target}${why}`);
     }
     if (terms.length) {
-      lines.push("", he ? "לשם הסדר, אלה התנאים בהצעה הנוכחית כפי שהבנתי אותם:" : "For reference, the current offer as I understood it:");
+      lines.push(
+        "",
+        he
+          ? "לשם הסדר, אלה התנאים בהצעה הנוכחית כפי שהבנתי אותם:"
+          : "For reference, the current offer as I understood it:",
+      );
       lines.push(...terms.map((t) => `- ${t}`));
     }
     lines.push(
@@ -176,7 +208,11 @@ export function offerReplyDraft(p: ReplyInput, lang: Lang): string {
     );
   }
   if (clean(p.startDate))
-    lines.push(he ? `תאריך ההתחלה שמתאים לי: ${clean(p.startDate)}.` : `The start date that works for me: ${clean(p.startDate)}.`);
+    lines.push(
+      he
+        ? `תאריך ההתחלה שמתאים לי: ${clean(p.startDate)}.`
+        : `The start date that works for me: ${clean(p.startDate)}.`,
+    );
 
   lines.push(
     "",
