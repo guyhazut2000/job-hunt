@@ -1,5 +1,7 @@
 "use client";
 
+import { ShowMoreList } from "@/components/density/ShowMoreList";
+import { densityStrings, type DensityStrings } from "@/lib/i18n/density";
 import { useOptimistic, useTransition } from "react";
 import Link from "next/link";
 import type { ContactCategory, ContactStatus } from "@prisma/client";
@@ -8,6 +10,9 @@ import { deleteContact, updateContactStatus } from "@/app/outreach/actions";
 import { Button } from "@/components/ui/button";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { cn } from "@/lib/utils";
+
+/** Used only when no strings are passed, i.e. the list is not collapsed. */
+const FALLBACK_D = densityStrings("he");
 
 export interface ContactRow {
   id: string;
@@ -30,7 +35,18 @@ export const STATUS_DOT: Record<ContactStatus, string> = {
   REFERRED: "bg-fit",
 };
 
-export function ContactList({ contacts, t }: { contacts: ContactRow[]; t: Dictionary["people"] }) {
+export function ContactList({
+  contacts,
+  t,
+  d,
+  initial = 8,
+}: {
+  contacts: ContactRow[];
+  t: Dictionary["people"];
+  /** When given, long lists collapse to `initial` rows with "הצג עוד" (docs/ui-data-density.md). */
+  d?: DensityStrings;
+  initial?: number;
+}) {
   const [, start] = useTransition();
   const [items, apply] = useOptimistic(
     contacts,
@@ -41,7 +57,13 @@ export function ContactList({ contacts, t }: { contacts: ContactRow[]; t: Dictio
   );
   if (items.length === 0) return null;
   return (
-    <ul className="bg-card divide-border flex flex-col divide-y rounded-lg border">
+    <ShowMoreList
+      initial={d ? initial : items.length}
+      step={20}
+      className="bg-card divide-border flex flex-col divide-y rounded-lg border"
+      s={d ?? FALLBACK_D}
+      testId="contact-list"
+    >
       {items.map((c) => (
         <li key={c.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -125,6 +147,6 @@ export function ContactList({ contacts, t }: { contacts: ContactRow[]; t: Dictio
           </div>
         </li>
       ))}
-    </ul>
+    </ShowMoreList>
   );
 }

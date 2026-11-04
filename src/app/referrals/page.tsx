@@ -1,3 +1,4 @@
+import { densityStrings } from "@/lib/i18n/density";
 import { ShieldCheck } from "lucide-react";
 import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
@@ -168,6 +169,7 @@ export default async function ReferralsPage({
           rows={rows}
           apps={apps.map((a) => ({ id: a.id, label: `${a.title} · ${a.company}` }))}
           now={now.toISOString()}
+          d={densityStrings(locale)}
         />
       </section>
 
@@ -183,6 +185,7 @@ export default async function ReferralsPage({
           targets={targets}
           locale={locale}
           initial={{ contactId: contactParam, target: initialTarget }}
+          d={densityStrings(locale)}
         />
       </section>
 

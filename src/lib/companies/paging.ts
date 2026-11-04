@@ -1,17 +1,12 @@
 import type { LetterGroup } from "@/lib/alpha";
+import { parseShow as parseShowShared } from "@/lib/ui/paging";
 
 /** Cards per "טען עוד" batch. 48 divides evenly into the 1/2/3-column grid. */
 export const COMPANIES_PAGE_SIZE = 48;
 
-/**
- * `?show=N` → how many cards to render. Always a whole number of batches, at least one batch and
- * never more than needed for `total` (junk, negatives and huge numbers are clamped).
- */
+/** `?show=N` → how many cards to render (shared rules in `@/lib/ui/paging`). */
 export function parseShow(raw: string | string[] | undefined, total: number, size = COMPANIES_PAGE_SIZE): number {
-  const v = Number.parseInt((Array.isArray(raw) ? raw[0] : raw) ?? "", 10);
-  const wanted = Number.isFinite(v) && v > 0 ? Math.ceil(v / size) * size : size;
-  const cap = Math.max(size, Math.ceil(total / size) * size);
-  return Math.min(wanted, cap);
+  return parseShowShared(raw, total, size);
 }
 
 export interface PagedGroups<T> {

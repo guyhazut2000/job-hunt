@@ -7,6 +7,8 @@ import { ExternalLink, Send, Sparkles, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CopyButton } from "@/components/outreach/CopyButton";
+import { ShowMoreList } from "@/components/density/ShowMoreList";
+import type { DensityStrings } from "@/lib/i18n/density";
 import { createReferral, draftReferralRequest, removeReferralContact } from "@/app/referrals/actions";
 import { fillRef, type ReferralStrings } from "@/lib/i18n/referrals";
 import type { ReferralLang } from "@/lib/referrals/message";
@@ -18,7 +20,9 @@ export function InsiderContacts({
   targets,
   locale,
   initial,
+  d,
 }: {
+  d: DensityStrings;
   s: ReferralStrings;
   contacts: ContactRow[];
   targets: TargetOption[];
@@ -34,7 +38,14 @@ export function InsiderContacts({
       </p>
     );
   return (
-    <ul className="flex flex-col gap-3" data-testid="referral-contacts">
+    <ShowMoreList
+      initial={10}
+      className="flex flex-col gap-3"
+      testId="referral-contacts"
+      s={d}
+      anchorIds={contacts.map((c) => `contact-${c.id}`)}
+      revealIndex={initial.contactId ? contacts.findIndex((c) => c.id === initial.contactId) : undefined}
+    >
       {contacts.map((c) => (
         <li
           key={c.id}
@@ -103,7 +114,7 @@ export function InsiderContacts({
           )}
         </li>
       ))}
-    </ul>
+    </ShowMoreList>
   );
 }
 

@@ -6,24 +6,32 @@ import { BellRing, Trash2 } from "lucide-react";
 import type { ReferralStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LazySelect } from "@/components/density/LazySelect";
+import { ShowMoreList } from "@/components/density/ShowMoreList";
+import type { DensityStrings } from "@/lib/i18n/density";
 import { deleteReferral, updateReferral } from "@/app/referrals/actions";
 import { fillRef, type ReferralStrings } from "@/lib/i18n/referrals";
 import type { ReferralRow } from "./types";
 
 const STATUSES: ReferralStatus[] = ["ASKED", "AGREED", "SUBMITTED", "ANSWERED", "DECLINED"];
 const DAY = 86_400_000;
+/** Referral rows shown before "הצג עוד" (docs/ui-data-density.md). */
+export const TRACKER_PAGE = 10;
 
 export function ReferralTracker({
   s,
   rows,
   apps,
   now,
+  d,
 }: {
   s: ReferralStrings;
   rows: ReferralRow[];
   apps: Array<{ id: string; label: string }>;
   now: string;
+  d: DensityStrings;
 }) {
+  const options = apps.map((a) => ({ value: a.id, label: a.label }));
   if (!rows.length)
     return (
       <p className="text-muted-foreground text-sm" data-testid="referral-tracker-empty">
@@ -31,23 +39,29 @@ export function ReferralTracker({
       </p>
     );
   return (
-    <ul className="flex flex-col gap-3" data-testid="referral-tracker">
+    <ShowMoreList
+      initial={TRACKER_PAGE}
+      className="flex flex-col gap-3"
+      testId="referral-tracker"
+      s={d}
+      anchorIds={rows.map((r) => `referral-${r.id}`)}
+    >
       {rows.map((r) => (
-        <TrackerItem key={r.id} s={s} r={r} apps={apps} now={now} />
+        <TrackerItem key={r.id} s={s} r={r} options={options} now={now} />
       ))}
-    </ul>
+    </ShowMoreList>
   );
 }
 
 function TrackerItem({
   s,
   r,
-  apps,
+  options,
   now,
 }: {
   s: ReferralStrings;
   r: ReferralRow;
-  apps: Array<{ id: string; label: string }>;
+  options: Array<{ value: string; label: string }>;
   now: string;
 }) {
   const router = useRouter();
@@ -136,20 +150,15 @@ function TrackerItem({
         )}
         <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-semibold">
           {s.application}
-          <select
+          <LazySelect
             className="border-input bg-background h-9 min-w-0 rounded-md border px-2 text-sm"
             value={r.applicationId ?? ""}
+            options={options}
+            emptyLabel={s.noApplication}
             disabled={pending}
             onChange={(e) => run({ id: r.id, applicationId: e.target.value || null })}
             data-testid={`referral-${r.id}-app`}
-          >
-            <option value="">{s.noApplication}</option>
-            {apps.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.label}
-              </option>
-            ))}
-          </select>
+          />
         </label>
       </div>
       <div className="flex items-center gap-2">
