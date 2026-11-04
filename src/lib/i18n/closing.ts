@@ -8,7 +8,7 @@ export const closingStrings = {
     lead: "מטלות בית, ממליצים, בדיקת החוזה, תוכנית מעבר מסודרת, ומה עושים אחרי שחותמים.",
     noAuto: "שום דבר לא נשלח מכאן. כל הודעה היא טיוטה שמעתיקים ושולחים בעצמך.",
     disclaimer:
-      "המידע כאן כללי ואינו ייעוץ משפטי. המספרים לקוחים מהמקורות הרשמיים שמקושרים לכל סעיף; לפני חתימה על חוזה מורכב כדאי להתייעץ עם עו\"ד דיני עבודה.",
+      'המידע כאן כללי ואינו ייעוץ משפטי. המספרים לקוחים מהמקורות הרשמיים שמקושרים לכל סעיף; לפני חתימה על חוזה מורכב כדאי להתייעץ עם עו"ד דיני עבודה.',
     back: "חזרה לשלב הסופי",
     save: "שמירה",
     saved: "נשמר",
@@ -115,7 +115,8 @@ export const closingStrings = {
     qLead: "נוצר אוטומטית מהסעיפים שסימנת 'לבירור' ומאלה שעוד לא נבדקו.",
     qEmpty: "כל הסעיפים סומנו כתקינים. אין שאלות פתוחות.",
     sTitle: "בדיקת טקסט החוזה (אופציונלי)",
-    sLead: "הדבק/י את טקסט החוזה ונסמן לכל סעיף אם נמצא בו ציטוט מתאים. הציטוטים לקוחים מילה במילה מהטקסט שהדבקת. הטקסט עצמו לא נשמר.",
+    sLead:
+      "הדבק/י את טקסט החוזה ונסמן לכל סעיף אם נמצא בו ציטוט מתאים. הציטוטים לקוחים מילה במילה מהטקסט שהדבקת. הטקסט עצמו לא נשמר.",
     sPaste: "טקסט החוזה",
     sRun: "בדיקה",
     sRunning: "בודק…",
@@ -144,7 +145,8 @@ export const closingStrings = {
     tResultContract: "החוזה קובע {days} ימים – יותר מהחוק, ולכן הוא קובע",
     tLastDay: "יום העבודה האחרון המשוער: {date}",
     tLatest: "כדי להתחיל ב-{start}, מסור/י הודעה לכל המאוחר ב-{date}",
-    tLatestNone: "אי אפשר לסיים את תקופת ההודעה לפני תאריך ההתחלה החדש. כדאי לדבר עם המעסיק על ויתור או 'חלף הודעה מוקדמת'.",
+    tLatestNone:
+      "אי אפשר לסיים את תקופת ההודעה לפני תאריך ההתחלה החדש. כדאי לדבר עם המעסיק על ויתור או 'חלף הודעה מוקדמת'.",
     tOverlap: "שימו לב: יום העבודה האחרון ({last}) הוא אחרי תאריך ההתחלה החדש.",
     tNoticeFacts:
       "ההודעה חייבת להיות בכתב. המעסיק רשאי לוותר על עבודתך בתקופת ההודעה ולשלם במקומה. אסור לו לכפות עליך לנצל ימי חופשה בתקופת ההודעה. מי שמתפטר/ת בלי סיבה מוצדקת ממתין/ה 90 יום לדמי אבטלה.",
@@ -159,7 +161,8 @@ export const closingStrings = {
     tD90: "90 יום",
     // accept
     accTitle: "קבלת ההצעה",
-    accLead: "צעד אחד שמסמן את ההצעה כמתקבלת, מעביר לארכיון את שאר המועמדויות הפתוחות, ומכין טיוטות תודה ופרישה מתהליכים. אפשר לבטל.",
+    accLead:
+      "צעד אחד שמסמן את ההצעה כמתקבלת, מעביר לארכיון את שאר המועמדויות הפתוחות, ומכין טיוטות תודה ופרישה מתהליכים. אפשר לבטל.",
     accWillArchive: "יועברו לארכיון {n} מועמדויות פתוחות:",
     accNothing: "אין מועמדויות פתוחות אחרות.",
     accPause: "להשהות התראות משרות (התאמה גבוהה וחיפושים שמורים)",
@@ -214,9 +217,11 @@ export const closingStrings = {
     referencesSummary: "{n} referees · {agreed} agreed",
     briefDue: "{n} waiting for a brief",
     archivedTitle: "Archived applications",
-    archivedLead: "{n} applications were archived after accepting an offer. They're hidden from the board, reminders and the daily digest.",
+    archivedLead:
+      "{n} applications were archived after accepting an offer. They're hidden from the board, reminders and the daily digest.",
     aTitle: "Home assignments",
-    aLead: "Each assignment belongs to an application. You get a reminder a day before it's due and about 3 hours before.",
+    aLead:
+      "Each assignment belongs to an application. You get a reminder a day before it's due and about 3 hours before.",
     aEmpty: "No assignments. Add one when a company sends a take-home task.",
     aAdd: "New assignment",
     aApp: "Application",
@@ -272,7 +277,13 @@ export const closingStrings = {
     rDeleteConfirm: "Delete this referee?",
     rUnlink: "Remove",
     oTitle: "Contract & transition",
-    oNav: { contract: "Contract", questions: "Questions", scan: "Text check", transition: "Transition", accept: "Accept" },
+    oNav: {
+      contract: "Contract",
+      questions: "Questions",
+      scan: "Text check",
+      transition: "Transition",
+      accept: "Accept",
+    },
     oNotFound: "Offer not found.",
     cTitle: "Contract clause checklist",
     cLead: "Go through each clause and mark it: fine, or to clarify. Notes are saved for this offer.",
@@ -287,7 +298,8 @@ export const closingStrings = {
     qLead: "Generated from the items you marked 'to clarify' and the ones not checked yet.",
     qEmpty: "Every item is marked fine. No open questions.",
     sTitle: "Contract text check (optional)",
-    sLead: "Paste the contract text and we'll mark, per item, whether a matching clause is quoted. Quotes are copied word for word from what you pasted. The text itself is not stored.",
+    sLead:
+      "Paste the contract text and we'll mark, per item, whether a matching clause is quoted. Quotes are copied word for word from what you pasted. The text itself is not stored.",
     sPaste: "Contract text",
     sRun: "Check",
     sRunning: "Checking…",
@@ -316,7 +328,8 @@ export const closingStrings = {
     tResultContract: "Your contract sets {days} days — longer than the law, so it applies",
     tLastDay: "Estimated last working day: {date}",
     tLatest: "To start on {start}, give notice by {date} at the latest",
-    tLatestNone: "The notice period can't end before the new start date. Talk to your employer about waiving it or pay in lieu of notice.",
+    tLatestNone:
+      "The notice period can't end before the new start date. Talk to your employer about waiving it or pay in lieu of notice.",
     tOverlap: "Note: the last working day ({last}) is after the new start date.",
     tNoticeFacts:
       "Notice must be in writing. The employer may waive your work during the notice period and pay instead. They may not force you to use vacation days during it. Resigning without a justified reason means a 90-day wait for unemployment benefits.",
@@ -330,7 +343,8 @@ export const closingStrings = {
     tD60: "60 days",
     tD90: "90 days",
     accTitle: "Accept the offer",
-    accLead: "One step that marks this offer as accepted, archives your other open applications, and prepares thank-you and withdrawal drafts. You can undo it.",
+    accLead:
+      "One step that marks this offer as accepted, archives your other open applications, and prepares thank-you and withdrawal drafts. You can undo it.",
     accWillArchive: "{n} open applications will be archived:",
     accNothing: "No other open applications.",
     accPause: "Pause job alerts (high match and saved searches)",

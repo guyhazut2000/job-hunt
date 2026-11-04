@@ -36,7 +36,10 @@ function revalidateClosing(offerId?: string) {
 }
 
 async function ownApplication(userId: string, applicationId: string) {
-  return db.application.findFirst({ where: { id: applicationId, userId }, select: { id: true, title: true, company: true } });
+  return db.application.findFirst({
+    where: { id: applicationId, userId },
+    select: { id: true, title: true, company: true },
+  });
 }
 
 // ───────────────────────── offers ─────────────────────────
@@ -48,7 +51,10 @@ export async function startClosingFromApp(fd: FormData): Promise<void> {
   if (!appId.success) redirect("/closing");
   const app = await ownApplication(user.id, appId.data);
   if (!app) redirect("/closing");
-  const existing = await db.jobOffer.findFirst({ where: { userId: user.id, applicationId: app.id }, select: { id: true } });
+  const existing = await db.jobOffer.findFirst({
+    where: { userId: user.id, applicationId: app.id },
+    select: { id: true },
+  });
   if (existing) redirect(`/closing/${existing.id}`);
   if ((await db.jobOffer.count({ where: { userId: user.id } })) >= MAX_OFFERS) redirect("/closing?limit=1");
   const data = { ...EMPTY_OFFER, label: app.company.slice(0, 80), company: app.company.slice(0, 120) };
@@ -167,7 +173,10 @@ export async function updateTransitionList(input: z.input<typeof listOp>): Promi
   if (p.data.op === "remove" && p.data.itemId) items = removeItem(items, p.data.itemId);
   const stored = transitionSchema.parse(c.transition && typeof c.transition === "object" ? c.transition : {});
   // Persist the (possibly default) list so later language switches don't reset the user's edits.
-  await db.offerClosing.update({ where: { id: c.id }, data: { transition: json({ ...stored, [p.data.list]: items }) } });
+  await db.offerClosing.update({
+    where: { id: c.id },
+    data: { transition: json({ ...stored, [p.data.list]: items }) },
+  });
   revalidateClosing(p.data.offerId);
   return { ok: true };
 }
@@ -341,14 +350,18 @@ export async function saveAssignment(fd: FormData): Promise<void> {
   const user = await requireUser();
   const o = formObj(fd);
   const p = assignmentInputSchema.safeParse(o);
-  const back = o.back === "app" ? `/closing/assignments?app=${encodeURIComponent(o.applicationId ?? "")}` : "/closing/assignments";
+  const back =
+    o.back === "app" ? `/closing/assignments?app=${encodeURIComponent(o.applicationId ?? "")}` : "/closing/assignments";
   if (!p.success) redirect(`${back}${back.includes("?") ? "&" : "?"}error=1`);
   const app = await ownApplication(user.id, p.data.applicationId);
   if (!app) redirect("/closing/assignments?error=1");
   const { submitted, ...data } = assignmentData(p.data);
   const id = o.id ? id64.safeParse(o.id) : null;
   if (id?.success) {
-    const prev = await db.homeAssignment.findFirst({ where: { id: id.data, userId: user.id }, select: { submittedAt: true } });
+    const prev = await db.homeAssignment.findFirst({
+      where: { id: id.data, userId: user.id },
+      select: { submittedAt: true },
+    });
     if (!prev) redirect("/closing/assignments?error=1");
     await db.homeAssignment.update({
       where: { id: id.data },
@@ -379,7 +392,8 @@ export async function saveReferee(fd: FormData): Promise<void> {
   const user = await requireUser();
   const o = formObj(fd);
   const p = refereeInputSchema.safeParse(o);
-  if (!p.success) redirect(`/closing/references?error=${encodeURIComponent(String(p.error.issues[0]?.path[0] ?? "name"))}`);
+  if (!p.success)
+    redirect(`/closing/references?error=${encodeURIComponent(String(p.error.issues[0]?.path[0] ?? "name"))}`);
   const id = o.id ? id64.safeParse(o.id) : null;
   if (id?.success) {
     const res = await db.referee.updateMany({ where: { id: id.data, userId: user.id }, data: p.data });
@@ -422,7 +436,11 @@ export async function linkReferee(fd: FormData): Promise<void> {
   revalidatePath("/closing");
 }
 
-const linkMark = z.object({ linkId: id64, field: z.enum(["briefedAt", "calledAt", "thankedAt"]), on: z.enum(["1", "0"]) });
+const linkMark = z.object({
+  linkId: id64,
+  field: z.enum(["briefedAt", "calledAt", "thankedAt"]),
+  on: z.enum(["1", "0"]),
+});
 
 export async function markRefereeLink(fd: FormData): Promise<void> {
   const user = await requireUser();
