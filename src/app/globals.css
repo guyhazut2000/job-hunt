@@ -378,3 +378,11 @@
     0 0 0 2px #db2777,
     0 2px 6px rgb(0 0 0 / 0.35);
 }
+
+/* Filters auto-apply: dim the current results while the new ones load (set by AutoFilterForm). */
+[data-job-list] {
+  transition: opacity 0.2s;
+}
+[data-filter-pending] [data-job-list] {
+  opacity: 0.55;
+}

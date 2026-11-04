@@ -145,5 +145,9 @@ export function JobCard({
 }
 
 export function JobList({ children }: { children: React.ReactNode }) {
-  return <div className="bg-card divide-border divide-y overflow-hidden rounded-lg border">{children}</div>;
+  return (
+    <div data-job-list className="bg-card divide-border divide-y overflow-hidden rounded-lg border">
+      {children}
+    </div>
+  );
 }
