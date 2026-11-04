@@ -67,6 +67,16 @@ duplicated. USER candidates show up in the admin review queue right away. A USER
 added automatically when its own site embeds an ATS board with Israeli openings; anything else waits
 for an admin.
 
+**Instant check (#120).** Right after the suggestion is saved, `suggestCompany` schedules
+`checkSuggestionNow` with `next/server` `after()`: the same `checkCandidate` (robots.txt, pacing,
+public ATS APIs only, same `decide` policy) for that one candidate, capped at 45 s. If it becomes an AUTO
+company its jobs are ingested within 30 s (otherwise the provider cron picks it up). If the check does
+not finish, `checkedAt` stays empty and the nightly run checks it. `/companies` has a "My suggestions"
+list (`MySuggestions`, latest 10, status from `suggestionStatus` in `suggestion-status.ts`), and the
+suggester gets a `COMPANY_SUGGESTION` notification when the company is added (auto, manual or by an
+admin) or rejected (`notifySuggestionOutcome`, deduped per outcome). The admin queue shows who
+suggested it.
+
 ## Running it
 
 - **Cron:** `/api/cron/discover` daily at 03:30 UTC (`vercel.json`); imports only when the last

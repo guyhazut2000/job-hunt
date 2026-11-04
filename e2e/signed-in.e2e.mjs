@@ -109,6 +109,7 @@ before(async () => {
   await db.notification.deleteMany({ where: { userId: demoId, dedupeKey: { startsWith: "e2e-" } } });
   await db.coachReport.deleteMany({ where: { userId: demoId } });
   await db.company.deleteMany({ where: { slug: { startsWith: "e2e-" } } });
+  await db.startupCandidate.deleteMany({ where: { domain: { endsWith: ".invalid" } } });
 
   // 60 manual companies → two pages under a filter (48 per page).
   await db.company.createMany({
@@ -729,4 +730,39 @@ test("final stage pages fit a 390px screen (no horizontal scroll)", async () => 
     await shot(page, `${name}-mobile`);
   }
   await done(page);
+});
+
+test("suggest a company: clear thank-you, then 'ההצעות שלי' shows its status (#120)", async () => {
+  // A .invalid domain never resolves, so the instant check finishes offline: no careers page → admin review.
+  for (const [vp, tag] of [
+    [{ width: 1280, height: 900 }, "desktop"],
+    [{ width: 390, height: 844 }, "mobile"],
+  ]) {
+    const page = await newPage(vp);
+    await login(page);
+    await page.goto(`${BASE}/companies#suggest`);
+    await page.fill("#suggest-name", `E2E Suggest ${tag}`);
+    await page.fill("#suggest-url", `https://e2e-suggest-${tag}.invalid`);
+    await page.click("[data-testid=suggest-company] button[type=submit]");
+    await page.getByText("אנחנו בודקים עכשיו את אתר החברה").waitFor({ timeout: 30_000 });
+    const item = page.locator("[data-testid=my-suggestion]", { hasText: `E2E Suggest ${tag}` });
+    await item.waitFor({ timeout: 30_000 });
+    // "checking" auto-refreshes into the result of the instant check.
+    await page.waitForFunction(
+      (name) =>
+        [...document.querySelectorAll("[data-testid=my-suggestion]")].some(
+          (li) => li.textContent.includes(name) && li.getAttribute("data-status") === "review",
+        ),
+      `E2E Suggest ${tag}`,
+      { timeout: 90_000 },
+    );
+    assert.match(await item.textContent(), /ממתינה לאישור מנהל/);
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth),
+      0,
+    );
+    await item.scrollIntoViewIfNeeded();
+    await shot(page, `suggest-company-${tag}`);
+    await done(page);
+  }
 });

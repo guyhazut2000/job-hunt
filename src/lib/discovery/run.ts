@@ -1,6 +1,7 @@
 import { Prisma, type StartupCandidate } from "@prisma/client";
 import { db } from "../db";
 import { ingestCompany } from "../ingestion/run";
+import { notifySuggestionOutcome } from "../notifications/suggestion";
 import { slugify } from "../taxonomy";
 import { domainOf, isPlausibleCareersPage } from "./domain";
 import { detectAts, PoliteFetcher, type DetectionResult } from "./detect";
@@ -276,6 +277,7 @@ export async function checkCandidates(options: { deadline: number; limit?: numbe
       while (next < queue.length && Date.now() < options.deadline) {
         const c = queue[next++];
         const outcome = await checkCandidate(c, fetcher);
+        if (outcome !== "PENDING") await notifySuggestionOutcome(c.id).catch(() => false);
         result.checked++;
         if (outcome === "AUTO") result.auto++;
         else if (outcome === "MANUAL") result.manual++;
@@ -350,4 +352,41 @@ export async function ingestDiscovered(deadline: number, limit = 10) {
     jobs += (await ingestCompany(c.id, { deadline })).created;
   }
   return jobs;
+}
+
+/** Instant check of a user suggestion: stop waiting after this (the nightly run picks it up then). */
+export const INSTANT_CHECK_BUDGET_MS = 45_000;
+/** Ingest a freshly added AUTO company's jobs within this; otherwise the provider cron does it. */
+export const INSTANT_INGEST_BUDGET_MS = 30_000;
+
+export type InstantCheckResult = CheckOutcome | "TIMEOUT";
+
+/**
+ * Check one just-suggested candidate right away (same detection, policy, robots.txt and pacing as the
+ * nightly run), ingest its jobs if it became an AUTO company, and notify the suggester. If the check
+ * does not finish within the budget, `checkedAt` stays empty and the nightly run checks it.
+ */
+export async function checkSuggestionNow(
+  candidateId: string,
+  options: { budgetMs?: number; ingestBudgetMs?: number; fetcher?: PoliteFetcher } = {},
+): Promise<InstantCheckResult> {
+  const candidate = await db.startupCandidate.findUnique({ where: { id: candidateId } });
+  if (!candidate || candidate.status !== "PENDING" || candidate.checkedAt) return "PENDING";
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<"TIMEOUT">((resolve) => {
+    timer = setTimeout(() => resolve("TIMEOUT"), options.budgetMs ?? INSTANT_CHECK_BUDGET_MS);
+  });
+  const outcome = await Promise.race([checkCandidate(candidate, options.fetcher), timeout]).finally(() =>
+    clearTimeout(timer),
+  );
+  if (outcome === "TIMEOUT" || outcome === "PENDING") return outcome;
+  if (outcome === "AUTO") {
+    const added = await db.startupCandidate.findUnique({ where: { id: candidateId }, select: { companyId: true } });
+    if (added?.companyId) {
+      const deadline = Date.now() + (options.ingestBudgetMs ?? INSTANT_INGEST_BUDGET_MS);
+      await ingestCompany(added.companyId, { deadline }).catch(() => null);
+    }
+  }
+  await notifySuggestionOutcome(candidateId).catch(() => false);
+  return outcome;
 }

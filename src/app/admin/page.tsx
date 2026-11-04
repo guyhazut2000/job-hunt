@@ -14,6 +14,8 @@ import { PendingButton } from "@/components/admin/PendingButton";
 import { careersLink, isManualCompany, isSyncFailing, SYNC_FAILING_THRESHOLD } from "@/lib/companies/status";
 import { db } from "@/lib/db";
 import { USER_SOURCE } from "@/lib/discovery/suggest";
+import { suggesterId } from "@/lib/discovery/suggestion-status";
+import { Badge } from "@/components/ui/badge";
 import { getDictionary } from "@/lib/i18n";
 import { jobsMapStrings } from "@/lib/i18n/jobs-map";
 import { linkedinStrings } from "@/lib/i18n/linkedin";
@@ -333,6 +335,11 @@ export default async function AdminPage() {
                       {c.size ? ` · ${c.size}` : ""}
                       {c.industry ? ` · ${c.industry}` : ""}
                     </span>
+                    {c.suggester && (
+                      <Badge variant="secondary" className="ms-1" data-testid="admin-suggester">
+                        {t.admin.suggestedByUser}: {c.suggester}
+                      </Badge>
+                    )}
                   </div>
                   <a
                     href={c.careersUrl ?? c.website}
@@ -430,13 +437,19 @@ async function discoveryStats() {
     }),
     db.discoveryRun.findFirst({ orderBy: { startedAt: "desc" } }),
   ]);
+  const suggesterIds = [...new Set(queue.map((c) => suggesterId(c.sourceUrl)).filter((x): x is string => !!x))];
+  const suggesters = new Map(
+    (
+      await db.user.findMany({ where: { id: { in: suggesterIds } }, select: { id: true, name: true, email: true } })
+    ).map((u) => [u.id, u.name || u.email || u.id]),
+  );
   const n = (s: string) => byStatus.find((b) => b.status === s)?._count._all ?? 0;
   return {
     total: byStatus.reduce((sum, b) => sum + b._count._all, 0),
     added: n("ADDED"),
     rejected: n("REJECTED"),
     pendingChecked,
-    queue,
+    queue: queue.map((c) => ({ ...c, suggester: suggesters.get(suggesterId(c.sourceUrl) ?? "") ?? null })),
     lastRun,
   };
 }

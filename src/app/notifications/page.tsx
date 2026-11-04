@@ -44,6 +44,7 @@ const ICONS: Record<string, LucideIcon> = {
   JOB_MATCH: BriefcaseBusiness,
   HIGH_MATCH: Target,
   COMPANY_JOBS: Building2,
+  COMPANY_SUGGESTION: Building2,
   SCAN_FAILED: AlertTriangle,
   SAVED_JOB_CLOSED: XCircle,
   SAVED_JOB_UPDATED: FilePenLine,
