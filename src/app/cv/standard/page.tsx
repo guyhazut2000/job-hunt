@@ -57,6 +57,9 @@ export default async function CvStandardPage({
       >
         {t.sources}
       </a>
+      <Link href="/cv/ats" className="text-primary self-start text-sm font-semibold underline" data-testid="to-ats">
+        {t.toAts}
+      </Link>
     </header>
   );
 

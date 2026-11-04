@@ -69,7 +69,7 @@ export default async function SkillGapsPage() {
             <bdi>{g.label}</bdi>
           </h3>
           <span className="flex items-center gap-2">
-            {st && st !== "NONE" ? (
+            {st ? (
               <span className="bg-fit-soft text-fit rounded-full px-2 py-0.5 text-xs font-semibold">
                 {s.status[st] ?? st}
               </span>

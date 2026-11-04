@@ -9,11 +9,19 @@ export interface PsNavItem {
   label: string;
 }
 
-/** Section tabs for /learn/problem-solving (horizontal scroll on mobile). */
-export function PsNav({ items, label }: { items: PsNavItem[]; label: string }) {
+/** Section tabs for /learn/problem-solving and /learn/system-design (horizontal scroll on mobile). */
+export function PsNav({
+  items,
+  label,
+  root = "/learn/problem-solving",
+}: {
+  items: PsNavItem[];
+  label: string;
+  /** The section index: matched exactly, so it isn't active on every sub-page. */
+  root?: string;
+}) {
   const path = usePathname();
-  const active = (href: string) =>
-    href === "/learn/problem-solving" ? path === href : path === href || path.startsWith(`${href}/`);
+  const active = (href: string) => (href === root ? path === href : path === href || path.startsWith(`${href}/`));
   return (
     <nav aria-label={label} data-print-hide className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
       <ul className="flex w-max gap-1.5 pb-1">
