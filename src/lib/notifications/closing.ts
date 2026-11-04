@@ -66,7 +66,11 @@ export async function runClosingReminders(now = new Date()): Promise<{ assignmen
     const stage = assignmentReminderStage(a.dueAt, now);
     if (!stage) continue;
     const locale: Locale = a.user.locale === "en" ? "en" : "he";
-    const msg = buildAssignmentReminder(locale, { title: a.title, company: a.application.company, dueAt: a.dueAt }, stage);
+    const msg = buildAssignmentReminder(
+      locale,
+      { title: a.title, company: a.application.company, dueAt: a.dueAt },
+      stage,
+    );
     const created = await notify(
       a.userId,
       {
