@@ -1,5 +1,7 @@
 "use client";
 
+import { ShowMoreList } from "@/components/density/ShowMoreList";
+import type { DensityStrings } from "@/lib/i18n/density";
 import { Check, ExternalLink, Mail, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -199,16 +201,19 @@ export function ReviewQueue({
   items,
   s,
   statusLabels,
+  d,
 }: {
   items: ReviewItem[];
   s: EmailSyncStrings;
   statusLabels: Record<string, string>;
+  /** When given, only the first few cards show, with "הצג עוד" (docs/ui-data-density.md). */
+  d?: DensityStrings;
 }) {
+  const cards = items.map((i) => <ReviewCard key={i.id} item={i} s={s} statusLabels={statusLabels} />);
+  if (!d) return <ul className="grid gap-3 lg:grid-cols-2">{cards}</ul>;
   return (
-    <ul className="grid gap-3 lg:grid-cols-2">
-      {items.map((i) => (
-        <ReviewCard key={i.id} item={i} s={s} statusLabels={statusLabels} />
-      ))}
-    </ul>
+    <ShowMoreList initial={4} step={10} className="grid gap-3 lg:grid-cols-2" s={d} testId="email-review-list">
+      {cards}
+    </ShowMoreList>
   );
 }

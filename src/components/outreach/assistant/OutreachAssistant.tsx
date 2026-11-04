@@ -1,6 +1,15 @@
 "use client";
 
-import { startTransition, useActionState, useId, useOptimistic, useState, useTransition } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useId,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import Link from "next/link";
 import type { ContactStatus } from "@prisma/client";
 import { CheckCheck, ExternalLink, Sparkles, UserCheck, X } from "lucide-react";
@@ -30,6 +39,12 @@ import {
 } from "@/lib/outreach/messages";
 import type { QueueItem, TrackerContact } from "@/lib/outreach/server";
 import { cn } from "@/lib/utils";
+import { ShowMoreList, focusItem, moreButtonClass } from "@/components/density/ShowMoreList";
+import { densityStrings, fillD } from "@/lib/i18n/density";
+import { countToInclude, matchesQuery, nextBatch, revealMore } from "@/lib/ui/show-more";
+
+/** Tracker rows per "הצג עוד" batch; select-all only ever covers visible rows (docs/ui-data-density.md). */
+const TRACKER_PAGE = 20;
 import { CopyButton } from "../CopyButton";
 import { STATUS_DOT, STATUSES } from "../ContactList";
 
@@ -126,13 +141,19 @@ export function OutreachAssistant({
         {due.length === 0 ? (
           <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm">{s.followEmpty}</p>
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ShowMoreList
+            initial={3}
+            step={5}
+            className="flex flex-col gap-3"
+            s={densityStrings(locale)}
+            testId="follow-due"
+          >
             {due.map((c) => (
               <li key={c.id}>
                 <FollowUpCard c={c} lang={lang} canAi={canAi} s={s} t={t} />
               </li>
             ))}
-          </ul>
+          </ShowMoreList>
         )}
       </section>
 
@@ -429,12 +450,55 @@ function Tracker({
       await updateContactStatus(id, status);
     });
   const toggle = (id: string) => setSelected((x) => (x.includes(id) ? x.filter((y) => y !== id) : [...x, id]));
-  const allIds = items.map((c) => c.id).slice(0, BULK_MAX);
+  const d = densityStrings(locale);
+  const [query, setQuery] = useState("");
+  const [limit, setLimit] = useState(TRACKER_PAGE);
+  const listRef = useRef<HTMLUListElement>(null);
+  const focusFrom = useRef<number | null>(null);
+  const filtered = query.trim()
+    ? items.filter((c) =>
+        matchesQuery(`${c.name} ${c.title ?? ""} ${c.company?.name ?? ""} ${c.job?.title ?? ""}`, query),
+      )
+    : items;
+  const rows = filtered.slice(0, limit);
+  useEffect(() => {
+    // #contact-… deep links (from notifications) reveal their row.
+    const id = window.location.hash.match(/^#contact-(.+)$/)?.[1];
+    const i = id ? contacts.findIndex((c) => c.id === id) : -1;
+    if (i >= TRACKER_PAGE) {
+      setLimit(countToInclude(i, TRACKER_PAGE, TRACKER_PAGE));
+      requestAnimationFrame(() => document.getElementById(`contact-${id}`)?.scrollIntoView({ block: "center" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (focusFrom.current === null) return;
+    focusItem(listRef.current?.children[focusFrom.current]);
+    focusFrom.current = null;
+  }, [limit]);
+  const allIds = rows.map((c) => c.id).slice(0, BULK_MAX);
   const allOn = selected.length > 0 && allIds.every((id) => selected.includes(id));
   return (
     <div className="flex flex-col gap-2">
+      {items.length > TRACKER_PAGE && (
+        <label className="block">
+          <span className="sr-only">{d.filterPeople}</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setLimit(TRACKER_PAGE);
+            }}
+            placeholder={d.filterPeople}
+            dir="auto"
+            className="border-input bg-background min-h-11 w-full rounded-md border px-3 text-sm sm:min-h-9"
+            data-testid="tracker-filter"
+          />
+        </label>
+      )}
       <div
-        className="bg-card flex flex-wrap items-center gap-2 rounded-lg border p-3 text-sm"
+        className="bg-card sticky top-(--header-h) z-10 flex flex-wrap items-center gap-2 rounded-lg border p-3 text-sm"
         data-testid="tracker-bulk"
       >
         <label className="inline-flex min-h-11 items-center gap-2 sm:min-h-8">
@@ -481,8 +545,8 @@ function Tracker({
           {s.bulkApply}
         </Button>
       </div>
-      <ul className="bg-card divide-border flex flex-col divide-y rounded-lg border">
-        {items.map((c) => (
+      <ul ref={listRef} className="bg-card divide-border flex flex-col divide-y rounded-lg border">
+        {rows.map((c) => (
           <li
             key={c.id}
             id={`contact-${c.id}`}
@@ -579,6 +643,25 @@ function Tracker({
           </li>
         ))}
       </ul>
+      {(filtered.length > TRACKER_PAGE || query.trim()) && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1" data-testid="tracker-more">
+          <p className="text-muted-foreground text-xs" aria-live="polite">
+            {filtered.length ? fillD(d.showing, { shown: rows.length, total: filtered.length }) : d.noMatch}
+          </p>
+          {rows.length < filtered.length && (
+            <button
+              type="button"
+              className={moreButtonClass}
+              onClick={() => {
+                focusFrom.current = rows.length;
+                setLimit(revealMore(rows.length, filtered.length, TRACKER_PAGE));
+              }}
+            >
+              {fillD(d.showMore, { n: nextBatch(rows.length, filtered.length, TRACKER_PAGE) })}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

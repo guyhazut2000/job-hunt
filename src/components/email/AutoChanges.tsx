@@ -1,5 +1,7 @@
 "use client";
 
+import { ShowMoreList } from "@/components/density/ShowMoreList";
+import { densityStrings, type DensityStrings } from "@/lib/i18n/density";
 import { Check, MailCheck, Undo2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -7,6 +9,9 @@ import { undoEmailAutoChange } from "@/app/email-actions";
 import { Button } from "@/components/ui/button";
 import type { RecentAuto, TimelineEntry } from "@/lib/email/history";
 import { cn } from "@/lib/utils";
+
+/** Used only when no strings are passed, i.e. the list is not collapsed. */
+const FALLBACK_D = densityStrings("he");
 
 export type AutoLabels = {
   badge: string;
@@ -135,7 +140,9 @@ export function AutoChangesPanel({
   title,
   lead,
   confidenceLabel,
+  d,
 }: {
+  d?: DensityStrings;
   items: RecentAuto[];
   labels: AutoLabels;
   statusLabels: Record<string, string>;
@@ -152,7 +159,7 @@ export function AutoChangesPanel({
         </h2>
         <p className="text-muted-foreground text-sm">{lead}</p>
       </div>
-      <ul className="flex flex-col gap-2">
+      <ShowMoreList initial={d ? 5 : items.length} step={10} className="flex flex-col gap-2" s={d ?? FALLBACK_D}>
         {items.map((i) => (
           <li
             key={i.changeId}
@@ -170,7 +177,7 @@ export function AutoChangesPanel({
             {i.canUndo && <AutoUndoButton changeId={i.changeId} company={i.company} labels={labels} />}
           </li>
         ))}
-      </ul>
+      </ShowMoreList>
     </section>
   );
 }

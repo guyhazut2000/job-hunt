@@ -3,6 +3,12 @@ import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowRight, ExternalLink, Hand, Users } from "lucide-react";
 import { auth } from "@/auth";
 import { JobCard, JobList } from "@/components/JobCard";
+import { LoadMoreLink } from "@/components/density/LoadMoreLink";
+import { densityStrings } from "@/lib/i18n/density";
+import { pageItems, parseShow, showHref } from "@/lib/ui/paging";
+
+/** Job cards per "טען עוד" batch on a company page (docs/ui-data-density.md). */
+const COMPANY_JOBS_PAGE = 24;
 import { LinkedinCompanyLinks } from "@/components/LinkedinCompanyLink";
 import { People } from "@/components/outreach/People";
 import { CompanySalaryBands } from "@/components/salary/CompanySalaryBands";
@@ -27,14 +33,25 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: c?.name ?? "Company" };
 }
 
-export default async function CompanyPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+export default async function CompanyPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [{ slug }, sp] = await Promise.all([params, searchParams]);
   const [{ t, locale }, session] = await Promise.all([getDictionary(), auth()]);
   const company = await db.company.findUnique({
     where: { slug },
     include: { jobs: { where: { isActive: true }, orderBy: { postedAt: "desc" }, include: { company: true } } },
   });
   if (!company) notFound();
+  const jobsPage = pageItems(
+    company.jobs,
+    parseShow(sp.show, company.jobs.length, COMPANY_JOBS_PAGE),
+    COMPANY_JOBS_PAGE,
+  );
   const manual = isManualCompany(company);
   const failing = isSyncFailing(company);
   const careers = careersLink(company);
@@ -186,6 +203,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
           </ul>
         </section>
       )}
+      {/* Jobs are paged (`?show=`); salary bands, tech stack and the count still use every job. */}
       <People company={company} userId={session?.user?.id} t={t} />
       <CompanySalaryBands company={company} jobs={company.jobs} loggedIn={!!session?.user?.id} locale={locale} />
       <HiringProcessSection
@@ -200,16 +218,25 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
         userId={session?.user?.id}
         locale={locale}
       />
-      <h2 className="font-heading border-rule border-t-2 pt-6 text-xl font-bold">
+      <h2 id="open-roles" className="font-heading border-rule scroll-mt-24 border-t-2 pt-6 text-xl font-bold">
         <span className="font-mono">{company.jobs.length}</span> {t.companies.openRoles}
       </h2>
-      {company.jobs.length > 0 && (
+      {jobsPage.items.length > 0 && (
         <JobList>
-          {company.jobs.map((j) => (
+          {jobsPage.items.map((j) => (
             <JobCard key={j.id} job={j} t={t} insider={insider} />
           ))}
         </JobList>
       )}
+      <LoadMoreLink
+        href={
+          jobsPage.nextShow ? showHref(`/companies/${company.slug}`, sp, jobsPage.nextShow, COMPANY_JOBS_PAGE) : null
+        }
+        shown={jobsPage.shown}
+        total={jobsPage.total}
+        s={densityStrings(locale)}
+        testId="company-jobs-paging"
+      />
       <BackToTop label={t.ui.backToTop} />
     </div>
   );

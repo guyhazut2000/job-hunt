@@ -1,3 +1,6 @@
+import { LoadMoreLink } from "@/components/density/LoadMoreLink";
+import { densityStrings } from "@/lib/i18n/density";
+import { pageItems, parseShow, showHref } from "@/lib/ui/paging";
 import Link from "next/link";
 import type { Seniority } from "@prisma/client";
 import { ArrowLeft } from "lucide-react";
@@ -17,7 +20,8 @@ import { cn } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 export const generateMetadata = localizedTitle("jobStepUp");
 
-const SHOWN = 40;
+/** Cards per "טען עוד" batch (`?show=`, docs/ui-data-density.md). Was a hard cap of 40. */
+const SHOWN = 20;
 const PICK_LEVELS: Seniority[] = LADDER.filter((l) => l !== "INTERN" && l !== "MANAGER");
 const PICK_ROLES = ["frontend", "backend", "fullstack", "mobile", "devops", "qa", "data", "ml"];
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -52,7 +56,8 @@ export default async function StepUpPage({
   };
   const roleName = (r: string) => (t.roles as Record<string, string>)[r] ?? r;
   const filtered = rows.filter((r) => (!kind || r.move.kind === kind) && (!onlyApply || r.gap.verdict === "apply"));
-  const shown = filtered.slice(0, SHOWN);
+  const page = pageItems(filtered, parseShow(params.show, filtered.length, SHOWN), SHOWN);
+  const shown = page.items;
 
   const chip = (active: boolean) =>
     cn(
@@ -149,7 +154,7 @@ export default async function StepUpPage({
 
           <p className="text-muted-foreground text-sm" data-testid="stepup-count">
             {fillS(s.count, { n: filtered.length })}
-            {filtered.length > SHOWN && ` · ${fillS(s.showing, { shown: SHOWN, total: filtered.length })}`}
+            {filtered.length > page.shown && ` · ${fillS(s.showing, { shown: page.shown, total: filtered.length })}`}
           </p>
           <p className="text-muted-foreground text-xs" data-testid="stepup-ranked-by">
             {s.rankedBy}{" "}
@@ -192,6 +197,13 @@ export default async function StepUpPage({
               ))}
             </JobList>
           )}
+          <LoadMoreLink
+            href={page.nextShow ? showHref("/jobs/step-up", params, page.nextShow, SHOWN) : null}
+            shown={page.shown}
+            total={page.total}
+            s={densityStrings(locale)}
+            testId="stepup-paging"
+          />
           <p className="text-muted-foreground text-xs">{s.honest}</p>
         </>
       )}

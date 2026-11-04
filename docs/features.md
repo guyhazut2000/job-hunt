@@ -40,6 +40,13 @@ Features that live inside other pages (e.g. a panel on `/jobs/[id]`) can't be de
 automatically. The PR template checklist covers them: tick "updated `src/features/registry.ts`"
 or explain why the PR has no user-facing change.
 
+## Long lists
+
+Pages that list user data (the Kanban, outreach tracker, referrals, notifications, company roles,
+and this page's categories) are capped with "הצג עוד" / "טען עוד". The patterns, measurements and
+rules for new lists are in [ui-data-density.md](ui-data-density.md); the user-facing entry is
+`data-density` in the registry.
+
 ## Categories
 
 `jobs` חיפוש משרות · `companies` חברות · `applications` מועמדויות · `profile` מסמכים ופרופיל ·

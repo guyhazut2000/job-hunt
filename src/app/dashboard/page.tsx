@@ -1,3 +1,5 @@
+import { ShowMoreList } from "@/components/density/ShowMoreList";
+import { densityStrings } from "@/lib/i18n/density";
 import { outreachAssistantStrings } from "@/lib/i18n/outreach-assistant";
 import { BarChart3, MailCheck, MapPinned, Plus } from "lucide-react";
 import Link from "next/link";
@@ -90,6 +92,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     emailResponses(apps.filter((a) => a.status === "APPLIED")),
   ]);
   const fs = followUpStrings(locale);
+  const ds = densityStrings(locale);
   const fmt = (d: Date) => formatAppliedDate(d, locale === "en" ? "en" : "he");
   const autoLabels: AutoLabels = {
     badge: es.autoBadge,
@@ -230,6 +233,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           title={es.autoTitle}
           lead={es.autoLead}
           confidenceLabel={es.confidenceLabel}
+          d={ds}
         />
       )}
 
@@ -241,7 +245,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </h2>
             <p className="text-muted-foreground text-sm">{es.reviewLead}</p>
           </div>
-          <ReviewQueue items={review} s={es} statusLabels={t.status} />
+          <ReviewQueue items={review} s={es} statusLabels={t.status} d={ds} />
         </section>
       )}
 
@@ -253,7 +257,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </h2>
             <p className="text-muted-foreground text-sm">{fs.sectionLead}</p>
           </div>
-          <ul className="flex flex-col gap-2">
+          <ShowMoreList initial={5} step={10} className="flex flex-col gap-2" s={ds} testId="followup-list">
             {pendingFollowUps.map((i) => (
               <FollowUpRow
                 key={i.id}
@@ -262,7 +266,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 s={fs}
               />
             ))}
-          </ul>
+          </ShowMoreList>
         </section>
       )}
 
@@ -353,7 +357,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         {contacts.length === 0 ? (
           <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm">{t.people.outreachEmpty}</p>
         ) : (
-          <ContactList contacts={contactRows} t={t.people} />
+          <ContactList contacts={contactRows} t={t.people} d={ds} />
         )}
       </section>
     </div>

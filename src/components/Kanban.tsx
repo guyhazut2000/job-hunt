@@ -24,6 +24,9 @@ import type { AutoInfo, TimelineEntry } from "@/lib/email/history";
 import type { FollowUpView } from "@/lib/followup/view";
 import type { FollowUpStrings } from "@/lib/i18n/followup";
 import { cn } from "@/lib/utils";
+import { focusItem } from "@/components/density/ShowMoreList";
+import { densityStrings, fillD } from "@/lib/i18n/density";
+import { matchesQuery, nextBatch, revealMore, visibleWithPinned } from "@/lib/ui/show-more";
 
 export interface KanbanItem {
   id: string;
@@ -47,6 +50,14 @@ export interface KanbanItem {
 }
 
 const COLUMNS: ApplicationStatus[] = ["SAVED", "APPLIED", "SCREENING", "INTERVIEW", "OFFER", "REJECTED"];
+/** Cards rendered per column before "הצג עוד" (docs/ui-data-density.md). */
+export const KANBAN_COLUMN_PAGE = 20;
+/** Above this many applications the board starts compact and shows the filter toolbar. */
+export const KANBAN_COMPACT_FROM = 30;
+export const KANBAN_TOOLBAR_FROM = 12;
+const DENSITY_KEY = "jh-kanban-density";
+type Density = "comfortable" | "compact";
+
 const ACCENT: Record<ApplicationStatus, string> = {
   SAVED: "bg-muted-foreground",
   APPLIED: "bg-foreground",
@@ -168,7 +179,42 @@ export function Kanban({
       const r = await updateApplicationStatus(id, status);
       setCvBlocked(!!(r && r.blocked === "cv"));
     });
-  const counts = Object.fromEntries(COLUMNS.map((c) => [c, optimistic.filter((i) => i.status === c).length]));
+  const d = densityStrings(locale);
+  const [query, setQuery] = useState("");
+  const [density, setDensity] = useState<Density | null>(null);
+  const [limits, setLimits] = useState<Partial<Record<ApplicationStatus, number>>>({});
+  // A card a link points at (#app-…) or whose follow-up draft opens must never be hidden.
+  const [hashId, setHashId] = useState<string | null>(null);
+  const focusCol = useRef<{ col: ApplicationStatus; index: number } | null>(null);
+  useEffect(() => {
+    const saved = window.localStorage.getItem(DENSITY_KEY);
+    if (saved === "compact" || saved === "comfortable") setDensity(saved);
+    const h = window.location.hash.match(/^#app-(.+)$/);
+    if (h) {
+      setHashId(h[1]);
+      requestAnimationFrame(() => document.getElementById(`app-${h[1]}`)?.scrollIntoView({ block: "center" }));
+    }
+  }, []);
+  useEffect(() => {
+    if (!focusCol.current) return;
+    const { col, index } = focusCol.current;
+    focusCol.current = null;
+    focusItem(board.current?.querySelector(`[data-col="${col}"] ul`)?.children[index]);
+  }, [limits]);
+  const compact = (density ?? (optimistic.length > KANBAN_COMPACT_FROM ? "compact" : "comfortable")) === "compact";
+  const chooseDensity = (v: Density) => {
+    setDensity(v);
+    window.localStorage.setItem(DENSITY_KEY, v);
+  };
+  const shownItems = query.trim()
+    ? optimistic.filter((i) => matchesQuery(`${i.title} ${i.company}`, query))
+    : optimistic;
+  const isPinned = (i: KanbanItem) => i.id === hashId || i.id === openFollowUp;
+  const columnItems = Object.fromEntries(COLUMNS.map((c) => [c, shownItems.filter((i) => i.status === c)])) as Record<
+    ApplicationStatus,
+    KanbanItem[]
+  >;
+  const counts = Object.fromEntries(COLUMNS.map((c) => [c, columnItems[c].length]));
   const jump = (col: ApplicationStatus) =>
     board.current
       ?.querySelector(`[data-col="${col}"]`)
@@ -186,6 +232,51 @@ export function Kanban({
           <a href="/cv/standard?from=applied" className="text-primary min-h-11 content-center font-semibold underline">
             {cvGateLabels.cta}
           </a>
+        </div>
+      )}
+      {optimistic.length > KANBAN_TOOLBAR_FROM && (
+        <div
+          className="bg-background/95 sticky top-(--header-h) z-20 -mx-4 flex flex-wrap items-center gap-2 px-4 py-2 backdrop-blur-sm"
+          data-testid="kanban-toolbar"
+        >
+          <label className="min-w-0 flex-1 basis-56">
+            <span className="sr-only">{d.filterCards}</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={d.filterCards}
+              dir="auto"
+              className="border-input bg-background min-h-11 w-full rounded-md border px-3 text-sm sm:min-h-9"
+              data-testid="kanban-filter"
+            />
+          </label>
+          <div
+            role="group"
+            aria-label={d.density}
+            className="flex rounded-md border p-0.5"
+            data-testid="kanban-density"
+          >
+            {(["comfortable", "compact"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={compact === (v === "compact")}
+                onClick={() => chooseDensity(v)}
+                className={cn(
+                  "min-h-10 rounded px-3 text-sm font-semibold sm:min-h-8",
+                  compact === (v === "compact") ? "bg-foreground text-background" : "hover:bg-muted",
+                )}
+              >
+                {d[v]}
+              </button>
+            ))}
+          </div>
+          {query.trim() && (
+            <p className="text-muted-foreground w-full text-xs" aria-live="polite">
+              {shownItems.length ? fillD(d.showing, { shown: shownItems.length, total: optimistic.length }) : d.noMatch}
+            </p>
+          )}
         </div>
       )}
       {/* status index — doubles as a column jumper on small screens */}
@@ -230,51 +321,56 @@ export function Kanban({
                 {emptyLabel}
               </p>
             )}
-            <ul className="flex flex-col gap-2">
-              {optimistic
-                .filter((i) => i.status === col)
-                .map((i) => {
-                  const href = i.jobId ? `/jobs/${i.jobId}` : i.url;
-                  return (
-                    <li
-                      key={i.id}
-                      id={`app-${i.id}`}
-                      draggable
-                      onDragStart={(e) => e.dataTransfer.setData("text/plain", i.id)}
-                      className="bg-card flex scroll-mt-24 flex-col gap-2 rounded-md border p-3 shadow-[0_1px_0_var(--border)]"
-                    >
-                      <div className="flex items-start gap-1.5">
-                        <GripVertical
-                          className="text-muted-foreground mt-0.5 hidden size-4 shrink-0 cursor-grab xl:block"
-                          aria-hidden
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-heading leading-snug font-bold" dir="auto">
-                            {href ? (
-                              <a
-                                href={href}
-                                {...(i.jobId ? {} : { target: "_blank", rel: "noopener noreferrer" })}
-                                className="hover:text-primary -my-2 flex items-start gap-1 py-2 underline-offset-4 hover:underline"
-                              >
-                                <TruncatedText text={i.title} lines={3} className="min-w-0" />
-                                {!i.jobId && <ExternalLink className="mt-1.5 size-3 shrink-0" aria-hidden />}
-                              </a>
-                            ) : (
-                              <TruncatedText text={i.title} lines={3} />
+            <ul
+              className="scroll-thin flex flex-col gap-2 xl:max-h-[min(75vh,60rem)] xl:overflow-y-auto xl:overscroll-contain xl:pe-0.5"
+              aria-labelledby={`col-${col}`}
+            >
+              {visibleWithPinned(columnItems[col], limits[col] ?? KANBAN_COLUMN_PAGE, isPinned).visible.map((i) => {
+                const href = i.jobId ? `/jobs/${i.jobId}` : i.url;
+                return (
+                  <li
+                    key={i.id}
+                    id={`app-${i.id}`}
+                    draggable
+                    onDragStart={(e) => e.dataTransfer.setData("text/plain", i.id)}
+                    className="bg-card flex scroll-mt-24 flex-col gap-2 rounded-md border p-3 shadow-[0_1px_0_var(--border)]"
+                  >
+                    <div className="flex items-start gap-1.5">
+                      <GripVertical
+                        className="text-muted-foreground mt-0.5 hidden size-4 shrink-0 cursor-grab xl:block"
+                        aria-hidden
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-heading leading-snug font-bold" dir="auto">
+                          {href ? (
+                            <a
+                              href={href}
+                              {...(i.jobId ? {} : { target: "_blank", rel: "noopener noreferrer" })}
+                              className="hover:text-primary -my-2 flex items-start gap-1 py-2 underline-offset-4 hover:underline"
+                            >
+                              <TruncatedText text={i.title} lines={3} className="min-w-0" />
+                              {!i.jobId && <ExternalLink className="mt-1.5 size-3 shrink-0" aria-hidden />}
+                            </a>
+                          ) : (
+                            <TruncatedText text={i.title} lines={3} />
+                          )}
+                        </p>
+                        <TruncatedText text={i.company} side="bottom" className="text-muted-foreground text-sm" />
+                        {contactsLabel && i.contacts && i.contacts.total > 0 && (
+                          <p className="text-foreground/80 mt-1 flex items-center gap-1 text-xs font-semibold">
+                            <Users className="size-3.5 shrink-0" aria-hidden />
+                            {contactsLabel.count.replace("{n}", String(i.contacts.total))}{" "}
+                            {i.contacts.referred > 0 && (
+                              <span className="text-fit">
+                                · {i.contacts.referred} {contactsLabel.referred}
+                              </span>
                             )}
                           </p>
-                          <TruncatedText text={i.company} side="bottom" className="text-muted-foreground text-sm" />
-                          {contactsLabel && i.contacts && i.contacts.total > 0 && (
-                            <p className="text-foreground/80 mt-1 flex items-center gap-1 text-xs font-semibold">
-                              <Users className="size-3.5 shrink-0" aria-hidden />
-                              {contactsLabel.count.replace("{n}", String(i.contacts.total))}{" "}
-                              {i.contacts.referred > 0 && (
-                                <span className="text-fit">
-                                  · {i.contacts.referred} {contactsLabel.referred}
-                                </span>
-                              )}
-                            </p>
-                          )}
+                        )}
+                        {compact && i.interview?.display && (
+                          <p className="text-foreground/80 mt-1 text-xs font-semibold">{i.interview.display}</p>
+                        )}
+                        <CardExtras compact={compact} label={d.details} defaultOpen={openFollowUp === i.id}>
                           {interviewLabels && (i.status === "INTERVIEW" || i.interview) && (
                             <div className="mt-1">
                               <InterviewDate
@@ -354,36 +450,59 @@ export function Kanban({
                               <StatusTimeline entries={i.history} labels={autoLabels} statusLabels={labels} />
                             </div>
                           )}
-                        </div>
+                        </CardExtras>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <select
-                          aria-label={`${statusLabel}: ${i.title}`}
-                          className="select-native min-h-11 flex-1 py-1 text-sm xl:min-h-9"
-                          value={i.status}
-                          onChange={(e) => move(i.id, e.target.value as ApplicationStatus)}
-                        >
-                          {COLUMNS.map((c) => (
-                            <option key={c} value={c}>
-                              {labels[c]}
-                            </option>
-                          ))}
-                        </select>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-destructive xl:size-9"
-                          aria-label={`${removeLabel}: ${i.title}`}
-                          data-testid="kanban-remove"
-                          onClick={() => remove(i.id, i.title)}
-                        >
-                          <Trash2 aria-hidden />
-                        </Button>
-                      </div>
-                    </li>
-                  );
-                })}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        aria-label={`${statusLabel}: ${i.title}`}
+                        className="select-native min-h-11 flex-1 py-1 text-sm xl:min-h-9"
+                        value={i.status}
+                        onChange={(e) => move(i.id, e.target.value as ApplicationStatus)}
+                      >
+                        {COLUMNS.map((c) => (
+                          <option key={c} value={c}>
+                            {labels[c]}
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive xl:size-9"
+                        aria-label={`${removeLabel}: ${i.title}`}
+                        data-testid="kanban-remove"
+                        onClick={() => remove(i.id, i.title)}
+                      >
+                        <Trash2 aria-hidden />
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
+            {(() => {
+              const limit = limits[col] ?? KANBAN_COLUMN_PAGE;
+              const { visible, hidden: left } = visibleWithPinned(columnItems[col], limit, isPinned);
+              if (!left) return null;
+              return (
+                <button
+                  type="button"
+                  className="bg-card hover:bg-muted min-h-11 rounded-md border border-dashed px-3 text-sm font-semibold xl:min-h-9"
+                  data-testid={`kanban-more-${col}`}
+                  onClick={() => {
+                    focusCol.current = { col, index: visible.length };
+                    setLimits((l) => ({ ...l, [col]: revealMore(limit, columnItems[col].length, KANBAN_COLUMN_PAGE) }));
+                  }}
+                >
+                  {fillD(d.showMore, { n: nextBatch(visible.length, columnItems[col].length, KANBAN_COLUMN_PAGE) })}
+                  <span className="text-muted-foreground font-normal">
+                    {" "}
+                    · {fillD(d.showing, { shown: visible.length, total: columnItems[col].length })}
+                  </span>
+                </button>
+              );
+            })()}
           </section>
         ))}
       </div>
@@ -423,5 +542,31 @@ export function Kanban({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Secondary card controls (interview date, asked salary, prep links, follow-up, history). In the
+ * compact density they sit behind one disclosure and are only mounted once opened, which keeps a
+ * 400-card board light (docs/ui-data-density.md).
+ */
+function CardExtras({
+  compact,
+  label,
+  defaultOpen,
+  children,
+}: {
+  compact: boolean;
+  label: string;
+  defaultOpen: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  if (!compact) return <>{children}</>;
+  return (
+    <details className="mt-1" open={open} onToggle={(e) => setOpen(e.currentTarget.open)} data-testid="kanban-extras">
+      <summary className="text-primary min-h-8 cursor-pointer content-center text-xs font-semibold">{label}</summary>
+      {open && children}
+    </details>
   );
 }

@@ -507,3 +507,90 @@ test("jobs filters (mobile): floating 'הצג N משרות', chips in the sheet,
   await shot(page, "mobile-results");
   await done(page);
 });
+
+// Data density (docs/ui-data-density.md): with a few hundred rows the long lists must stay capped,
+// "הצג עוד" / "טען עוד" must reveal more, and nothing may scroll sideways at 390px.
+test("data density: capped lists, show more / load more, no horizontal overflow at 390", async () => {
+  const BULK = "e2e-bulk-";
+  const cleanup = () =>
+    Promise.all([
+      db.application.deleteMany({ where: { userId: demoId, company: { startsWith: BULK } } }),
+      db.contact.deleteMany({ where: { userId: demoId, name: { startsWith: BULK } } }),
+      db.notification.deleteMany({ where: { userId: demoId, dedupeKey: { startsWith: BULK } } }),
+    ]);
+  await cleanup();
+  const pad = (i) => String(i).padStart(2, "0");
+  await db.application.createMany({
+    data: Array.from({ length: 45 }, (_, i) => ({
+      userId: demoId,
+      title: `Bulk role ${pad(i)}`,
+      company: `${BULK}${pad(i)}`,
+      status: "SAVED",
+    })),
+  });
+  await db.contact.createMany({
+    data: Array.from({ length: 30 }, (_, i) => ({
+      userId: demoId,
+      name: `${BULK}${pad(i)}`,
+      category: "PEER",
+      status: "NOT_CONTACTED",
+    })),
+  });
+  await db.notification.createMany({
+    data: Array.from({ length: 45 }, (_, i) => ({
+      userId: demoId,
+      kind: "SYSTEM",
+      title: `e2e bulk notification ${pad(i)}`,
+      dedupeKey: `${BULK}${pad(i)}`,
+    })),
+  });
+  const page = await newPage();
+  try {
+    await login(page);
+    const overflow = () =>
+      page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    const height = () => page.evaluate(() => document.documentElement.scrollHeight);
+
+    // Kanban: a column shows 20 cards, then "הצג עוד"; the filter finds a hidden card.
+    await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
+    const saved = page.locator('section[data-col="SAVED"]');
+    const cards = saved.getByTestId("kanban-remove");
+    assert.equal(await cards.count(), 20, "SAVED column starts at 20 cards");
+    await page.getByTestId("kanban-more-SAVED").click();
+    assert.ok((await cards.count()) > 20, "show more reveals more cards");
+    await page.getByTestId("kanban-filter").fill(`${BULK}44`);
+    assert.equal(await cards.count(), 1, "the filter finds a card that was hidden");
+    assert.ok((await overflow()) <= 1, "dashboard: no horizontal overflow");
+    await shot(page, "density-dashboard");
+
+    // Outreach tracker: 20 rows, then "הצג עוד"; select-all covers only the visible rows.
+    await page.goto(`${BASE}/outreach`, { waitUntil: "networkidle" });
+    const rows = page.getByTestId("tracker-row");
+    assert.equal(await rows.count(), 20, "tracker starts at 20 rows");
+    await page.getByTestId("tracker-more").locator("button").first().click();
+    assert.ok((await rows.count()) > 20);
+    await page.getByTestId("tracker-filter").fill(`${BULK}29`);
+    assert.equal(await rows.count(), 1);
+    assert.ok((await overflow()) <= 1, "outreach: no horizontal overflow");
+
+    // Notifications: 30 per page from the server, "טען עוד" keeps the URL state.
+    await page.goto(`${BASE}/notifications`, { waitUntil: "networkidle" });
+    const items = page.getByTestId("notification-list").locator("li");
+    assert.equal(await items.count(), 30);
+    await page.getByTestId("notifications-paging-next").click();
+    await page.waitForURL(/show=60/);
+    assert.ok((await items.count()) > 30);
+    assert.ok((await height()) < 20_000, "notifications stay a bounded height");
+    assert.ok((await overflow()) <= 1, "notifications: no horizontal overflow");
+
+    for (const path of ["/referrals", "/salary", "/salary/offers", "/settings/notifications", "/features"]) {
+      await page.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
+      assert.ok((await overflow()) <= 1, `${path}: no horizontal overflow at 390`);
+      const nodes = await page.evaluate(() => document.getElementsByTagName("*").length);
+      assert.ok(nodes < 5000, `${path}: DOM stays small (${nodes} nodes)`);
+    }
+    await done(page);
+  } finally {
+    await cleanup();
+  }
+});
