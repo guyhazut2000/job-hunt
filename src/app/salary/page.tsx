@@ -1,3 +1,5 @@
+import { ShowMoreList } from "@/components/density/ShowMoreList";
+import { densityStrings } from "@/lib/i18n/density";
 import Link from "next/link";
 import { ExternalLink, Trash2 } from "lucide-react";
 import { auth } from "@/auth";
@@ -45,6 +47,7 @@ export default async function SalaryPage({
   const fam = FAMILY_LABELS[locale];
   const lvl = LEVEL_LABELS[locale];
   const userId = session?.user?.id;
+  const ds = densityStrings(locale);
 
   const [points, asked] = userId
     ? await Promise.all([
@@ -186,7 +189,7 @@ export default async function SalaryPage({
             {shown.length === 0 ? (
               <p className="text-muted-foreground text-sm">{s.mine.empty}</p>
             ) : (
-              <ul className="divide-y rounded-lg border">
+              <ShowMoreList initial={8} step={20} className="divide-y rounded-lg border" s={ds} testId="salary-points">
                 {shown.map((p) => (
                   <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
                     <div className="flex min-w-0 flex-col">
@@ -216,7 +219,7 @@ export default async function SalaryPage({
                     </form>
                   </li>
                 ))}
-              </ul>
+              </ShowMoreList>
             )}
             <details className="bg-card rounded-lg border p-4" open={shown.length === 0}>
               <summary className="min-h-11 cursor-pointer font-semibold">{s.mine.add}</summary>
@@ -244,32 +247,35 @@ export default async function SalaryPage({
               </Link>
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted text-start">
-                  <tr>
-                    <th className="p-2 text-start">{s.asked.colRole}</th>
-                    <th className="p-2 text-start">{s.asked.colAsked}</th>
-                    <th className="p-2 text-start">{s.asked.colNote}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {asked.map((a) => (
-                    <tr key={a.id} className="border-t">
-                      <td className="p-2">
-                        <bdi>{a.title}</bdi> · <bdi>{a.company}</bdi>
-                      </td>
-                      <td className="p-2 font-semibold tabular-nums" dir="ltr">
-                        {ils(a.askedSalaryMonthly ?? 0)}
-                      </td>
-                      <td className="text-muted-foreground p-2" dir="auto">
-                        {a.salaryNote}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            // A card list, not a table: no horizontal scroll at 390px, and "הצג עוד" past 8 rows.
+            <ShowMoreList
+              initial={8}
+              step={20}
+              className="divide-y rounded-lg border"
+              s={ds}
+              testId="salary-asked-list"
+            >
+              {asked.map((a) => (
+                <li key={a.id} className="flex flex-col gap-0.5 p-3 text-sm">
+                  <span className="flex flex-wrap items-baseline justify-between gap-x-3">
+                    <span className="min-w-0">
+                      <span className="sr-only">{s.asked.colRole}: </span>
+                      <bdi>{a.title}</bdi> · <bdi>{a.company}</bdi>
+                    </span>
+                    <span className="font-semibold tabular-nums">
+                      <span className="sr-only">{s.asked.colAsked}: </span>
+                      <bdi dir="ltr">{ils(a.askedSalaryMonthly ?? 0)}</bdi>
+                    </span>
+                  </span>
+                  {a.salaryNote && (
+                    <span className="text-muted-foreground line-clamp-2 text-xs" dir="auto" title={a.salaryNote}>
+                      <span className="sr-only">{s.asked.colNote}: </span>
+                      {a.salaryNote}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ShowMoreList>
           )}
         </section>
       )}

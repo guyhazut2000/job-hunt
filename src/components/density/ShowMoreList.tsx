@@ -57,16 +57,22 @@ export function ShowMoreList({
   const ref = useRef<HTMLElement>(null);
   const focusFrom = useRef<number | null>(null);
 
+  // A `#id` deep link (on load, or an in-page jump later) to a hidden item reveals it first.
+  const anchorKey = anchorIds?.join("|") ?? "";
   useEffect(() => {
-    if (!anchorIds?.length) return;
-    const id = decodeURIComponent(window.location.hash.slice(1));
-    const i = id ? anchorIds.indexOf(id) : -1;
-    if (i < initial) return;
-    setShown(countToInclude(i, initial, step));
-    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: "start" }));
-    // Only on first load: later hash changes are in-page jumps the user made.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!anchorKey) return;
+    const ids = anchorKey.split("|");
+    const reveal = () => {
+      const id = decodeURIComponent(window.location.hash.slice(1));
+      const i = id ? ids.indexOf(id) : -1;
+      if (i < initial) return;
+      setShown((cur) => Math.max(cur, countToInclude(i, initial, step)));
+      requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: "start" }));
+    };
+    reveal();
+    window.addEventListener("hashchange", reveal);
+    return () => window.removeEventListener("hashchange", reveal);
+  }, [anchorKey, initial, step]);
 
   useEffect(() => {
     if (focusFrom.current === null) return;

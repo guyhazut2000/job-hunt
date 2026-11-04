@@ -9,7 +9,12 @@ import type { ChangelogEntry } from "@/features";
 import { type Feature, type FeatureCategory } from "@/features/types";
 import { featureHref, searchText } from "@/features";
 import { cn } from "@/lib/utils";
+import { ShowMoreList } from "@/components/density/ShowMoreList";
+import { densityStrings } from "@/lib/i18n/density";
 
+/** Cards per category before "הצג עוד" when no search or filter is active (docs/ui-data-density.md). */
+const CATEGORY_PREVIEW = 6;
+const D = densityStrings("he");
 const REPO = "https://github.com/guyhazut2000/job-hunt";
 type StatusFilter = "all" | "new" | "live" | "beta" | "planned";
 const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
@@ -143,11 +148,19 @@ export function FeatureExplorer({
           <h2 id={`cat-${g.category}`} className="text-2xl font-bold">
             {g.label} <span className="text-muted-foreground text-base font-semibold">({g.items.length})</span>
           </h2>
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ShowMoreList
+            key={filtered ? "filtered" : "all"}
+            initial={filtered ? g.items.length : CATEGORY_PREVIEW}
+            step={50}
+            className="grid gap-3 md:grid-cols-2"
+            s={D}
+            testId={`features-${g.category}`}
+            anchorIds={g.items.map((f) => f.id)}
+          >
             {g.items.map((f) => (
               <FeatureCard key={f.id} f={f} isNew={isNewSet.has(f.id)} />
             ))}
-          </ul>
+          </ShowMoreList>
         </section>
       ))}
 
@@ -159,11 +172,19 @@ export function FeatureExplorer({
           <p className="text-muted-foreground text-sm">
             יכולות שעוד לא עלו לאוויר. כשהן עולות הן עוברות לקטגוריה שלהן.
           </p>
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ShowMoreList
+            key={filtered ? "filtered" : "all"}
+            initial={filtered ? planned.length : CATEGORY_PREVIEW}
+            step={50}
+            className="grid gap-3 md:grid-cols-2"
+            s={D}
+            testId="features-planned"
+            anchorIds={planned.map((f) => f.id)}
+          >
             {planned.map((f) => (
               <FeatureCard key={f.id} f={f} isNew={false} />
             ))}
-          </ul>
+          </ShowMoreList>
         </section>
       )}
 

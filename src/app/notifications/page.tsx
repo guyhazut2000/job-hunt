@@ -1,3 +1,6 @@
+import { LoadMoreLink } from "@/components/density/LoadMoreLink";
+import { densityStrings } from "@/lib/i18n/density";
+import { parseShow, showHref } from "@/lib/ui/paging";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -54,16 +57,28 @@ const ICONS: Record<string, LucideIcon> = {
   SYSTEM: Sparkles,
 };
 
-export default async function NotificationsPage() {
+/** Notifications per "טען עוד" batch (`?show=`, docs/ui-data-density.md). */
+const NOTIFICATIONS_PAGE = 30;
+
+export default async function NotificationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await requireUser("/notifications");
-  const locale = await getLocale();
+  const [locale, sp] = await Promise.all([getLocale(), searchParams]);
   const s = notificationStrings(locale);
+  const [total, unread] = await Promise.all([
+    db.notification.count({ where: { userId: user.id } }),
+    db.notification.count({ where: { userId: user.id, readAt: null } }),
+  ]);
+  const show = parseShow(sp.show, total, NOTIFICATIONS_PAGE);
+  // Server-side paging: only the visible batch is read from the database.
   const items = await db.notification.findMany({
     where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-    take: 100,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: show,
   });
-  const unread = items.filter((n) => !n.readAt).length;
   const dateLocale = locale === "he" ? "he-IL" : "en-GB";
 
   return (
@@ -153,6 +168,15 @@ export default async function NotificationsPage() {
           })}
         </ul>
       )}
+      <LoadMoreLink
+        href={
+          items.length < total ? showHref("/notifications", sp, show + NOTIFICATIONS_PAGE, NOTIFICATIONS_PAGE) : null
+        }
+        shown={items.length}
+        total={total}
+        s={densityStrings(locale)}
+        testId="notifications-paging"
+      />
     </div>
   );
 }

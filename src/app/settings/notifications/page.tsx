@@ -1,3 +1,5 @@
+import { ShowMoreList } from "@/components/density/ShowMoreList";
+import { densityStrings } from "@/lib/i18n/density";
 import Link from "next/link";
 import { ArrowRight, BellRing, Pause, Play, Search, Trash2 } from "lucide-react";
 import { deleteSavedSearch, toggleSavedSearch, unfollowCompany } from "@/app/notification-actions";
@@ -24,6 +26,7 @@ export default async function NotificationSettingsPage() {
   const user = await requireUser("/settings/notifications");
   const locale = await getLocale();
   const s = notificationStrings(locale);
+  const ds = densityStrings(locale);
   const [prefsRow, channels, searches, follows] = await Promise.all([
     db.notificationPreference.findUnique({ where: { userId: user.id } }),
     db.notificationChannel.findMany({ where: { userId: user.id }, select: { type: true } }),
@@ -75,13 +78,16 @@ export default async function NotificationSettingsPage() {
 
       <section id="saved-searches" aria-labelledby="ss-h" className="card flex scroll-mt-24 flex-col gap-3">
         <h2 id="ss-h" className="font-heading text-lg font-bold">
-          {s.savedSearches}
+          {s.savedSearches}{" "}
+          {searches.length > 0 && (
+            <span className="text-muted-foreground font-mono text-base">({searches.length})</span>
+          )}
         </h2>
         <p className="text-muted-foreground text-sm">{s.savedSearchesLead}</p>
         {searches.length === 0 ? (
           <p className="text-sm">{s.noSavedSearches}</p>
         ) : (
-          <ul className="divide-y rounded-md border" data-testid="saved-searches">
+          <ShowMoreList initial={8} step={20} className="divide-y rounded-md border" testId="saved-searches" s={ds}>
             {searches.map((ss) => (
               <li key={ss.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
                 <div className="flex min-w-0 flex-col gap-0.5">
@@ -119,19 +125,20 @@ export default async function NotificationSettingsPage() {
                 </div>
               </li>
             ))}
-          </ul>
+          </ShowMoreList>
         )}
       </section>
 
       <section id="followed-companies" aria-labelledby="fc-h" className="card flex scroll-mt-24 flex-col gap-3">
         <h2 id="fc-h" className="font-heading text-lg font-bold">
-          {s.followedCompanies}
+          {s.followedCompanies}{" "}
+          {follows.length > 0 && <span className="text-muted-foreground font-mono text-base">({follows.length})</span>}
         </h2>
         <p className="text-muted-foreground text-sm">{s.followedCompaniesLead}</p>
         {follows.length === 0 ? (
           <p className="text-sm">{s.noFollowedCompanies}</p>
         ) : (
-          <ul className="divide-y rounded-md border" data-testid="followed-companies">
+          <ShowMoreList initial={8} step={20} className="divide-y rounded-md border" testId="followed-companies" s={ds}>
             {follows.map((f) => (
               <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
                 <div className="flex min-w-0 flex-col gap-0.5">
@@ -155,7 +162,7 @@ export default async function NotificationSettingsPage() {
                 </form>
               </li>
             ))}
-          </ul>
+          </ShowMoreList>
         )}
       </section>
 

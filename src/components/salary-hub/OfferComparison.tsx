@@ -10,6 +10,7 @@ import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { bestBy, computeOffer, EMPTY_OFFER, type OfferInput, type OfferResult } from "@/lib/offers/calc";
 import { DEFAULT_CREDIT_POINTS } from "@/lib/offers/tax";
 import { fill, type SalaryHubStrings } from "@/lib/i18n/salary-hub";
+import { LazySelect } from "@/components/density/LazySelect";
 import { cn } from "@/lib/utils";
 
 export interface OfferDraft {
@@ -126,7 +127,11 @@ export function OfferComparison({
       {!signedIn && <p className="text-muted-foreground text-sm">{s.signIn}</p>}
 
       <div
-        className={cn("grid gap-4", offers.length === 2 && "lg:grid-cols-2", offers.length === 3 && "lg:grid-cols-3")}
+        className={cn(
+          "grid grid-cols-[minmax(0,1fr)] gap-4",
+          offers.length === 2 && "lg:grid-cols-2",
+          offers.length === 3 && "lg:grid-cols-3",
+        )}
       >
         {offers.map((o, idx) => (
           <OfferColumn
@@ -202,7 +207,7 @@ function OfferColumn({
 
   return (
     <section
-      className="bg-card flex flex-col gap-3 rounded-lg border p-4"
+      className="bg-card flex min-w-0 flex-col gap-3 rounded-lg border p-4"
       data-testid={`offer-col-${idx}`}
       aria-label={d.label || `#${idx + 1}`}
     >
@@ -220,20 +225,16 @@ function OfferColumn({
         <Input value={d.company} maxLength={120} dir="auto" onChange={(e) => onChange({ company: e.target.value })} />
       </label>
       {apps.length > 0 && (
-        <label className="flex flex-col gap-1 text-xs font-semibold">
+        <label className="flex min-w-0 flex-col gap-1 text-xs font-semibold">
           {s.linkApp}
-          <select
+          {/* Long application lists: options mount on focus, and the width never follows the longest label. */}
+          <LazySelect
             value={o.applicationId ?? ""}
+            options={apps.map((a) => ({ value: a.id, label: a.label }))}
+            emptyLabel={s.noApp}
             onChange={(e) => onChange({}, { applicationId: e.target.value || null })}
-            className="bg-background min-h-11 rounded-md border px-2 text-sm"
-          >
-            <option value="">{s.noApp}</option>
-            {apps.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.label}
-              </option>
-            ))}
-          </select>
+            className="bg-background min-h-11 w-full min-w-0 truncate rounded-md border px-2 text-sm"
+          />
         </label>
       )}
 
