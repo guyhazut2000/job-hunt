@@ -16,6 +16,8 @@ export interface CheckView {
   cuts: CutSuggestion[];
   template: TemplateId;
   lang: "he" | "en";
+  /** The real-PDF page check failed to run; the meter shows an error instead of a verdict. */
+  fitError: boolean;
 }
 
 export const toCheckView = (c: StandardCheck): CheckView => ({
@@ -30,4 +32,5 @@ export const toCheckView = (c: StandardCheck): CheckView => ({
   cuts: c.cuts,
   template: c.template,
   lang: c.lang,
+  fitError: c.fitError,
 });

@@ -763,6 +763,21 @@ function SkillsEditor({
 function Meter({ t, check, dirty }: { t: T; check: CheckView; dirty: boolean }) {
   const pct = Math.round(Math.min(check.used, 2) * 100);
   const bar = Math.min(100, Math.round(check.used * 100));
+  if (check.fitError)
+    return (
+      <div
+        className="bg-caution-soft text-caution flex flex-col gap-2 rounded-lg border p-4"
+        data-testid="cvs-meter"
+        data-error="1"
+        role="status"
+      >
+        <p className="flex items-center gap-2 text-sm font-bold">
+          <FileText aria-hidden className="size-4" />
+          {t.meter.title}
+        </p>
+        <p className="text-sm">{t.meter.error}</p>
+      </div>
+    );
   return (
     <div
       className="bg-card flex flex-col gap-2 rounded-lg border p-4"

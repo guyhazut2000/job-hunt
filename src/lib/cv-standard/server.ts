@@ -36,7 +36,11 @@ export interface StandardCheck {
   lang: CvLang;
   empty: boolean;
   stored: StoredStandard;
+  /** The real-PDF page check could not run (e.g. a missing font in the runtime). Never cached. */
+  fitError: boolean;
 }
+
+const NO_FIT: FitResult = { pages: 0, level: 0, fits: false, used: 0, tried: [] };
 
 export const standardHash = (x: {
   content: CvContent;
@@ -70,20 +74,32 @@ export async function checkCvStandard(
   opts: { template?: string | null; lang?: CvLang | null } = {},
 ): Promise<StandardCheck> {
   const i = await inputs(userId, opts);
-  const fit = await fitCvPdf({ content: i.source.content, layout: i.layout, tpl: TEMPLATES[i.template], lang: i.lang });
+  // The page check renders a real PDF; if the runtime can't (fonts, memory), degrade instead of
+  // crashing the page: the onePage rule stays "pending" and the verdict is not cached.
+  let fitError = false;
+  const fit = await fitCvPdf({
+    content: i.source.content,
+    layout: i.layout,
+    tpl: TEMPLATES[i.template],
+    lang: i.lang,
+  }).catch((e: unknown) => {
+    fitError = true;
+    console.error("[cv-standard] page check failed:", e instanceof Error ? e.message : String(e));
+    return null;
+  });
   const report = evaluateStandard({
     content: i.source.content,
     template: i.template,
     skillCategories: i.skillCategories,
     yearsExperience: i.years,
-    fit,
+    fit: fit ?? undefined,
   });
   const stored: StoredStandard = {
     hash: i.hash,
     passed: report.passed,
     contentPassed: report.contentPassed,
-    pages: fit.pages,
-    level: fit.level,
+    pages: fit?.pages ?? 0,
+    level: fit?.level ?? 0,
     template: i.template,
     lang: i.lang,
     score: report.score,
@@ -91,21 +107,23 @@ export async function checkCvStandard(
     checkedAt: new Date().toISOString(),
   };
   // Only the user's own default variant is the "standard of record".
-  if (!opts.template && !opts.lang)
+  if (!opts.template && !opts.lang && !fitError)
     await db.profile
       .update({ where: { userId }, data: { cvStandard: stored as unknown as Prisma.InputJsonValue } })
       .catch(() => undefined);
-  const { buffer: _b, ...fitInfo } = fit;
+  const { buffer: _b, ...fitInfo } = fit ?? { ...NO_FIT, buffer: null };
   void _b;
   return {
     report,
     fit: fitInfo as FitResult,
-    cuts: fit.fits
-      ? []
-      : cutSuggestions(
-          i.source.content,
-          i.layout.filter((l) => l.visible).map((l) => l.id),
-        ),
+    fitError,
+    cuts:
+      !fit || fit.fits
+        ? []
+        : cutSuggestions(
+            i.source.content,
+            i.layout.filter((l) => l.visible).map((l) => l.id),
+          ),
     template: i.template,
     lang: i.lang,
     empty: i.source.empty,
@@ -118,7 +136,9 @@ export async function requireCvStandard(userId: string): Promise<{ ok: boolean; 
   const i = await inputs(userId);
   if (i.stored && i.stored.hash === i.hash) return { ok: i.stored.passed, stored: i.stored };
   const c = await checkCvStandard(userId);
-  return { ok: c.stored.passed, stored: c.stored };
+  // If our own page check is broken, don't lock the user out of export/applying: the content rules
+  // still apply, and the exported PDF is fitted again by the export route itself.
+  return { ok: c.fitError ? c.report.contentPassed : c.stored.passed, stored: c.stored };
 }
 
 /** Cheap status for the banner: content rules live, page check from the cache when it matches. */

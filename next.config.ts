@@ -21,7 +21,16 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // CV export (docs/cv-templates.md): load react-pdf natively (ESM-only deps) and ship the OFL fonts.
   serverExternalPackages: ["@react-pdf/renderer"],
-  outputFileTracingIncludes: { "/api/cv/export": ["./src/lib/cv-templates/fonts/**"] },
+  // The PDF is rendered by the export route AND by the CV-standard page check, which runs in pages,
+  // server actions and the site banner (#94). pdfkit loads its standard-font .cjs files with a dynamic
+  // require that the tracer misses, so ship them (and our fonts) with every server function.
+  outputFileTracingIncludes: {
+    "/**": [
+      "./src/lib/cv-templates/fonts/**",
+      "./node_modules/pdfkit/js/standard-fonts/**",
+      "./node_modules/pdfkit/js/data/**",
+    ],
+  },
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },

@@ -76,7 +76,23 @@ export default async function CvStandardPage({
 
   const lang: "he" | "en" | null = sp.lang === "en" || sp.lang === "he" ? sp.lang : null;
   const opts = sp.template && isTemplateId(sp.template) ? { template: sp.template, lang } : {};
-  const [check, layouts] = await Promise.all([checkCvStandard(user.id, opts), loadAllLayouts(user.id, source.content)]);
+  // Never let the standard check take the whole page down (prod incident, #94 follow-up).
+  const loaded = await Promise.all([checkCvStandard(user.id, opts), loadAllLayouts(user.id, source.content)]).catch(
+    (e: unknown) => {
+      console.error("[cv-standard] page load failed:", e instanceof Error ? e.message : String(e));
+      return null;
+    },
+  );
+  if (!loaded)
+    return (
+      <div className="flex flex-col gap-6" data-testid="cv-standard-error">
+        {header}
+        <p role="alert" className="bg-caution-soft text-caution rounded-md border p-3 text-sm">
+          {t.meter.error}
+        </p>
+      </div>
+    );
+  const [check, layouts] = loaded;
   const p = readProfessional(profile);
   const draft = draftFromProfile(p, { name: dbUser?.name ?? null, location: profile?.location ?? null });
   const templateNames = Object.fromEntries(TEMPLATE_IDS.map((id) => [id, tt.templates[id].name])) as Record<

@@ -202,6 +202,7 @@ const he = {
     recheck: "בדיקה מחדש",
     cutsTitle: "מה לקצר:",
     stale: "יש שינויים שלא נשמרו — שמירה תריץ שוב את בדיקת העמוד על ה-PDF האמיתי.",
+    error: "בדיקת העמוד על ה-PDF לא הצליחה כרגע. כללי התוכן עדיין נבדקים — נסו 'בדיקה מחדש' בעוד רגע.",
   },
   cuts: {
     hideSection: "להסתיר את המדור «{section}» (בעורך התבניות)",
@@ -354,6 +355,8 @@ const en: Strings = {
     recheck: "Re-check",
     cutsTitle: "What to cut:",
     stale: "Unsaved changes — saving re-runs the page check on the real PDF.",
+    error:
+      "The page check on the real PDF couldn't run right now. Content rules are still checked — try Re-check in a moment.",
   },
   cuts: {
     hideSection: "Hide the “{section}” section (in the template editor)",
