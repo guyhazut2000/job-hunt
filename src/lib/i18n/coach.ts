@@ -67,6 +67,10 @@ const en = {
     to: "to",
     sent: "messages sent",
     replies: "replies",
+    skill: "skill",
+    jobs: "jobs missing it",
+    total: "jobs analyzed",
+    debriefs: "weak debriefs",
   } as Record<string, string>,
   rec: {
     follow_up_stuck: {
@@ -95,6 +99,11 @@ const en = {
       title: "Prepare for interviews",
       detail:
         "The biggest drop-off is {from} → {to} ({rate}%). Practice with an interview simulation before the next one.",
+    },
+    close_skill_gap: {
+      title: "Close your top skill gap: {skill}",
+      detail:
+        "{skill} is missing from your profile in {jobs} of {total} jobs you target, saved or applied to ({debriefs} weak interview debriefs mention it). The gap page has a study plan.",
     },
     outreach_follow_up: {
       title: "Follow up with {count} contacts",
@@ -183,6 +192,10 @@ const he: CoachStrings = {
     to: "אל",
     sent: "פניות שנשלחו",
     replies: "תגובות",
+    skill: "מיומנות",
+    jobs: "משרות שחסרה בהן",
+    total: "משרות שנבדקו",
+    debriefs: "סיכומי ראיון חלשים",
   },
   rec: {
     follow_up_stuck: {
@@ -210,6 +223,11 @@ const he: CoachStrings = {
     interview_prep: {
       title: "להתכונן לראיונות",
       detail: "הנפילה הגדולה היא {from} ← {to} ({rate}%). כדאי לתרגל בסימולציית ראיון לפני הבא בתור.",
+    },
+    close_skill_gap: {
+      title: "לסגור את פער המיומנות המוביל: {skill}",
+      detail:
+        "{skill} חסר בפרופיל שלך ב־{jobs} מתוך {total} משרות היעד, השמורות וההגשות שלך (ו־{debriefs} סיכומי ראיון חלשים מזכירים אותו). בעמוד הפערים יש תוכנית לימוד.",
     },
     outreach_follow_up: {
       title: "לשלוח תזכורת ל-{count} אנשי קשר",
