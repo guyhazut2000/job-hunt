@@ -16,6 +16,8 @@ export const PAGE_TITLES = {
   cvTemplates: { he: "תבניות קורות חיים", en: "CV templates" },
   cvStandard: { he: "קורות חיים חובה", en: "Mandatory CV" },
   cvAts: { he: "בדיקת ATS לקורות החיים", en: "CV ATS check" },
+  cvLinkedin: { he: "סדנת פרופיל LinkedIn", en: "LinkedIn profile workspace" },
+  prepManager: { he: "שאלות מנהל מגייס", en: "Hiring-manager questions" },
   learnGaps: { he: "פערי מיומנויות", en: "Skill gaps" },
   systemDesign: { he: "תכנון מערכות (System Design)", en: "System design" },
   sdQuestions: { he: "שאלות System Design", en: "System design questions" },

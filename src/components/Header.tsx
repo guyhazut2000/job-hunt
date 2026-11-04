@@ -22,6 +22,8 @@ import { statsStrings } from "@/lib/i18n/stats";
 import { coachStrings } from "@/lib/i18n/coach";
 import { gapsStrings } from "@/lib/i18n/gaps";
 import { systemDesignStrings } from "@/lib/i18n/system-design";
+import { managerStrings } from "@/lib/i18n/manager";
+import { linkedinProfileStrings } from "@/lib/i18n/linkedin-profile";
 
 export async function Header() {
   const [{ t, locale }, session] = await Promise.all([getDictionary(), auth()]);
@@ -44,6 +46,8 @@ export async function Header() {
           { href: "/learn/problem-solving", label: problemSolvingStrings(locale).nav, priority: "more" as const },
           { href: "/learn/system-design", label: systemDesignStrings(locale).kicker, priority: "more" as const },
           { href: "/learn/gaps", label: gapsStrings(locale).nav, priority: "more" as const },
+          { href: "/prep/manager", label: managerStrings(locale).title, priority: "more" as const },
+          { href: "/cv/linkedin", label: linkedinProfileStrings(locale).title, priority: "more" as const },
           { href: "/learn/me", label: learningHubStrings(locale).navMine, priority: "more" as const },
           { href: "/learn/concepts", label: conceptStrings(locale).nav, priority: "more" as const },
           { href: "/referrals", label: referralStrings[locale].kicker, priority: "more" as const },
