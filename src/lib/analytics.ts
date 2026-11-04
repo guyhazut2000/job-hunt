@@ -36,7 +36,14 @@ export type AnalyticsEvent =
   | "referral_draft"
   | "prep_saved"
   | "prep_summary"
-  | "debrief_saved";
+  | "debrief_saved"
+  | "assignment_saved"
+  | "referee_saved"
+  | "contract_checked"
+  | "contract_scanned"
+  | "transition_saved"
+  | "offer_accepted"
+  | "offer_accept_undone";
 
 type Props = Record<string, string | number | boolean | null | undefined>;
 type Sink = (event: AnalyticsEvent, props: Props) => void;
