@@ -225,8 +225,8 @@ export function compareStepUps(
 ): number {
   return (
     VERDICT_ORDER[a.gap.verdict] - VERDICT_ORDER[b.gap.verdict] ||
-    a.gap.points - b.gap.points ||
     b.score - a.score ||
+    a.gap.points - b.gap.points ||
     b.postedAt.getTime() - a.postedAt.getTime() ||
     a.id.localeCompare(b.id)
   );

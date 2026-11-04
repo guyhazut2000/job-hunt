@@ -4,7 +4,9 @@ import { fill, notificationStrings } from "@/lib/i18n/notifications";
 import type { Locale } from "@/lib/i18n/dictionaries";
 import { filtersToQuery, filtersToWhere, parseFilters, type JobFilters } from "@/lib/jobs/filters";
 import { matchCompanies } from "@/lib/jobs/search";
-import { hasScorableProfile, scoreMatch, toCandidate } from "@/lib/profile/score";
+import { hasScorableProfile, toCandidate } from "@/lib/profile/score";
+import { EMPTY_PREFS, hasKeywords } from "@/lib/ranking/personal";
+import { getRankingPrefs, rankPersonal } from "@/lib/ranking/server";
 import { parseSearchQuery } from "@/lib/search/query";
 import { loadCompanyLexicon } from "@/lib/search/lexicon-server";
 import { notify } from "./create";
@@ -80,6 +82,39 @@ export function defaultSearchName(f: JobFilters, fallback: string): string {
   return (parts.join(" · ") || fallback).slice(0, 80);
 }
 
+/** Default threshold for a saved "fit" search without an explicit min-match. */
+export const FIT_THRESHOLD = 65;
+
+/** Personal-rank a search's new jobs; keeps rows at/above the threshold when the search has one. */
+export function filterByPersonal<T extends { personal: { score: number } }>(
+  rows: T[],
+  f: Pick<JobFilters, "minMatch" | "fit">,
+): T[] {
+  if (f.minMatch === undefined && !f.fit) return rows;
+  const min = f.minMatch ?? FIT_THRESHOLD;
+  return rows.filter((r) => r.personal.score >= min);
+}
+
+async function rankSearchJobs(
+  userId: string,
+  jobs: { id: string }[],
+  prefs: Awaited<ReturnType<typeof getRankingPrefs>> & object,
+  candidate: ReturnType<typeof toCandidate> | null,
+  companies: Parameters<typeof rankPersonal>[0]["companies"],
+  now: Date,
+  f: JobFilters,
+) {
+  const { rows } = await rankPersonal({
+    userId,
+    where: { id: { in: jobs.map((j) => j.id) } },
+    prefs,
+    candidate,
+    companies,
+    now,
+  });
+  return filterByPersonal(rows, f);
+}
+
 export interface SavedSearchRunSummary {
   searches: number;
   notified: number;
@@ -121,10 +156,12 @@ export async function runSavedSearchAlerts(now = new Date()): Promise<SavedSearc
       take: 200,
     });
     const profile = s.user.profile;
-    if ((f.minMatch !== undefined || f.fit) && hasScorableProfile(profile)) {
-      const c = toCandidate(profile);
-      const min = f.minMatch ?? 65;
-      jobs = jobs.filter((j) => scoreMatch(c, j).score >= min);
+    const candidate = hasScorableProfile(profile) ? toCandidate(profile) : null;
+    const prefs = (await getRankingPrefs(s.userId)) ?? EMPTY_PREFS;
+    // Same personal ranking as /jobs "התאמה אישית" (#110): best first, keyword-hidden jobs dropped,
+    // and a min-match / "fit" threshold applies to the personal score (missing data skipped, not penalized).
+    if (jobs.length && (candidate || hasKeywords(prefs))) {
+      jobs = (await rankSearchJobs(s.userId, jobs, prefs, candidate, companies, now, f)).map((r) => r.job);
     }
     if (jobs.length) {
       const locale: Locale = s.user.locale === "en" ? "en" : "he";

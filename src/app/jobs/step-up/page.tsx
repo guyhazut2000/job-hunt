@@ -9,6 +9,8 @@ import { LADDER, MOVE_KINDS, ROLE_UP, nextRung, technicalTrackOpen, type MoveKin
 import { loadStepUps } from "@/lib/career/server";
 import { JobCard, JobList } from "@/components/JobCard";
 import { StepUpGap } from "@/components/career/StepUpGap";
+import { PersonalWhy } from "@/components/ranking/PersonalWhy";
+import { fillR, rankingStrings } from "@/lib/i18n/ranking";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -35,7 +37,8 @@ export default async function StepUpPage({
   const kindParam = one(params.kind);
   const kind = MOVE_KINDS.includes(kindParam as MoveKind) ? (kindParam as MoveKind) : undefined;
   const onlyApply = one(params.small) === "1";
-  const { position, rows, counts } = await loadStepUps(user.id, { role, level });
+  const rs = rankingStrings(locale);
+  const { position, rows, counts, hidden } = await loadStepUps(user.id, { role, level });
 
   const href = (p: { level?: string; role?: string; kind?: string; small?: boolean }) => {
     const q = new URLSearchParams();
@@ -148,6 +151,13 @@ export default async function StepUpPage({
             {fillS(s.count, { n: filtered.length })}
             {filtered.length > SHOWN && ` · ${fillS(s.showing, { shown: SHOWN, total: filtered.length })}`}
           </p>
+          <p className="text-muted-foreground text-xs" data-testid="stepup-ranked-by">
+            {s.rankedBy}{" "}
+            <Link href="/jobs/ranking" className="text-primary underline underline-offset-4">
+              {rs.settingsLink}
+            </Link>
+            {hidden > 0 && <> · {fillR(rs.hiddenCount, { n: hidden })}</>}
+          </p>
 
           {shown.length === 0 ? (
             <p className="bg-card rounded-lg border p-4" data-testid="stepup-empty">
@@ -166,7 +176,17 @@ export default async function StepUpPage({
                   t={t}
                   score={r.score || undefined}
                   why={
-                    <StepUpGap move={r.move} gap={r.gap} position={position} jobRole={r.job.roleCategory} t={t} s={s} />
+                    <>
+                      <StepUpGap
+                        move={r.move}
+                        gap={r.gap}
+                        position={position}
+                        jobRole={r.job.roleCategory}
+                        t={t}
+                        s={s}
+                      />
+                      {r.personal && <PersonalWhy result={r.personal} s={rs} />}
+                    </>
                   }
                 />
               ))}
