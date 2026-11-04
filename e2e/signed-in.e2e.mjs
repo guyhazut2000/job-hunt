@@ -412,7 +412,12 @@ test("jobs filters (desktop): auto-apply without reload, scroll kept, live count
   });
   const y = await page.evaluate(() => window.scrollY);
   // No apply button to reach: the submit is only an sr-only Enter fallback.
-  assert.match(await form.locator("button[type=submit]").getAttribute("class"), /sr-only/);
+  // (the class is set on hydration, so this also waits for the form to be interactive).
+  await page.waitForFunction(
+    () => document.querySelector('[data-testid="filters-d"] button[type=submit]')?.classList.contains("sr-only"),
+    null,
+    { timeout: 15000 },
+  );
   await form.locator("label.toggle-chip:has(input[name=posted][value='7d'])").click();
   await page.waitForURL(/posted=7d/);
   assert.equal(new URL(page.url()).searchParams.get("sort"), "personal", "sort kept");
