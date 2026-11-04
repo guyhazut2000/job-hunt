@@ -77,7 +77,8 @@ function row(id: string, score: number, extra: Partial<P> = {}): Row {
     job: { id, title: `Engineer ${id}`, location: "Tel Aviv", company: { name: `Co ${id}` } },
     personal: {
       score,
-      parts: { match: score, keywords: null, recency: 100, response: null },
+      parts: { match: score, keywords: null, recency: 100, response: null } as Row["personal"]["parts"],
+      criteria: [],
       hidden: false,
       reasons: [
         { key: "match", score, points: 30 },

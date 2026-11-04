@@ -1655,6 +1655,8 @@ model RankingPrefs {
   include     Json     @default("[]")
   exclude     String[] @default([])
   weights     Json     @default("{}")
+  /// Job-seeker criteria (#106): switched-off keys, salary floor, industries, employment types, company sizes.
+  criteria    Json     @default("{}")
   /// Opt-in: "Personal fit" becomes the default sort on /jobs.
   defaultSort Boolean  @default(false)
   updatedAt   DateTime @updatedAt

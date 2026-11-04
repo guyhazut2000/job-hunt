@@ -8,14 +8,20 @@ import { Input } from "@/components/ui/input";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { saveRankingPrefs } from "@/app/jobs/ranking/actions";
 import {
+  COMPANY_TYPES,
+  DEFAULT_WEIGHTS,
+  EMPLOYMENT_TYPES,
+  EMPTY_PREFS,
   MAX_KEYWORD_LENGTH,
   MAX_KEYWORDS,
+  MAX_SALARY,
   MAX_WEIGHT,
   splitKeywords,
   WEIGHT_KEYS,
   type RankingPrefs,
   type WeightKey,
 } from "@/lib/ranking/personal";
+import { INDUSTRIES } from "@/lib/ranking/criteria";
 import { normalizeSearchText } from "@/lib/search/text";
 import { fillR, type RankingStrings } from "@/lib/i18n/ranking";
 import { cn } from "@/lib/utils";
@@ -129,7 +135,57 @@ function Segmented({
   );
 }
 
-export function RankingForm({ initial, s }: { initial: RankingPrefs; s: RankingStrings }) {
+/** Multi-select chips (toggle buttons). */
+function Chips<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+  names,
+  testId,
+}: {
+  options: readonly T[];
+  value: T[];
+  onChange: (v: T[]) => void;
+  label: string;
+  names: Record<T, string>;
+  testId: string;
+}) {
+  return (
+    <div role="group" aria-label={label} className="flex flex-wrap gap-1.5" data-testid={testId}>
+      {options.map((o) => {
+        const on = value.includes(o);
+        return (
+          <button
+            key={o}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onChange(on ? value.filter((x) => x !== o) : [...value, o])}
+            className={cn(
+              "min-h-9 rounded-full border px-3 text-xs font-medium transition-colors sm:text-sm",
+              on ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {names[o]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Criteria whose preference comes from the profile (shown as a hint with a link). */
+const FROM_PROFILE: readonly WeightKey[] = ["salary", "seniority", "tech", "location", "workMode", "companySize"];
+
+export function RankingForm({
+  initial,
+  s,
+  hints = {},
+}: {
+  initial: RankingPrefs;
+  s: RankingStrings;
+  hints?: Partial<Record<WeightKey, string>>;
+}) {
   const [prefs, setPrefs] = useState<RankingPrefs>(initial);
   const [status, setStatus] = useState<Status>("idle");
   const [pending, start] = useTransition();
@@ -153,6 +209,107 @@ export function RankingForm({ initial, s }: { initial: RankingPrefs; s: RankingS
   const setInclude = (i: number, patch: Partial<RankingPrefs["include"][number]>) =>
     change({ ...prefs, include: prefs.include.map((k, j) => (j === i ? { ...k, ...patch } : k)) });
   const setWeight = (k: WeightKey, v: number) => change({ ...prefs, weights: { ...prefs.weights, [k]: v } });
+  const setOn = (k: WeightKey, on: boolean) =>
+    change({
+      ...prefs,
+      off: on ? prefs.off.filter((x) => x !== k) : [...prefs.off, k],
+      weights: on && !prefs.weights[k] ? { ...prefs.weights, [k]: DEFAULT_WEIGHTS[k] } : prefs.weights,
+    });
+  const [resetNote, setResetNote] = useState(false);
+  const reset = () => {
+    // Keywords stay; every criterion back on at its default importance, preferences back to "from profile".
+    change({ ...EMPTY_PREFS, include: prefs.include, exclude: prefs.exclude, defaultSort: prefs.defaultSort });
+    setResetNote(true);
+  };
+  const extra = (k: WeightKey) => {
+    switch (k) {
+      case "salary":
+        return (
+          <label className="flex flex-wrap items-center gap-2 text-sm">
+            <span>{s.salaryLabel}</span>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={MAX_SALARY}
+              step={1000}
+              dir="ltr"
+              className="min-h-11 w-36"
+              placeholder={hints.salary || s.salaryPlaceholder}
+              value={prefs.salaryMin ?? ""}
+              onChange={(e) => {
+                const n = Math.round(Number(e.target.value));
+                change({ ...prefs, salaryMin: e.target.value && n > 0 ? Math.min(MAX_SALARY, n) : null });
+              }}
+              data-testid="salary-min"
+            />
+          </label>
+        );
+      case "domain":
+        return (
+          <Chips
+            options={INDUSTRIES}
+            value={prefs.industries}
+            onChange={(v) => change({ ...prefs, industries: v })}
+            label={s.industriesLabel}
+            names={s.industries}
+            testId="industries"
+          />
+        );
+      case "employment":
+        return (
+          <div className="flex flex-col gap-1">
+            <Chips
+              options={EMPLOYMENT_TYPES}
+              value={prefs.employment}
+              onChange={(v) => change({ ...prefs, employment: v })}
+              label={s.employmentLabel}
+              names={s.employment}
+              testId="employment"
+            />
+            {!prefs.employment.length && <p className="text-muted-foreground text-xs">{s.employmentDefault}</p>}
+          </div>
+        );
+      case "companySize":
+        return (
+          <div className="flex flex-col gap-1">
+            <Chips
+              options={COMPANY_TYPES}
+              value={prefs.companyTypes}
+              onChange={(v) => change({ ...prefs, companyTypes: v })}
+              label={s.companyTypesLabel}
+              names={s.companyTypes}
+              testId="company-types"
+            />
+            {!prefs.companyTypes.length && <p className="text-muted-foreground text-xs">{s.companyTypesDefault}</p>}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+  const hintFor = (k: WeightKey) => {
+    if (!FROM_PROFILE.includes(k)) return null;
+    if (k === "salary" && prefs.salaryMin) return null;
+    if (k === "companySize" && prefs.companyTypes.length) return null;
+    const v = hints[k];
+    return (
+      <p className="text-muted-foreground text-xs">
+        {v ? (
+          <>
+            {fillR(s.fromProfile, { v: "" })}
+            <bdi>{v}</bdi>
+          </>
+        ) : (
+          s.notSet
+        )}{" "}
+        ·{" "}
+        <Link href="/profile" className="text-primary underline-offset-4 hover:underline">
+          {s.editProfile}
+        </Link>
+      </p>
+    );
+  };
 
   const save = () =>
     start(async () => {
@@ -262,25 +419,67 @@ export function RankingForm({ initial, s }: { initial: RankingPrefs; s: RankingS
       </section>
 
       <section className="flex flex-col gap-3" aria-labelledby="w-h">
-        <h2 id="w-h" className="text-lg font-bold">
-          {s.weightsTitle}
-        </h2>
-        <ul className="flex flex-col gap-4">
-          {WEIGHT_KEYS.map((k) => (
-            <li key={k} className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-semibold">{s.weightNames[k]}</p>
-                <p className="text-muted-foreground text-xs">{s.weightHelp[k]}</p>
-              </div>
-              <Segmented
-                label={s.weightNames[k]}
-                value={prefs.weights[k]}
-                onChange={(v) => setWeight(k, v)}
-                options={Array.from({ length: MAX_WEIGHT + 1 }, (_, v) => ({ value: v, label: s.weightLevels[v] }))}
-                testId={`weight-${k}`}
-              />
-            </li>
-          ))}
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 id="w-h" className="text-lg font-bold">
+              {s.criteriaTitle}
+            </h2>
+            <p className="text-muted-foreground text-sm">{s.criteriaLead}</p>
+          </div>
+          <Button type="button" variant="outline" className="min-h-11" onClick={reset} data-testid="ranking-reset">
+            {s.reset}
+          </Button>
+        </div>
+        {resetNote && (
+          <p className="text-muted-foreground text-sm" role="status" data-testid="reset-note">
+            {s.resetDone}
+          </p>
+        )}
+        <ul className="divide-border flex flex-col divide-y rounded-md border" data-testid="criteria-list">
+          {WEIGHT_KEYS.map((k) => {
+            const on = !prefs.off.includes(k) && prefs.weights[k] > 0;
+            return (
+              <li
+                key={k}
+                className={cn("flex flex-col gap-2 px-3 py-3", !on && "opacity-70")}
+                data-testid={`criterion-${k}`}
+              >
+                <div className="flex items-start gap-3">
+                  <label className="flex min-h-11 flex-1 cursor-pointer items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      aria-checked={on}
+                      className="accent-primary mt-1 size-5 shrink-0"
+                      checked={on}
+                      onChange={(e) => setOn(k, e.target.checked)}
+                      data-testid={`toggle-${k}`}
+                    />
+                    <span>
+                      <span className="block font-semibold">{s.weightNames[k]}</span>
+                      <span className="text-muted-foreground block text-xs">{s.weightHelp[k]}</span>
+                    </span>
+                  </label>
+                </div>
+                {on && (
+                  <div className="flex flex-col gap-2 ps-7">
+                    <Segmented
+                      label={`${s.weight}: ${s.weightNames[k]}`}
+                      value={prefs.weights[k]}
+                      onChange={(v) => setWeight(k, v)}
+                      options={Array.from({ length: MAX_WEIGHT }, (_, i) => ({
+                        value: i + 1,
+                        label: s.weightLevels[i + 1],
+                      }))}
+                      testId={`weight-${k}`}
+                    />
+                    {extra(k)}
+                    {hintFor(k)}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
         <p className="text-muted-foreground bg-muted/60 rounded-md p-3 text-xs">{s.honest}</p>
       </section>
@@ -296,7 +495,7 @@ export function RankingForm({ initial, s }: { initial: RankingPrefs; s: RankingS
         <span>{s.defaultSort}</span>
       </label>
 
-      <div className="bg-background/95 sticky bottom-0 flex flex-wrap items-center gap-3 border-t py-3">
+      <div className="bg-background/95 sticky bottom-[calc(var(--bottom-nav-h,0px)+env(safe-area-inset-bottom))] z-10 flex flex-wrap items-center gap-3 border-t py-3">
         <Button type="submit" disabled={pending} className="min-h-11" data-testid="ranking-save">
           {pending ? s.saving : s.save}
         </Button>
