@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarClock, ExternalLink, MessagesSquare } from "lucide-react";
+import { CalendarClock, ExternalLink, MessagesSquare, UsersRound } from "lucide-react";
 import { DS_BY_ID } from "@/lib/algo/data-structures";
 import { patternName } from "@/lib/algo/patterns";
 import { getDictionary } from "@/lib/i18n";
 import { prepStrings } from "@/lib/i18n/prep";
+import { managerStrings } from "@/lib/i18n/manager";
 import { localizedTitle } from "@/lib/i18n/titles";
 import { STAGE_KINDS } from "@/lib/hiring/kinds";
 import { labelFor, loadPrep } from "@/lib/prep/server";
@@ -148,6 +149,14 @@ export default async function PrepPage({ params }: { params: Promise<{ id: strin
         >
           <MessagesSquare className="size-4" aria-hidden />
           {s.simCta}
+        </Link>
+        <Link
+          href="/prep/manager"
+          className="inline-flex w-fit items-center gap-1.5 text-sm font-bold underline underline-offset-2"
+          data-testid="prep-manager-link"
+        >
+          <UsersRound className="size-4" aria-hidden />
+          {managerStrings(locale).title}
         </Link>
       </section>
 

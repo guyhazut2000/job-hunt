@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpenCheck, ListChecks, MessagesSquare } from "lucide-react";
+import { ArrowLeft, BookOpenCheck, ListChecks, MessagesSquare, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { StartForm } from "@/components/interview/StartForm";
 import { aiRemaining } from "@/lib/ai/remaining";
@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { isStageKind, STAGE_LABELS } from "@/lib/hiring/kinds";
 import { getLocale } from "@/lib/i18n";
 import { interviewStrings } from "@/lib/i18n/interview";
+import { managerStrings } from "@/lib/i18n/manager";
 import { fmt } from "@/lib/i18n/learning";
 import { loadInterviewTarget } from "@/lib/interview/server";
 import { isMode } from "@/lib/interview/types";
@@ -62,6 +63,14 @@ export default async function InterviewPage({
         >
           <BookOpenCheck className="size-4" aria-hidden />
           {storyStrings(locale).interviewLink}
+        </Link>
+        <Link
+          href="/prep/manager"
+          className="text-fit inline-flex w-fit items-center gap-1.5 text-sm font-bold underline underline-offset-2"
+          data-testid="interview-manager-link"
+        >
+          <UsersRound className="size-4" aria-hidden />
+          {managerStrings(locale).title}
         </Link>
       </header>
 
