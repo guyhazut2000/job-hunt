@@ -15,6 +15,8 @@ import { closingStrings } from "@/lib/i18n/closing";
 import { referralStrings } from "@/lib/i18n/referrals";
 import { statsStrings } from "@/lib/i18n/stats";
 import { coachStrings } from "@/lib/i18n/coach";
+import { gapsStrings } from "@/lib/i18n/gaps";
+import { systemDesignStrings } from "@/lib/i18n/system-design";
 import { reminderStrings } from "@/lib/i18n/reminders";
 import { learningStrings } from "@/lib/i18n/learning";
 import { learningHubStrings } from "@/lib/i18n/learning-hub";
@@ -102,6 +104,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 digest: reminderStrings(locale).nav,
                 stats: statsStrings(locale).nav,
                 coach: coachStrings(locale).nav,
+                skillGaps: gapsStrings(locale).nav,
+                systemDesign: systemDesignStrings(locale).kicker,
                 salary: salaryHubStrings[locale].title,
                 referrals: referralStrings[locale].kicker,
                 closing: closingStrings[locale].navLabel,

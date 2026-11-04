@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import type { StatsApp } from "@/lib/stats/search-stats";
+import { topGap } from "@/lib/gaps/aggregate";
+import { loadGapReport } from "@/lib/gaps/server";
 import { buildCoachData, type CoachContact, type CoachData } from "./build";
 
 /** Load one user's applications (as /stats does) and outreach contacts, and build the coach data. */
@@ -51,5 +53,14 @@ export async function collectCoachData(userId: string, now: Date, week?: string)
       undone: !!c.undoneAt,
     })),
   }));
-  return buildCoachData({ apps, contacts: contacts as CoachContact[], hasProfile: !!profile, now, week });
+  // The skill gap is a bonus input: never let it break the coach.
+  const gap = profile
+    ? await loadGapReport(userId)
+        .then((g) => (g.report ? topGap(g.report) : null))
+        .catch((e: unknown) => {
+          console.error("[coach] skill gap failed:", e instanceof Error ? e.message : String(e));
+          return null;
+        })
+    : null;
+  return buildCoachData({ apps, contacts: contacts as CoachContact[], hasProfile: !!profile, topGap: gap, now, week });
 }

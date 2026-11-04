@@ -766,3 +766,51 @@ test("suggest a company: clear thank-you, then 'ההצעות שלי' shows its s
     await done(page);
   }
 });
+
+// Senior gaps (#115 #117 #118): ATS check, skill gaps and system design render signed in, fit 390px.
+const SENIOR_PAGES = [
+  ["/cv/ats", "ats"],
+  ["/learn/gaps", "gaps"],
+  ["/learn/system-design", "sysdesign"],
+  ["/learn/system-design/questions", "sysdesign-questions"],
+  ["/learn/system-design/ai", "sysdesign-ai"],
+];
+
+test("ATS check reads the exported PDF and matches a pasted job", async () => {
+  const page = await newPage({ width: 1440, height: 900 });
+  await login(page);
+  await page.goto(`${BASE}/cv/standard`, { waitUntil: "networkidle" });
+  assert.ok(await page.getByTestId("to-ats").count(), "/cv/standard links to the ATS check");
+  await page.goto(`${BASE}/cv/ats`, { waitUntil: "networkidle" });
+  if (await page.getByTestId("cv-ats-empty").count()) return done(page);
+  await page.getByTestId("ats-score").waitFor({ timeout: 60_000 });
+  assert.ok(await page.getByTestId("ats-not-vendor").count(), "says it is not a vendor simulation");
+  await page.locator("[data-testid=ats-job] summary").click();
+  await page
+    .getByTestId("ats-jd")
+    .fill("Senior Backend Engineer. Node.js, PostgreSQL, Kubernetes, Kafka, AWS. Own services end to end.");
+  await page.getByTestId("ats-jd-submit").click();
+  await page.getByTestId("ats-keywords").waitFor({ timeout: 60_000 });
+  const kw = await page.getByTestId("ats-keywords").innerText();
+  assert.match(kw, /Kafka|Kubernetes/i, "missing keywords are listed");
+  await done(page);
+});
+
+test("skill gaps and system design pages render and fit 390px", async () => {
+  for (const [viewport, suffix] of [
+    [{ width: 1440, height: 900 }, "desktop"],
+    [{ width: 390, height: 844 }, "mobile"],
+  ]) {
+    const page = await newPage(viewport);
+    await login(page);
+    for (const [path, name] of SENIOR_PAGES) {
+      await page.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
+      assert.ok(await page.locator("main h1").count(), `${path}: has a heading`);
+      if (suffix === "mobile") assert.ok(await noHScroll(page), `${path}: no horizontal scroll at 390px`);
+      await shot(page, `${name}-${suffix}`);
+    }
+    await page.goto(`${BASE}/learn/system-design/questions?kind=ai`, { waitUntil: "networkidle" });
+    assert.ok(await page.locator("details").count(), "AI questions listed");
+    await done(page);
+  }
+});

@@ -37,6 +37,7 @@ export type RecId =
   | "apply_more"
   | "boost_response"
   | "interview_prep"
+  | "close_skill_gap"
   | "outreach_follow_up"
   | "outreach_more"
   | "keep_pace"
@@ -74,7 +75,16 @@ export interface CoachData {
   };
   outreach: { sent: number; prevSent: number; replies: number; followUps: number; waiting: number; total: number };
   hasProfile: boolean;
+  /** Most frequent skill gap across the user's jobs (#117); absent in older snapshots. */
+  topGap?: CoachGap | null;
   recommendations: Recommendation[];
+}
+
+export interface CoachGap {
+  skill: string;
+  jobs: number;
+  total: number;
+  debriefs: number;
 }
 
 export const addDays = (day: string, n: number) => new Date(Date.parse(day) + n * DAY).toISOString().slice(0, 10);
@@ -87,6 +97,8 @@ export function buildCoachData(input: {
   apps: StatsApp[];
   contacts: CoachContact[];
   hasProfile: boolean;
+  /** Top cross-job skill gap (src/lib/gaps), optional. */
+  topGap?: CoachGap | null;
   now: Date;
   /** Week to summarize (Sunday); default: the last completed week. */
   week?: string;
@@ -154,6 +166,7 @@ export function buildCoachData(input: {
     },
     outreach,
     hasProfile,
+    topGap: input.topGap ?? null,
   };
   return { ...data, recommendations: recommend(data) };
 }
@@ -210,6 +223,13 @@ export function recommend(d: Omit<CoachData, "recommendations">): Recommendation
         interviewed: d.totals.interviewed,
         responded: d.totals.responded,
       },
+    });
+  }
+  if (d.topGap) {
+    add({
+      id: "close_skill_gap",
+      href: "/learn/gaps",
+      basis: { skill: d.topGap.skill, jobs: d.topGap.jobs, total: d.topGap.total, debriefs: d.topGap.debriefs },
     });
   }
   if (d.outreach.waiting > 0) {
