@@ -55,3 +55,7 @@ tailored CV, moving an application to APPLIED in the tracker, and finishing onbo
 redirects to `/cv/standard?from=<export|tailor|print|applied|onboarding>`. New features that send a CV
 outward must call the same gate. Blocking rules and warnings are listed in `RULE_IDS` / `evaluateStandard`
 in `src/lib/cv-standard/rules.ts`; the one-page check renders the real PDF (`fit.ts`).
+If that render fails (e.g. a font missing in the Vercel bundle), the check degrades: `fitError` is set,
+the meter shows an error state, the verdict is not cached and the gate falls back to the content rules.
+Anything the PDF renderer loads dynamically must be listed in `outputFileTracingIncludes["/**"]` in
+`next.config.ts` (it runs from pages, actions and the layout banner, not only `/api/cv/export`).
