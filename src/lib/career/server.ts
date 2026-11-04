@@ -101,7 +101,7 @@ export async function loadStepUps(
     });
     scored.push({ job, move, gap, score: m?.score ?? 0 });
   }
-  // Rank with the same personal engine and criteria as "התאמה אישית" on /jobs (#110).
+  // Rank with the same personal engine and criteria as "התאמה אישית" on /jobs (#109).
   const prefs = (await getRankingPrefs(userId)) ?? EMPTY_PREFS;
   const companies = prefs.include.length
     ? await db.company.findMany({

@@ -158,7 +158,7 @@ export async function runSavedSearchAlerts(now = new Date()): Promise<SavedSearc
     const profile = s.user.profile;
     const candidate = hasScorableProfile(profile) ? toCandidate(profile) : null;
     const prefs = (await getRankingPrefs(s.userId)) ?? EMPTY_PREFS;
-    // Same personal ranking as /jobs "התאמה אישית" (#110): best first, keyword-hidden jobs dropped,
+    // Same personal ranking as /jobs "התאמה אישית" (#109): best first, keyword-hidden jobs dropped,
     // and a min-match / "fit" threshold applies to the personal score (missing data skipped, not penalized).
     if (jobs.length && (candidate || hasKeywords(prefs))) {
       jobs = (await rankSearchJobs(s.userId, jobs, prefs, candidate, companies, now, f)).map((r) => r.job);

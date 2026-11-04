@@ -2,7 +2,7 @@ import type { WorkMode } from "@prisma/client";
 import { haversineKm } from "../commute/estimate";
 import { parseLocation } from "../geo/geocode";
 
-/** Commute criterion (#110). Kept apart from criteria.ts so the gazetteer never reaches client bundles. */
+/** Commute criterion (#109). Kept apart from criteria.ts so the gazetteer never reaches client bundles. */
 export interface Point {
   lat: number;
   lng: number;
@@ -26,7 +26,7 @@ export const COMMUTE_NEAR_KM = 10;
 export const COMMUTE_FAR_KM = 80;
 
 /**
- * Commute (#110): straight-line distance home → nearest job location (approximate, city level).
+ * Commute (#109): straight-line distance home → nearest job location (approximate, city level).
  * Remote = 100; ≤10km = 100, linear to 0 at 80km; hybrid halves the penalty (fewer office days).
  * Null (skipped, never penalized) when the home city or the job location is unknown.
  */

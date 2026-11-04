@@ -135,7 +135,7 @@ describe("gapFor", () => {
 });
 
 describe("ordering and targets", () => {
-  it("sorts by verdict, then points, then match score", () => {
+  it("sorts by verdict, then personal score, then gap points", () => {
     const g = (points: number, verdict: "apply" | "stretch" | "far") => ({
       missingSkills: [],
       yearsGap: 0,
@@ -150,7 +150,7 @@ describe("ordering and targets", () => {
       { id: "c", gap: g(1, "apply"), score: 70, postedAt: d },
       { id: "d", gap: g(0, "apply"), score: 10, postedAt: d },
     ];
-    expect(rows.sort(compareStepUps).map((r) => r.id)).toEqual(["d", "c", "b", "a"]);
+    expect(rows.sort(compareStepUps).map((r) => r.id)).toEqual(["c", "b", "d", "a"]);
   });
   it("fetches the same track plus broader roles at the current and next rung", () => {
     expect(stepTargets(pos("frontend", "MID"))).toEqual({
