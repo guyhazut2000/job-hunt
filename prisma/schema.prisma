@@ -141,6 +141,8 @@ model User {
   interviewDebriefs    InterviewDebrief[]
   applicationFollowUps ApplicationFollowUp[]
   workStories          WorkStory[]
+  linkedinDraft        LinkedinProfileDraft?
+  managerAnswers       ManagerAnswer[]
   jobOffers            JobOffer[]
   referrals            Referral[]
   salaryDataPoints     SalaryDataPoint[]
@@ -1868,4 +1870,47 @@ model OfferClosing {
   updatedAt  DateTime @updatedAt
 
   @@index([userId])
+}
+
+/// LinkedIn profile workspace (#116): text the user pasted from their own profile (nothing is fetched) and the
+/// last suggestions shown. Copy-only — the app never posts to LinkedIn.
+model LinkedinProfileDraft {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline    String   @default("")
+  about       String   @default("")
+  experience  String   @default("")
+  /// string[] of URLs
+  featured    Json     @default("[]")
+  skills      String   @default("")
+  recsHave    Int      @default(0)
+  recsGoal    Int      @default(3)
+  /// { headline, about, lang } — last AI/rule suggestion
+  suggestions Json?
+  /// ai | template
+  aiSource    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// Hiring-manager round (#119): the user's STAR notes per bank question (src/lib/manager/bank.ts).
+model ManagerAnswer {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId     String
+  situation      String   @default("")
+  task           String   @default("")
+  action         String   @default("")
+  result         String   @default("")
+  polished       String?
+  polishedLang   String?
+  /// ai | template
+  polishedSource String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, questionId])
+  @@index([userId, updatedAt])
 }
