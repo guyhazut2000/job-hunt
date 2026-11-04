@@ -1271,6 +1271,7 @@ export const FEATURES: Feature[] = [
     routes: ["/closing", "/closing/assignments", "/closing/references", "/closing/[offerId]"],
     href: "/closing",
     added: "2026-11-04",
+    prs: [114],
     issue: 111,
     keywords: [
       "home assignment",
