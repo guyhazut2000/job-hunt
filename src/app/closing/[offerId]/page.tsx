@@ -26,7 +26,16 @@ import { AcceptOffer } from "@/components/closing/AcceptOffer";
 import { ChecklistItems } from "@/components/closing/ChecklistItems";
 import { ContractScan } from "@/components/closing/ContractScan";
 import { TransitionList } from "@/components/closing/TransitionList";
-import { Disclaimer, DraftBox, PageHeader, fieldCls, fmtDay, fmtWhen, selectCls } from "@/components/closing/ui";
+import {
+  Disclaimer,
+  DraftBox,
+  PageHeader,
+  fieldCls,
+  fillBidi,
+  fmtDay,
+  fmtWhen,
+  selectCls,
+} from "@/components/closing/ui";
 import { savePlan, saveNoticeInputs, undoAccept } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -370,7 +379,7 @@ export default async function OfferClosingPage({ params }: { params: Promise<{ o
             )}
             <h3 className="font-heading mt-2 font-bold">{s.accDrafts}</h3>
             <DraftBox
-              title={fillC(s.accThanksTo, { company })}
+              title={fillBidi(s.accThanksTo, { company })}
               text={acceptThanksDraft({ company, role, myName }, locale)}
               copy={s.copy}
               copied={s.copied}
@@ -379,7 +388,7 @@ export default async function OfferClosingPage({ params }: { params: Promise<{ o
             {archivedApps.map((a) => (
               <DraftBox
                 key={a.id}
-                title={fillC(s.accWithdrawTo, { company: a.company })}
+                title={fillBidi(s.accWithdrawTo, { company: a.company })}
                 text={withdrawalDraft({ company: a.company, role: a.title, myName }, locale)}
                 copy={s.copy}
                 copied={s.copied}

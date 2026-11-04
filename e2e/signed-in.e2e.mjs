@@ -56,7 +56,7 @@ const PASSING_CV = {
     { name: "English", level: "FLUENT" },
   ],
 };
-let browser, demoId, placeId;
+let browser, demoId, placeId, offerAppId, assignAppId;
 
 async function shot(page, name) {
   if (!SHOTS) return;
@@ -98,6 +98,10 @@ before(async () => {
   const demo = await db.user.findUniqueOrThrow({ where: { email: DEMO.email } });
   demoId = demo.id;
   // Clean previous fixtures (by tag), then recreate.
+  // Final stage (#111): undo any acceptance left by a failed run, then drop the fixtures.
+  await db.application.updateMany({ where: { userId: demoId }, data: { archivedAt: null, archiveBatch: null } });
+  await db.jobOffer.deleteMany({ where: { userId: demoId, label: { startsWith: "e2e-" } } });
+  await db.referee.deleteMany({ where: { userId: demoId, name: { startsWith: "e2e-" } } });
   await db.application.deleteMany({ where: { userId: demoId, company: { startsWith: "e2e-" } } });
   await db.contact.deleteMany({ where: { userId: demoId, name: { startsWith: "e2e-" } } });
   await db.savedPlace.deleteMany({ where: { userId: demoId } });
@@ -154,6 +158,16 @@ before(async () => {
       { userId: demoId, name: "e2e-דנה", category: "PEER", status: "NOT_CONTACTED" },
     ],
   });
+  offerAppId = (
+    await db.application.create({
+      data: { userId: demoId, title: "E2E Backend Engineer", company: "e2e-offer-co", status: "OFFER" },
+    })
+  ).id;
+  assignAppId = (
+    await db.application.create({
+      data: { userId: demoId, title: "E2E Platform Engineer", company: "e2e-assign-co", status: "INTERVIEW" },
+    })
+  ).id;
   const place = await db.savedPlace.create({
     data: {
       userId: demoId,
@@ -505,5 +519,127 @@ test("jobs filters (mobile): floating 'הצג N משרות', chips in the sheet,
   const total = (await page.getByTestId("result-count").locator("span").first().innerText()).trim();
   assert.ok(Number(total.replace(/,/g, "")) > 0);
   await shot(page, "mobile-results");
+  await done(page);
+});
+
+// ───────────────────────── final stage (#111) ─────────────────────────
+
+/** "YYYY-MM-DDTHH:mm" in Israel time, for datetime-local inputs. */
+const israelLocal = (d) =>
+  new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Jerusalem",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+    .format(d)
+    .replace(" ", "T");
+
+const noHScroll = (page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+
+test("final stage: home assignment saved from the tracker card link, shows its due badge", async () => {
+  const page = await newPage({ width: 1366, height: 900 });
+  await login(page);
+  await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
+  const link = page.locator(`[data-testid=kanban-assignments][href="/closing/assignments?app=${assignAppId}"]`);
+  assert.equal(await link.count(), 1, "tracker card links to the assignment form");
+  await page.goto(`${BASE}/closing/assignments?app=${assignAppId}`, { waitUntil: "networkidle" });
+  assert.equal(await page.getByTestId("assignment-app").inputValue(), assignAppId);
+  await page.getByTestId("assignment-title").fill("e2e-מטלת בית: API קטן");
+  await page.getByTestId("assignment-due-input").fill(israelLocal(new Date(Date.now() + 10 * 3_600_000)));
+  await page.getByTestId("assignment-save").click();
+  const row = page.getByTestId("assignment-row").filter({ hasText: "e2e-מטלת בית" });
+  await row.waitFor();
+  assert.ok((await row.getByTestId("assignment-due").innerText()).trim().length > 0);
+  await shot(page, "final-assignments-desktop");
+  await done(page);
+});
+
+test("final stage: referee linked to an application, brief reminder clears once marked briefed", async () => {
+  const page = await newPage({ width: 1366, height: 900 });
+  await login(page);
+  await page.goto(`${BASE}/closing/references`, { waitUntil: "networkidle" });
+  await page.getByTestId("referee-name").fill("e2e-רונית כהן");
+  await page.getByTestId("referee-save").click();
+  const row = page.getByTestId("referee-row").filter({ hasText: "e2e-רונית כהן" });
+  await row.waitFor();
+  assert.equal(await row.getByTestId("draft-request").count(), 1, "not asked yet: a request draft to copy");
+  const form = row.getByTestId("referee-link-form");
+  await form.locator("select[name=applicationId]").selectOption(assignAppId);
+  await form.locator("input[name=expectedCallAt]").fill(israelLocal(new Date(Date.now() + 20 * 3_600_000)));
+  await form.locator("button[type=submit]").click();
+  await row.getByTestId("referee-link").waitFor();
+  await row.getByTestId("referee-needs-brief").waitFor();
+  assert.ok(await row.getByTestId("draft-brief").count(), "brief draft to copy");
+  await shot(page, "final-references-desktop");
+  await row.getByTestId("referee-mark-briefedAt").click();
+  await row.getByTestId("referee-needs-brief").waitFor({ state: "detached" });
+  await done(page);
+});
+
+test("final stage: contract checklist, notice calculator, accept archives the others and undo restores", async () => {
+  const page = await newPage({ width: 1366, height: 900 });
+  await login(page);
+  await page.goto(`${BASE}/closing`, { waitUntil: "networkidle" });
+  const start = page.locator("li").filter({ hasText: "e2e-offer-co" }).getByTestId("closing-start");
+  await Promise.all([page.waitForURL(/\/closing\/c[a-z0-9]+/), start.click()]);
+  await page.getByTestId("contract-checklist").waitFor();
+  await page.getByTestId("closing-disclaimer").first().waitFor();
+  // A legal minimum with an official source.
+  assert.match(await page.getByTestId("clause-pension-minimum").innerText(), /\d/);
+  await page.getByTestId("clause-pension-concern").click();
+  await page.waitForFunction(
+    () => document.querySelector("[data-testid=clause-pension]")?.getAttribute("data-status") === "concern",
+  );
+  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await page.getByTestId("clause-pension").getAttribute("data-status"), "concern", "saved");
+  assert.ok((await page.getByTestId("contract-question").count()) >= 1);
+
+  await page.getByTestId("notice-start").fill("2024-01-01");
+  await page.getByTestId("notice-date").fill("2026-11-08");
+  await page.getByTestId("notice-new-start").fill("2026-12-15");
+  await page.getByTestId("notice-calc").click();
+  await page.getByTestId("notice-last-day").waitFor();
+  await page.getByTestId("draft-resignation").waitFor({ state: "attached" });
+  await shot(page, "final-offer-desktop");
+
+  const archivedBefore = await db.application.count({ where: { userId: demoId, archivedAt: { not: null } } });
+  assert.equal(archivedBefore, 0);
+  const list = page.getByTestId("accept-archive-list");
+  assert.match(await list.innerText(), /e2e-assign-co/);
+  await page.getByTestId("accept-confirm").check();
+  await page.getByTestId("accept-submit").click();
+  await page.getByTestId("accept-done").waitFor();
+  assert.ok(await page.getByTestId("draft-withdraw").count(), "withdrawal drafts to copy");
+  const archived = await db.application.findMany({ where: { userId: demoId, archivedAt: { not: null } } });
+  assert.ok(archived.some((a) => a.id === assignAppId));
+  assert.ok(!archived.some((a) => a.id === offerAppId), "the accepted application stays");
+  assert.ok(archived.every((a) => a.status !== "REJECTED"));
+  await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
+  assert.equal(await page.getByText("e2e-assign-co").count(), 0, "archived apps leave the tracker");
+  await page.goBack({ waitUntil: "networkidle" });
+  await page.getByTestId("accept-undo").click();
+  await page.getByTestId("accept-form").waitFor();
+  assert.equal(await db.application.count({ where: { userId: demoId, archivedAt: { not: null } } }), 0);
+  await done(page);
+});
+
+test("final stage pages fit a 390px screen (no horizontal scroll)", async () => {
+  const page = await newPage();
+  await login(page);
+  const offer = await db.jobOffer.findFirst({ where: { userId: demoId, applicationId: offerAppId } });
+  const pages = [
+    ["/closing", "final-hub"],
+    ["/closing/assignments", "final-assignments"],
+    ["/closing/references", "final-references"],
+    ...(offer ? [[`/closing/${offer.id}`, "final-offer"]] : []),
+  ];
+  for (const [path, name] of pages) {
+    await page.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
+    assert.ok(await noHScroll(page), `${path}: no horizontal scroll at 390px`);
+    await shot(page, `${name}-mobile`);
+  }
   await done(page);
 });

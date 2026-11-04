@@ -75,6 +75,14 @@ export function Disclaimer({ text }: { text: string }) {
   );
 }
 
+/** Fill `{key}` placeholders, wrapping each value in <bdi> so English names don't scramble Hebrew text. */
+export function fillBidi(template: string, vars: Record<string, string>): ReactNode[] {
+  return template.split(/(\{\w+\})/).map((part, i) => {
+    const m = /^\{(\w+)\}$/.exec(part);
+    return m && m[1] in vars ? <bdi key={i}>{vars[m[1]]}</bdi> : part;
+  });
+}
+
 /** A copy-only draft: read-only textarea + copy button. Never sends. */
 export function DraftBox({
   title,
@@ -83,7 +91,7 @@ export function DraftBox({
   copied,
   testId,
 }: {
-  title: string;
+  title: ReactNode;
   text: string;
   copy: string;
   copied: string;
