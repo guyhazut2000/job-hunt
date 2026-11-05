@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useLayoutEffect, useRef } from "react";
+import { Suspense, useLayoutEffect, useRef, useState } from "react";
 import { navLabel, navigationStrings } from "@/lib/i18n/navigation";
 import type { Locale } from "@/lib/i18n/dictionaries";
 import { hubStrip, type NavRole } from "@/lib/nav/config";
@@ -11,14 +11,32 @@ import { cn } from "@/lib/utils";
 const tabClass =
   "inline-flex h-11 items-center border-b-2 px-2.5 text-sm font-semibold whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
-/** Sticky sibling tabs for the hub that owns the current path. Renders nothing on unrelated pages. */
-export function HubNav({ locale, role }: { locale: Locale; role: NavRole }) {
-  const pathname = usePathname();
-  const search = useSearchParams();
+/**
+ * Scroll the active tab into the strip only. `scrollIntoView` also walks the window,
+ * which would move the jobs list during hydration and filter soft-navs.
+ */
+function scrollTabIntoStrip(list: HTMLElement, current: HTMLElement) {
+  const x = window.scrollX;
+  const y = window.scrollY;
+  current.scrollIntoView({ inline: "nearest", block: "nearest" });
+  if (window.scrollX !== x || window.scrollY !== y) window.scrollTo(x, y);
+}
+
+function HubNavBar({
+  locale,
+  role,
+  pathname,
+  search,
+}: {
+  locale: Locale;
+  role: NavRole;
+  pathname: string;
+  search: string;
+}) {
   const strings = navigationStrings(locale);
-  const strip = hubStrip(pathname, search.toString(), role);
-  const shown = Boolean(strip);
+  const strip = hubStrip(pathname, search, role);
   const listRef = useRef<HTMLUListElement>(null);
+  const shown = Boolean(strip);
 
   useLayoutEffect(() => {
     document.documentElement.toggleAttribute("data-hub-nav", shown);
@@ -32,7 +50,7 @@ export function HubNav({ locale, role }: { locale: Locale; role: NavRole }) {
     const listRect = list.getBoundingClientRect();
     const itemRect = current.getBoundingClientRect();
     if (itemRect.left < listRect.left - 1 || itemRect.right > listRect.right + 1) {
-      current.scrollIntoView({ inline: "nearest", block: "nearest" });
+      scrollTabIntoStrip(list, current);
     }
   }, [pathname, strip?.activeId]);
 
@@ -72,5 +90,29 @@ export function HubNav({ locale, role }: { locale: Locale; role: NavRole }) {
         })}
       </ul>
     </nav>
+  );
+}
+
+/** Reads the query (map vs list). Suspends on the server; the fallback is the same bar. */
+function HubNavQuery({ locale, role, pathname }: { locale: Locale; role: NavRole; pathname: string }) {
+  const params = useSearchParams();
+  // First client render must match the server fallback (no query) or React hydrates the wrong tab.
+  const [live, setLive] = useState(false);
+  useLayoutEffect(() => setLive(true), []);
+  return <HubNavBar locale={locale} role={role} pathname={pathname} search={live ? params.toString() : ""} />;
+}
+
+/**
+ * Sticky sibling tabs for the hub that owns the current path.
+ * The bar is in the server HTML (pathname only). `useSearchParams` suspends during SSR, which
+ * used to omit the strip until hydration and shift scroll on `/jobs` under the filter soft-nav.
+ */
+export function HubNav({ locale, role }: { locale: Locale; role: NavRole }) {
+  const pathname = usePathname() ?? "";
+  const fallback = <HubNavBar locale={locale} role={role} pathname={pathname} search="" />;
+  return (
+    <Suspense fallback={fallback}>
+      <HubNavQuery locale={locale} role={role} pathname={pathname} />
+    </Suspense>
   );
 }

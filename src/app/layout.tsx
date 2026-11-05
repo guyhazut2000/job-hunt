@@ -64,9 +64,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {t.ui.skip}
             </a>
             <Header />
-            <Suspense fallback={null}>
-              <HubNav locale={locale} role={role} />
-            </Suspense>
+            <HubNav locale={locale} role={role} />
             {user?.id && (
               <Suspense fallback={null}>
                 <CvStandardBanner userId={user.id} locale={locale === "en" ? "en" : "he"} />
