@@ -115,6 +115,13 @@ export const FEATURES: Feature[] = [
     added: "2026-10-27",
     prs: [1, 15, 18],
     keywords: ["job details"],
+    updates: [
+      {
+        date: "2026-11-05",
+        text: "כפתור «הכן הגשה» בונה טיוטה מהפרופיל ומהמסמכים. השליחה מחכה ל«אשר ושלח».",
+        pr: 127,
+      },
+    ],
   },
   {
     id: "salary",
@@ -345,6 +352,23 @@ export const FEATURES: Feature[] = [
     added: "2026-10-27",
     prs: [1],
     keywords: ["save", "bookmark"],
+  },
+  {
+    id: "prepare-apply",
+    name: "הכנה להגשה",
+    description:
+      "למשרות Greenhouse, Lever ו-Ashby מכינים טיוטה מהפרופיל ומהמסמכים. אשר ושלח שומר במעקב מה נשלח. שליחה ל-API קורית רק עם מפתח של החברה; בלי מפתח נפתח הטופס הרשמי. LinkedIn ומייל נשארים בתור ידני עם קישור.",
+    howTo:
+      "בעמוד משרה לוחצים «הכן הגשה», בודקים שדות מסומנים ולוחצים «אשר ושלח». הכללים (סף, חסימה, מכסה) נמצאים בתור ההגשות.",
+    category: "applications",
+    status: "live",
+    audience: "user",
+    routes: ["/apply", "/apply/settings", "/jobs/[id]/apply"],
+    href: "/apply",
+    added: "2026-11-05",
+    prs: [127],
+    issue: 30,
+    keywords: ["auto-apply", "greenhouse", "lever", "ashby", "הגשה"],
   },
 
   // ───────────────────────── מסמכים ופרופיל ─────────────────────────

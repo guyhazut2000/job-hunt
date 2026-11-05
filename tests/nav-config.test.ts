@@ -108,6 +108,12 @@ describe("secondary hub tabs", () => {
     expect(hubStrip("/closing/references", "", "user")?.activeId).toBe("tracker-closing");
     expect(hubStrip("/salary/negotiate", "", "user")?.activeId).toBe("tracker-salary");
     expect(hubStrip("/salary", "", "guest")).toBeNull();
+    const queue = hubStrip("/apply", "", "user");
+    expect(queue?.hubId).toBe("tracker");
+    expect(queue?.activeId).toBe("tracker-apply");
+    expect(hubStrip("/apply/settings", "", "user")?.activeId).toBe("tracker-apply");
+    expect(activePrimaryId("user", "/apply")).toBe("tracker");
+    expect(activeMobileId("user", "/apply/settings")).toBe("tracker");
   });
 
   it("shows the documents strip on CV tools, not on the profile page that already has tabs", () => {

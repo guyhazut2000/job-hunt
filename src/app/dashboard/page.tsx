@@ -1,7 +1,7 @@
 import { ShowMoreList } from "@/components/density/ShowMoreList";
 import { densityStrings } from "@/lib/i18n/density";
 import { outreachAssistantStrings } from "@/lib/i18n/outreach-assistant";
-import { BarChart3, MailCheck, MapPinned, Plus } from "lucide-react";
+import { BarChart3, MailCheck, MapPinned, Plus, Send } from "lucide-react";
 import Link from "next/link";
 import { addManualApplication } from "@/app/actions";
 import { AutoChangesPanel, type AutoLabels } from "@/components/email/AutoChanges";
@@ -17,6 +17,7 @@ import { formatAppliedDate } from "@/lib/followup/draft";
 import { emailResponses } from "@/lib/followup/server";
 import { followUpView } from "@/lib/followup/view";
 import { getDictionary } from "@/lib/i18n";
+import { autoApplyStrings } from "@/lib/i18n/auto-apply";
 import { cvTailorStrings } from "@/lib/i18n/cv-tailor";
 import { interviewStrings } from "@/lib/i18n/interview";
 import { emailSyncStrings } from "@/lib/i18n/email-sync";
@@ -198,6 +199,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <span className="flex min-w-0 flex-col">
           <span className="font-semibold">{ss.dashboardLink}</span>
           <span className="text-muted-foreground truncate text-xs">{ss.dashboardHint}</span>
+        </span>
+      </Link>
+      <Link
+        href="/apply"
+        data-testid="dashboard-apply-link"
+        className="bg-card hover:bg-muted/60 flex min-h-12 items-center gap-3 rounded-lg border px-4 py-2 transition-colors"
+      >
+        <Send className="text-primary size-5 shrink-0" aria-hidden />
+        <span className="flex min-w-0 flex-col">
+          <span className="font-semibold">{autoApplyStrings(locale).dashboardLink}</span>
+          <span className="text-muted-foreground truncate text-xs">{autoApplyStrings(locale).dashboardHint}</span>
         </span>
       </Link>
       <Link
