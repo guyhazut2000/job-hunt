@@ -3,23 +3,14 @@ import { Assistant, Frank_Ruhl_Libre, IBM_Plex_Mono } from "next/font/google";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { MobileNav } from "@/components/MobileNav";
+import { HubNav } from "@/components/nav/HubNav";
 import { ChatFab } from "@/components/chat/ChatFab";
 import { CvStandardBanner } from "@/components/cv-standard/CvStandardBanner";
 import { Suspense } from "react";
 import { DirectionProvider } from "@/components/ui/direction";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getDictionary, isRtl } from "@/lib/i18n";
-import { documentStrings } from "@/lib/i18n/documents";
-import { salaryHubStrings } from "@/lib/i18n/salary-hub";
-import { closingStrings } from "@/lib/i18n/closing";
-import { referralStrings } from "@/lib/i18n/referrals";
-import { statsStrings } from "@/lib/i18n/stats";
-import { coachStrings } from "@/lib/i18n/coach";
-import { gapsStrings } from "@/lib/i18n/gaps";
-import { systemDesignStrings } from "@/lib/i18n/system-design";
-import { reminderStrings } from "@/lib/i18n/reminders";
-import { learningStrings } from "@/lib/i18n/learning";
-import { learningHubStrings } from "@/lib/i18n/learning-hub";
+import { navRole } from "@/lib/nav/config";
 import { auth } from "@/auth";
 import { cn } from "@/lib/utils";
 import { siteUrl } from "@/lib/notifications/config";
@@ -60,6 +51,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [{ locale, t }, session] = await Promise.all([getDictionary(), auth()]);
   const dir = isRtl(locale) ? "rtl" : "ltr";
   const user = session?.user;
+  const role = navRole(user ? { role: user.role } : null);
   return (
     <html lang={locale} dir={dir} className={cn(body.variable, display.variable, data.variable)}>
       <body className="flex min-h-dvh flex-col overflow-x-clip">
@@ -72,6 +64,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {t.ui.skip}
             </a>
             <Header />
+            <Suspense fallback={null}>
+              <HubNav locale={locale} role={role} />
+            </Suspense>
             {user?.id && (
               <Suspense fallback={null}>
                 <CvStandardBanner userId={user.id} locale={locale === "en" ? "en" : "he"} />
@@ -88,31 +83,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {user && <ChatFab locale={locale} />}
             <MobileNav
               locale={locale}
-              user={user ? { role: user.role } : null}
-              labels={{
-                jobs: t.nav.jobs,
-                companies: t.nav.companies,
-                tracker: t.ui.tracker,
-                profile: t.ui.profile,
+              role={role}
+              actions={{
                 more: t.ui.more,
+                account: t.ui.account,
                 login: t.nav.login,
                 register: t.nav.register,
                 logout: t.nav.logout,
-                learn: learningStrings(locale).nav,
-                documents: documentStrings(locale).nav,
-                learnMine: learningHubStrings(locale).navMine,
-                digest: reminderStrings(locale).nav,
-                stats: statsStrings(locale).nav,
-                coach: coachStrings(locale).nav,
-                skillGaps: gapsStrings(locale).nav,
-                systemDesign: systemDesignStrings(locale).kicker,
-                salary: salaryHubStrings[locale].title,
-                referrals: referralStrings[locale].kicker,
-                closing: closingStrings[locale].navLabel,
-                admin: t.nav.admin,
-                features: t.nav.features,
                 language: t.nav.language,
-                account: t.ui.account,
               }}
             />
           </TooltipProvider>

@@ -6,77 +6,82 @@ import { ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { Locale } from "@/lib/i18n/dictionaries";
+import { navLabel, navSectionLabel, navigationStrings } from "@/lib/i18n/navigation";
+import { activeTargetId, isPrimaryActive, moreSections, primaryLinks, type NavRole } from "@/lib/nav/config";
 import { cn } from "@/lib/utils";
 
-/**
- * How eagerly a link collapses into the "More" menu as the header narrows:
- * - "always": inline from `md` (where the desktop header nav starts).
- * - "lg": inline from `lg`; in "More" between `md` and `lg`.
- * - "more": always in "More" (keeps the bar from overflowing when signed in).
- */
-export type NavPriority = "always" | "lg" | "more";
-export interface NavLink {
-  href: string;
-  label: string;
-  priority?: NavPriority;
-}
-
-const isActive = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
-
 const linkClass =
-  "relative inline-flex min-h-11 shrink-0 items-center px-2.5 text-[0.95rem] font-semibold whitespace-nowrap transition-colors lg:px-3 " +
+  "relative inline-flex h-11 shrink-0 items-center rounded-sm px-2.5 text-[0.95rem] font-semibold whitespace-nowrap outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 lg:px-3 " +
   "text-foreground/70 hover:text-foreground " +
   "after:bg-primary after:absolute after:inset-x-2.5 after:bottom-1.5 after:h-0.5 after:origin-center after:scale-x-0 after:transition-transform lg:after:inset-x-3";
 
-export function NavLinks({ links, moreLabel }: { links: NavLink[]; moreLabel: string }) {
+/** Desktop primary destinations plus a sectioned More menu. Both come from the shared nav config. */
+export function NavLinks({ locale, role, moreLabel }: { locale: Locale; role: NavRole; moreLabel: string }) {
   const pathname = usePathname();
-  const overflow = links.filter((l) => (l.priority ?? "always") !== "always");
-  const alwaysInMore = overflow.some((l) => l.priority === "more");
-  const moreActive = overflow.some((l) => isActive(pathname, l.href));
+  const strings = navigationStrings(locale);
+  const links = primaryLinks(role);
+  const sections = moreSections(role, "desktop");
+  const moreActive = sections.some((section) => activeTargetId(section.items, pathname) !== null);
+
   return (
-    <ul className="flex min-w-0 items-center gap-0.5">
-      {links.map((l) => {
-        const priority = l.priority ?? "always";
-        if (priority === "more") return null;
-        const active = isActive(pathname, l.href);
+    <ul className="flex min-w-0 items-center gap-0.5" data-testid="primary-nav">
+      {links.map((link) => {
+        const active = isPrimaryActive(link, pathname);
         return (
-          <li key={l.href} className={cn("shrink-0", priority === "lg" && "hidden lg:block")}>
+          <li key={link.id} className="shrink-0">
             <Link
-              href={l.href}
+              href={link.href}
               aria-current={active ? "page" : undefined}
+              data-testid={`primary-${link.id}`}
               className={cn(linkClass, active && "text-foreground after:scale-x-100")}
             >
-              {l.label}
+              {navLabel(strings, link.id)}
             </Link>
           </li>
         );
       })}
-      {overflow.length > 0 && (
-        <li className={cn("shrink-0", !alwaysInMore && "lg:hidden")}>
+      {sections.length > 0 && (
+        <li className="shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger
               className={cn(linkClass, "gap-1", moreActive && "text-foreground after:scale-x-100")}
               data-testid="nav-more"
+              aria-current={moreActive ? "true" : undefined}
             >
               {moreLabel}
               <ChevronDown aria-hidden className="size-4 shrink-0" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-48">
-              {overflow.map((l) => {
-                const active = isActive(pathname, l.href);
+            <DropdownMenuContent align="end" aria-label={strings.moreMenu} className="w-72" style={{ width: "18rem" }}>
+              {sections.map((section, index) => {
+                const current = activeTargetId(section.items, pathname);
                 return (
-                  <DropdownMenuItem
-                    key={l.href}
-                    asChild
-                    className={cn("min-h-11 font-semibold whitespace-nowrap", l.priority === "lg" && "lg:hidden")}
-                  >
-                    <Link href={l.href} aria-current={active ? "page" : undefined}>
-                      {l.label}
-                    </Link>
-                  </DropdownMenuItem>
+                  <DropdownMenuGroup key={section.id}>
+                    {index > 0 && <DropdownMenuSeparator />}
+                    <DropdownMenuLabel data-testid={`more-section-${section.id}`}>
+                      {navSectionLabel(strings, section.id)}
+                    </DropdownMenuLabel>
+                    {section.items.map((item) => {
+                      const active = item.id === current;
+                      return (
+                        <DropdownMenuItem key={item.id} asChild className="min-h-11 font-semibold whitespace-nowrap">
+                          <Link
+                            href={item.href}
+                            aria-current={active ? "page" : undefined}
+                            data-testid={`more-${item.id}`}
+                          >
+                            {navLabel(strings, item.id)}
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuGroup>
                 );
               })}
             </DropdownMenuContent>

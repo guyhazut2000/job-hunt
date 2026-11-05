@@ -60,8 +60,14 @@
 
   /* layout */
   --bottom-nav-h: 4rem;
-  /* sticky site header height (Header.tsx); sub-bars stick just beneath it */
-  --header-h: calc(4.125rem + env(safe-area-inset-top));
+  /* Main header bar only. HubNav sets data-hub-nav, which grows --header-h so other sticky bars clear both. */
+  --app-header-h: calc(4.125rem + env(safe-area-inset-top));
+  --hub-nav-h: 0px;
+  --header-h: calc(var(--app-header-h) + var(--hub-nav-h));
+}
+
+html[data-hub-nav] {
+  --hub-nav-h: 2.75rem;
 }
 
 @theme inline {

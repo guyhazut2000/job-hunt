@@ -53,6 +53,9 @@ rules for new lists are in [ui-data-density.md](ui-data-density.md); the user-fa
 `email` מייל · `ai` AI · `learning` למידה · `notifications` התראות · `settings` הגדרות וחשבון ·
 `ui` ממשק ונגישות · `admin` ניהול. Labels live in `src/features/types.ts`.
 
+The main navigation is five hubs (jobs, companies, tracker, documents, prep) plus a sectioned More
+menu. See [navigation.md](navigation.md). The user-facing entry is `nav-hubs`.
+
 ## Gates: the mandatory CV standard (#94)
 
 Some features are blocked until the user's CV meets the standard in
