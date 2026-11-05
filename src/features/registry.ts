@@ -119,6 +119,7 @@ export const FEATURES: Feature[] = [
       {
         date: "2026-11-05",
         text: "כפתור «הכן הגשה» בונה טיוטה מהפרופיל ומהמסמכים. השליחה מחכה ל«אשר ושלח».",
+        pr: 127,
       },
     ],
   },
@@ -365,6 +366,7 @@ export const FEATURES: Feature[] = [
     routes: ["/apply", "/apply/settings", "/jobs/[id]/apply"],
     href: "/apply",
     added: "2026-11-05",
+    prs: [127],
     issue: 30,
     keywords: ["auto-apply", "greenhouse", "lever", "ashby", "הגשה"],
   },
