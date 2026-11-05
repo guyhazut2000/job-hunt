@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { BookOpen, ExternalLink, GraduationCap, Route } from "lucide-react";
 import { ShowMoreList } from "@/components/density/ShowMoreList";
+import { StudyPlanPanel } from "@/components/learning/StudyPlanPanel";
 import { Button } from "@/components/ui/button";
+import { db } from "@/lib/db";
 import { DEBRIEF_WEIGHT, type SkillGap } from "@/lib/gaps/aggregate";
 import { loadGapReport, MAX_TARGET_JOBS } from "@/lib/gaps/server";
 import { getLocale } from "@/lib/i18n";
@@ -9,6 +11,7 @@ import { densityStrings } from "@/lib/i18n/density";
 import { gapsStrings } from "@/lib/i18n/gaps";
 import { fmt } from "@/lib/i18n/learning";
 import { localizedTitle } from "@/lib/i18n/titles";
+import { buildStudySkills, rulesStudyPlan } from "@/lib/learning/study-plan";
 import { GRAPH } from "@/lib/learning/graph";
 import { getProgress } from "@/lib/learning/server";
 import { requireUser } from "@/lib/session";
@@ -24,7 +27,11 @@ export default async function SkillGapsPage() {
   const locale = await getLocale();
   const s = gapsStrings(locale);
   const ds = densityStrings(locale);
-  const [{ report, hasProfile }, progress] = await Promise.all([loadGapReport(user.id), getProgress(user.id)]);
+  const [{ report, hasProfile }, progress, prefs] = await Promise.all([
+    loadGapReport(user.id),
+    getProgress(user.id),
+    db.learningPrefs.findUnique({ where: { userId: user.id }, select: { weeklyGoalHours: true } }),
+  ]);
   const statusOf = new Map(progress.map((p) => [p.skill, p.status]));
 
   const header = (
@@ -58,6 +65,15 @@ export default async function SkillGapsPage() {
   const c = report.counts;
   const totalJobs = c.target + c.saved + c.applied;
   const top = report.gaps.slice(0, PLAN_SIZE);
+  const lang = locale === "en" ? "en" : "he";
+  const studySkills = buildStudySkills(
+    report.gaps,
+    new Set(progress.filter((p) => p.status === "DONE").map((p) => p.skill)),
+    lang,
+  );
+  const baseline = studySkills.length
+    ? rulesStudyPlan({ skills: studySkills, hoursPerWeek: prefs?.weeklyGoalHours ?? 5, locale: lang })
+    : null;
 
   const gapCard = (g: SkillGap, i: number) => {
     const st = g.nodeId ? statusOf.get(g.nodeId) : undefined;
@@ -228,6 +244,8 @@ export default async function SkillGapsPage() {
               })}
             </ol>
           </section>
+
+          {baseline ? <StudyPlanPanel locale={lang} baseline={baseline} /> : null}
 
           <section aria-labelledby="gaps-ranked" className="flex flex-col gap-3">
             <h2 id="gaps-ranked" className="font-heading text-xl font-bold">

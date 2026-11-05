@@ -25,6 +25,11 @@ For each job, `scoreMatch` gives the missing skills; they are normalised to the 
 - Study plan for the top 3 gaps: catalog hours and prerequisites, links to `/learn/[id]`, the docs
   and course from the catalog, roadmap.sh (link only), and practice (`/learn/problem-solving`,
   `/learn/system-design`, `/interview`).
+- Personal plan (below that): a week-by-week plan for the top gaps that have a roadmap node, including
+  unfinished prerequisites, paced to the weekly hour goal from `/learn/me` (default 5). It includes
+  interview questions and one CV line. The rules version is shown immediately and labelled as such.
+  "שיפור עם AI" is one `study_plan` call (same free-tier guard). Invalid or limited AI output keeps the
+  rules plan. See [ai.md](ai.md#personal-study-plan). `/learn` links here.
 - Ranked list (8 at a time, "show more") with the share of jobs per gap.
 - `/coach` adds a `close_skill_gap` recommendation when the top gap is missing in ≥ 2 jobs or hit
   in a weak debrief (basis: skill, jobs, total, debriefs).

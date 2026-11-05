@@ -41,13 +41,13 @@ results also renders an empty-state card with a link that opens the same filters
 
 ## Configuration
 
-| Env                                   | Default           | Meaning                                                 |
-| ------------------------------------- | ----------------- | ------------------------------------------------------- |
-| `LLM_PROVIDER`                        | `gemini` if key   | `gemini` or `mock` (`mock` forces offline keyword mode) |
-| `GEMINI_API_KEY`                      | none              | Without it the chat runs in offline keyword mode        |
-| `GEMINI_MODEL`                        | shared AI default | Model id                                                |
-| `AI_USER_DAILY_LIMIT`                 | 15                | Per-user daily AI calls (shared with other AI features) |
-| `AI_GLOBAL_PER_MINUTE` / `_DAILY_CAP` | 8 / 400           | Global AI limits                                        |
+| Env                                   | Default           | Meaning                                                                                                                                                              |
+| ------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LLM_PROVIDER`                        | `gemini` if key   | `gemini` or `mock` (`mock` forces offline keyword mode)                                                                                                              |
+| `GEMINI_API_KEY`                      | none              | Without it the chat runs in offline keyword mode                                                                                                                     |
+| `GEMINI_MODEL`                        | shared AI default | Model id                                                                                                                                                             |
+| `AI_USER_DAILY_LIMIT`                 | 400               | Per-user daily AI calls. One user, so this matches the global cap and is shared with every other AI feature (study plan, tutor, CV, …). Under Flash-Lite's ~500 RPD. |
+| `AI_GLOBAL_PER_MINUTE` / `_DAILY_CAP` | 8 / 400           | Global AI limits. 8/minute stays under the ~10 RPM free-tier rate; 400/day matches the single-user cap.                                                              |
 
 ## Cost and limits per turn
 

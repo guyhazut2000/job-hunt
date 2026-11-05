@@ -48,7 +48,7 @@ only, `runtime = "nodejs"`, `maxDuration = 60`. Header `X-Cv-Translation` report
 
 When the export language differs from the detected content language, `translateContent` sends only
 the strings that need it (`needsTranslation`) in one call: Gemini free tier via `guardedLLM`
-(30-day cache, 15/day per user), schema `{ items: string[] }`. Each item is checked by
+(30-day cache, the per-user daily limit), schema `{ items: string[] }`. Each item is checked by
 `acceptTranslation` (numbers, emails and URLs preserved, sane length) or the original is kept.
 Without a key / over the limit the file still downloads, with fixed labels in the target language and the
 content as written. Fixed labels never go through the LLM.

@@ -130,6 +130,8 @@ const he = {
   stepsTitle: "סדר הלימוד",
   stepsCount: "{n} צעדים",
   matchBar: "התאמה עכשיו {now}%, אחרי הלימוד {after}%",
+  gapsEntry: "פערי מיומנויות",
+  gapsEntryLead: "מה חוזר במשרות שלך, ותוכנית לימוד שבועית.",
 };
 
 const en: typeof he = {
@@ -257,6 +259,8 @@ const en: typeof he = {
   stepsTitle: "Learning order",
   stepsCount: "{n} steps",
   matchBar: "Match now {now}%, after learning {after}%",
+  gapsEntry: "Skill gaps",
+  gapsEntryLead: "What keeps showing up in your jobs, plus a week-by-week study plan.",
 };
 
 export type LearningStrings = typeof he;

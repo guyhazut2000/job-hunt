@@ -4,7 +4,7 @@ export const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite";
 export interface AiConfig {
   apiKey: string | undefined;
   model: string;
-  /** Uncached AI calls one user may trigger per rolling 24h. */
+  /** Uncached AI calls one user may trigger per rolling 24h. Single-user default matches the global cap. */
   userDailyLimit: number;
   /** Uncached AI calls for the whole app per rolling 24h (keeps us under the free-tier RPD). */
   globalDailyCap: number;
@@ -25,7 +25,7 @@ export function aiConfig(env: Record<string, string | undefined> = process.env):
   return {
     apiKey: env.GEMINI_API_KEY?.trim() || undefined,
     model: env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL,
-    userDailyLimit: int(env.AI_USER_DAILY_LIMIT, 15),
+    userDailyLimit: int(env.AI_USER_DAILY_LIMIT, 400),
     globalDailyCap: int(env.AI_GLOBAL_DAILY_CAP, 400),
     globalPerMinute: int(env.AI_GLOBAL_PER_MINUTE, 8),
     cacheTtlHours: int(env.AI_CACHE_TTL_HOURS, 24 * 30),

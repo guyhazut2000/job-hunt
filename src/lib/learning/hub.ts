@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { guardedLLM } from "@/lib/ai";
 import { AiLimitError, type AiLimitReason } from "@/lib/ai/errors";
+import { utcMonthStart } from "@/lib/ai/retention";
 import type { LLMProvider } from "@/lib/ai/types";
 import { db } from "@/lib/db";
 import type { Locale } from "@/lib/i18n/dictionaries";
@@ -106,8 +107,9 @@ export async function loadStageContent(
   return { ...fb, model: null, regenCount: 0, stored: false, limited: gen.limited };
 }
 
+/** UTC month start. Same instant as `utcMonthStart` — the purge keeps these rows for the regen cap. */
 export function monthStart(now = new Date()): Date {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  return utcMonthStart(now);
 }
 
 /** Successful content regenerations by this user this calendar month (the monthly-limited action). */
