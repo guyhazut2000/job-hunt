@@ -49,10 +49,14 @@ function rateLimit() {
 }
 
 describe("aiConfig", () => {
-  it("defaults to the free-tier flash-lite model and conservative limits", () => {
+  it("defaults to flash-lite and the single-user free-tier limits", () => {
     const c = aiConfig({});
     expect(c.apiKey).toBeUndefined();
     expect(c.model).toBe(DEFAULT_GEMINI_MODEL);
+    expect(c.userDailyLimit).toBe(400);
+    expect(c.globalDailyCap).toBe(400);
+    expect(c.globalPerMinute).toBe(8);
+    expect(c.userDailyLimit).toBeLessThanOrEqual(c.globalDailyCap);
     expect(c.globalDailyCap).toBeLessThan(500);
     expect(aiConfig({ GEMINI_API_KEY: " k ", GEMINI_MODEL: "m", AI_USER_DAILY_LIMIT: "3" })).toMatchObject({
       apiKey: "k",

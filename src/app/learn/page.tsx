@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Check,
+  GraduationCap,
   LayoutDashboard,
   Lightbulb,
   MessagesSquare,
@@ -214,6 +215,20 @@ export default async function LearnPage() {
               <span className="flex min-w-0 flex-col">
                 <span className="font-bold">{cs.entryTitle}</span>
                 <span className="text-foreground/75 text-sm">{cs.entryLead}</span>
+              </span>
+            </span>
+            <ArrowLeft className="size-5 shrink-0 ltr:rotate-180" aria-hidden />
+          </Link>
+          <Link
+            href="/learn/gaps#personal-plan"
+            data-testid="gaps-entry"
+            className="group bg-card hover:bg-secondary/60 flex min-h-16 items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 transition-colors sm:px-6"
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <GraduationCap className="text-primary size-6 shrink-0" aria-hidden />
+              <span className="flex min-w-0 flex-col">
+                <span className="font-bold">{s.gapsEntry}</span>
+                <span className="text-foreground/75 text-sm">{s.gapsEntryLead}</span>
               </span>
             </span>
             <ArrowLeft className="size-5 shrink-0 ltr:rotate-180" aria-hidden />
