@@ -1,3 +1,4 @@
+import { purgeExpiredAiRows } from "@/lib/ai/purge";
 import { processDeliveries } from "./deliver";
 import { runFollowUpReminders, runSavedJobClosed, runSavedJobUpdated, runWhatsNew } from "./reminders";
 import { runFollowedCompanyAlerts } from "./company-follow";
@@ -21,6 +22,7 @@ export async function runNotifications(now = new Date()) {
   const updated = await safe(runSavedJobUpdated(now));
   const whatsNew = await safe(runWhatsNew(now));
   const deliveries = await safe(processDeliveries({ now }));
+  const aiPurge = await safe(purgeExpiredAiRows(now));
   return {
     searches,
     highMatch,
@@ -33,5 +35,6 @@ export async function runNotifications(now = new Date()) {
     updated,
     whatsNew,
     deliveries,
+    aiPurge,
   };
 }

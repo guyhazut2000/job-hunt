@@ -28,7 +28,7 @@ Signed-in only (`requireUser`). The `/learn` hub has an entry card and the heade
 
 ## AI
 
-- Features `concept_overview` and `concept_chat` through `guardedLLM` — counted against `AI_USER_DAILY_LIMIT` (15/day) and the global limits; identical prompts hit the DB cache (first-turn drill-downs carry no history, so they're shared too).
+- Features `concept_overview` and `concept_chat` through `guardedLLM` — counted against `AI_USER_DAILY_LIMIT` (400/day for the single user) and the global limits; identical prompts hit the DB cache (first-turn drill-downs carry no history, so they're shared too).
 - Prompts: answer in the UI language, keep technical terms in English; learner text is fenced `<<< >>>`; history window 8 messages; ≤ 900 output tokens.
 - Company concepts add rules: general public knowledge only, say so when unsure, never invent quotes, numbers or URLs, no links.
 - `LLM_PROVIDER=mock` / no key → labelled offline content ("Offline mode"). At the limit → `aiLimitMessage` notice; nothing breaks.

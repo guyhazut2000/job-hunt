@@ -46,6 +46,21 @@ const en = {
   relatedRoadmaps: "Learning roadmaps",
   relatedAts: "ATS check for your CV",
   relatedCoach: "Weekly coach",
+  personalTitle: "Personal study plan",
+  personalLead:
+    "Week by week, at your {hours}-hour learning goal, with interview questions and one CV line. “Improve with AI” rewrites it inside the AI quota; without AI the roadmap plan stays.",
+  personalGenerate: "Improve with AI",
+  personalPending: "Improving…",
+  personalAi: "Written with AI",
+  personalRules: "From the learning roadmap, without AI",
+  personalEmpty: "These gaps don't have a learning roadmap yet.",
+  personalWeek: "Week {n}",
+  personalHours: "{h} hours",
+  personalQuestions: "Interview questions",
+  personalHints: "Answer hints",
+  personalBullet: "CV line",
+  personalCopy: "Copy",
+  personalCopied: "Copied",
 };
 export type GapsStrings = typeof en;
 
@@ -95,6 +110,21 @@ const he: GapsStrings = {
   relatedRoadmaps: "מסלולי למידה",
   relatedAts: "בדיקת ATS לקורות החיים",
   relatedCoach: "מאמן שבועי",
+  personalTitle: "תוכנית לימוד אישית",
+  personalLead:
+    "שבוע אחר שבוע, בקצב של {hours} שעות (יעד הלמידה שלך), עם שאלות ראיון ושורת קורות חיים. «שיפור עם AI» מנסח מחדש בתוך מכסת ה-AI; בלי AI נשארת התוכנית לפי המסלול.",
+  personalGenerate: "שיפור עם AI",
+  personalPending: "משפרים…",
+  personalAi: "נוסח עם AI",
+  personalRules: "לפי מסלול הלמידה, בלי AI",
+  personalEmpty: "אין מסלול למידה לפערים האלה.",
+  personalWeek: "שבוע {n}",
+  personalHours: "{h} שעות",
+  personalQuestions: "שאלות לראיון",
+  personalHints: "כיוונים לתשובה",
+  personalBullet: "שורה לקורות החיים",
+  personalCopy: "העתקה",
+  personalCopied: "הועתק",
 };
 
 export const gapsStrings = (locale: Locale | string): GapsStrings => (locale === "he" ? he : en);

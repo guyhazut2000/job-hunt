@@ -1,6 +1,6 @@
 /**
  * Translate CV content to the export language — translation only, never new facts.
- * One guardedLLM call per export (DB-cached 30 days, counts toward the 15/day user limit).
+ * One guardedLLM call per export (DB-cached 30 days, counts toward the per-user daily limit).
  * Every returned string is checked against its source (numbers, URLs, emails kept; sane length);
  * a string that fails keeps its original text. Mock/limit/error → untranslated content.
  */

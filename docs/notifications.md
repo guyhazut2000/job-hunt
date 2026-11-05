@@ -160,8 +160,8 @@ channel with `nextAttemptAt` pushed past quiet hours. `processDeliveries()`:
 - `/api/cron/scan` — the **fast scan**, every 15 min in the daytime from GitHub Actions (below).
 - `/api/cron/notify` at `30 5 * * *` and `0 15 * * *` UTC (07:30 / 17:00 Israel in winter) — runs
   searches, followed companies, scan failures, follow-ups, saved-job closed/updated alerts, what's-new
-  announcements and flushes deliveries
-  deferred by quiet hours.
+  announcements, flushes deliveries deferred by quiet hours, and purges expired AI cache rows plus AI
+  usage older than the rolling windows (see [ai.md](ai.md#cache-and-usage-cleanup)).
 
 - `/api/cron/hourly` — listed 24 times in `vercel.json` (`0 H * * *` for each hour; a Hobby cron may
   run once a day, so one entry per hour). Runs interview reminders, hiring-stage changes, study reminders, daily digests and
