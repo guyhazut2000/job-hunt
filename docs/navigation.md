@@ -38,7 +38,7 @@ Print routes hide it.
 | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Jobs      | `/jobs`, `/jobs?view=map`, `/jobs/ranking`, `/jobs/step-up`                                                                              |
 | Companies | `/companies`, `/outreach`, `/referrals`                                                                                                  |
-| Tracker   | `/dashboard`, `/closing`, `/salary`                                                                                                      |
+| Tracker   | `/dashboard`, `/apply`, `/closing`, `/salary`                                                                                            |
 | Documents | `/profile`, `/cv/standard`, `/cv`, `/cv/tailor`, `/cv/ats`, `/cv/linkedin`                                                               |
 | Prep      | `/learn`, `/learn/me`, `/learn/gaps`, `/learn/system-design`, `/learn/problem-solving`, `/learn/concepts`, `/prep/manager`, `/interview` |
 

@@ -5,8 +5,9 @@ Profile and documents share one page, `/profile`, with two tabs held in the URL:
 Old links still resolve: `?tab=pro`, `?tab=prefs`, `?tab=cvs`, and `/documents` redirects to the documents tab.
 
 Users keep application documents next to their CVs: transcripts, degree certificates,
-certifications, recommendation letters, portfolios, cover letters and anything else. The future
-apply flow attaches them through one server helper and one picker component.
+certifications, recommendation letters, portfolios, cover letters and anything else. The apply
+flow (`/jobs/[id]/apply`, docs/auto-apply.md) attaches them through `getAttachableDocuments` and
+`<DocumentPicker>`, then checks the selection with `sanitizeSelection`.
 
 ## Data model
 

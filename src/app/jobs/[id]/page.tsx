@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { AtsProvider } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { ArrowRight, ExternalLink, MapPin, Sparkles } from "lucide-react";
+import { prepareApply } from "@/app/apply/actions";
 import { auth } from "@/auth";
 import { BackToTop } from "@/components/BackToTop";
 import { CollapsibleText } from "@/components/CollapsibleText";
@@ -29,6 +30,7 @@ import { linkedinStrings, type LinkedinStrings } from "@/lib/i18n/linkedin";
 import { linkedinLinkFor, needsLinkedinCheck } from "@/lib/linkedin/jobs";
 import { resolveLinkedinJob } from "@/lib/linkedin/resolve";
 import { MatchReasons } from "@/components/profile/MatchReasons";
+import { autoApplyStrings } from "@/lib/i18n/auto-apply";
 import { hasScorableProfile, scoreMatch, toCandidate } from "@/lib/profile/score";
 
 export const dynamic = "force-dynamic";
@@ -121,6 +123,16 @@ export default async function JobPage({
     >
       <LinkedinSlot pending={pendingLinkedin} jobId={job.id} s={li} placement={placement} className={className} />
     </Suspense>
+  );
+
+  const applyCopy = autoApplyStrings(locale);
+  const prepareForm = () => (
+    <form action={prepareApply}>
+      <input type="hidden" name="jobId" value={job.id} />
+      <Button type="submit" variant="outline" className="w-full" data-testid="prepare-apply">
+        {applyCopy.prepare}
+      </Button>
+    </form>
   );
 
   const applyButton = (placement: "page" | "bar") => (
@@ -233,6 +245,7 @@ export default async function JobPage({
             )}
             {/* mobile: the action bar keeps only the primary apply button */}
             <div className="flex flex-col gap-2 pt-1 sm:max-w-sm lg:hidden">
+              {prepareForm()}
               {linkedinSlot("page")}
               <LinkedinCompanyButton company={job.company} jobId={job.id} s={li} />
             </div>
@@ -300,6 +313,7 @@ export default async function JobPage({
         >
           <div className="bg-card flex flex-col gap-2 rounded-lg border p-4">
             {applyButton("page")}
+            {prepareForm()}
             {linkedinSlot("page")}
             <LinkedinCompanyButton company={job.company} jobId={job.id} s={li} />
             {userId && (

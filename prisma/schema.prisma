@@ -152,6 +152,8 @@ model User {
   homeAssignments      HomeAssignment[]
   referees             Referee[]
   offerClosings        OfferClosing[]
+  applySettings        ApplySettings?
+  applyDrafts          ApplyDraft[]
 }
 
 model Profile {
@@ -434,6 +436,7 @@ model Job {
   /// Last time a later scan saw one of those fields change, and which ones (saved-job updates, #41).
   contentChangedAt  DateTime?
   changedFields     String[]           @default([])
+  applyDrafts       ApplyDraft[]
 
   @@unique([source, externalId])
   @@index([roleCategory, seniority])
@@ -508,6 +511,12 @@ model Application {
   archiveBatch         String?
   homeAssignments      HomeAssignment[]
   refereeLinks         RefereeLink[]
+  /// Auto-apply (#30): field values and the attached-document list recorded when the user approved a packet.
+  sentSnapshot         Json?
+  /// HANDOFF opened the company form; API posted to a documented ATS endpoint; MANUAL is the hand queue.
+  applyDelivery        ApplyDelivery?
+  applyRecordedAt      DateTime?
+  applyDraft           ApplyDraft?
 
   @@unique([userId, jobId])
   @@index([userId, status])
@@ -1913,4 +1922,75 @@ model ManagerAnswer {
 
   @@unique([userId, questionId])
   @@index([userId, updatedAt])
+}
+
+/// How an auto-apply packet left the app (#30). Null on applications that never went through it.
+enum ApplyDelivery {
+  /// Saved the packet and opened the employer's form. Nothing was posted to the ATS.
+  HANDOFF
+  /// Posted to a documented application endpoint with that employer's API key.
+  API
+  /// Unsupported board (or LinkedIn / email). Direct link only.
+  MANUAL
+}
+
+enum ApplyDraftStatus {
+  DRAFT
+  NEEDS_INPUT
+  READY
+  HANDED_OFF
+  SUBMITTED
+  FAILED
+  MANUAL
+}
+
+/// Per-user auto-apply rules (#30). Missing row = the defaults in src/lib/auto-apply/rules.ts.
+/// `fullyAutomatic` defaults off: a packet is sent only after "אשר ושלח", and only when the ATS
+/// documents a submission endpoint the app can actually call.
+model ApplySettings {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 0–100. Jobs under this score are not sent unless the user overrides that one application.
+  minMatchScore     Int      @default(70)
+  /// Approved packets (API + handoff) per Asia/Jerusalem day. 0 pauses approval.
+  dailyCap          Int      @default(5)
+  fullyAutomatic    Boolean  @default(false)
+  blockedCompanyIds String[] @default([])
+  updatedAt         DateTime @updatedAt
+}
+
+/// One prepared application per user and job. The approved packet is copied onto Application.sentSnapshot.
+model ApplyDraft {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId         String
+  job           Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  applicationId String?          @unique
+  application   Application?     @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  status        ApplyDraftStatus @default(DRAFT)
+  delivery      ApplyDelivery
+  /// greenhouse | lever | ashby | other
+  platform      String
+  /// ats = questions came from the ATS; packet = profile fields to copy onto the company form.
+  formMode      String           @default("packet")
+  /// linkedin | email | unsupported | greenhouse_no_key | greenhouse_api | lever_no_submit | ashby_no_key | ashby_api | form_unavailable
+  reason        String
+  /// ApplyField[] (src/lib/auto-apply/types.ts)
+  fields        Json             @default("[]")
+  /// { ref, title, fileName, type }[] — no file bytes
+  documents     Json             @default("[]")
+  /// profile | ai | fallback | limited | secret
+  answerSource  String?
+  error         String?
+  externalId    String?
+  ruleOverride  Boolean          @default(false)
+  submittedAt   DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([userId, jobId])
+  @@index([userId, status])
+  @@index([userId, submittedAt])
 }

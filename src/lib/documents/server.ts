@@ -1,6 +1,6 @@
 /**
- * Documents: server helpers (DB). The future apply flow should only use `getAttachableDocuments`
- * and `sanitizeSelection` (picker.ts) — see docs/documents.md.
+ * Documents: server helpers (DB). The apply flow uses `getAttachableDocuments`
+ * and `sanitizeSelection` (picker.ts) — see docs/documents.md and docs/auto-apply.md.
  */
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";

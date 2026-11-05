@@ -163,10 +163,15 @@ export const HUBS: readonly HubDef[] = [
     id: "tracker",
     labelId: "tracker",
     href: "/dashboard",
-    activePrefixes: ["/dashboard", "/closing", "/salary"],
-    show: (pathname) => under(pathname, "/dashboard") || under(pathname, "/closing") || under(pathname, "/salary"),
+    activePrefixes: ["/dashboard", "/closing", "/salary", "/apply"],
+    show: (pathname) =>
+      under(pathname, "/dashboard") ||
+      under(pathname, "/closing") ||
+      under(pathname, "/salary") ||
+      under(pathname, "/apply"),
     tabs: [
       { id: "tracker-board", href: "/dashboard", audience: "user", rules: [prefix("/dashboard")] },
+      { id: "tracker-apply", href: "/apply", audience: "user", rules: [prefix("/apply")] },
       { id: "tracker-closing", href: "/closing", audience: "user", rules: [prefix("/closing")] },
       { id: "tracker-salary", href: "/salary", audience: "public", rules: [prefix("/salary")] },
     ],
