@@ -4,70 +4,29 @@ import { logout, setLocale } from "@/app/actions";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { getDictionary } from "@/lib/i18n";
-import { learningStrings } from "@/lib/i18n/learning";
-import { learningHubStrings } from "@/lib/i18n/learning-hub";
-import { problemSolvingStrings } from "@/lib/i18n/problem-solving";
-import { chatStrings } from "@/lib/i18n/chat";
+import { navigationStrings } from "@/lib/i18n/navigation";
 import { db } from "@/lib/db";
 import { notificationStrings } from "@/lib/i18n/notifications";
-import { reminderStrings } from "@/lib/i18n/reminders";
+import { navRole } from "@/lib/nav/config";
 import { NotificationBell } from "./notifications/NotificationBell";
 import { Brand } from "./Brand";
-import { NavLinks, type NavLink } from "./NavLinks";
-import { conceptStrings } from "@/lib/i18n/concepts";
-import { salaryHubStrings } from "@/lib/i18n/salary-hub";
-import { closingStrings } from "@/lib/i18n/closing";
-import { referralStrings } from "@/lib/i18n/referrals";
-import { statsStrings } from "@/lib/i18n/stats";
-import { coachStrings } from "@/lib/i18n/coach";
-import { gapsStrings } from "@/lib/i18n/gaps";
-import { systemDesignStrings } from "@/lib/i18n/system-design";
-import { managerStrings } from "@/lib/i18n/manager";
-import { linkedinProfileStrings } from "@/lib/i18n/linkedin-profile";
+import { NavLinks } from "./NavLinks";
 
 export async function Header() {
   const [{ t, locale }, session] = await Promise.all([getDictionary(), auth()]);
   const user = session?.user;
   const ns = notificationStrings(locale);
+  const nav = navigationStrings(locale);
   const unread = user?.id
     ? await db.notification.count({ where: { userId: user.id, readAt: null } }).catch(() => 0)
     : 0;
-  // Labels never wrap (a word split across lines reads as a typo); whatever doesn't fit at a
-  // breakpoint collapses into the "More" menu instead. Signed-in users have more links, so the
-  // secondary ones live in "More" at every width.
-  const links: NavLink[] = [
-    { href: "/jobs", label: t.nav.jobs },
-    { href: "/companies", label: t.nav.companies },
-    { href: "/learn", label: learningStrings(locale).nav },
-    ...(user
-      ? [
-          { href: "/dashboard", label: t.nav.dashboard, priority: "lg" as const },
-          { href: "/profile", label: t.nav.profile, priority: "lg" as const },
-          { href: "/learn/problem-solving", label: problemSolvingStrings(locale).nav, priority: "more" as const },
-          { href: "/learn/system-design", label: systemDesignStrings(locale).kicker, priority: "more" as const },
-          { href: "/learn/gaps", label: gapsStrings(locale).nav, priority: "more" as const },
-          { href: "/prep/manager", label: managerStrings(locale).title, priority: "more" as const },
-          { href: "/cv/linkedin", label: linkedinProfileStrings(locale).title, priority: "more" as const },
-          { href: "/learn/me", label: learningHubStrings(locale).navMine, priority: "more" as const },
-          { href: "/learn/concepts", label: conceptStrings(locale).nav, priority: "more" as const },
-          { href: "/referrals", label: referralStrings[locale].kicker, priority: "more" as const },
-          { href: "/closing", label: closingStrings[locale].navLabel, priority: "more" as const },
-          { href: "/stats", label: statsStrings(locale).nav, priority: "more" as const },
-          { href: "/coach", label: coachStrings(locale).nav, priority: "more" as const },
-          { href: "/digest", label: reminderStrings(locale).nav, priority: "more" as const },
-          { href: "/chat", label: chatStrings(locale).short, priority: "more" as const },
-        ]
-      : []),
-    { href: "/salary", label: salaryHubStrings[locale].title, priority: "more" as const },
-    { href: "/features", label: t.nav.features, priority: "more" as const },
-    ...(user?.role === "ADMIN" ? [{ href: "/admin", label: t.nav.admin, priority: "more" as const }] : []),
-  ];
+  const role = navRole(user ? { role: user.role } : null);
   return (
     <header className="bg-background/92 rule-double sticky top-0 z-40 pt-[env(safe-area-inset-top)] backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 md:px-6 lg:gap-4">
         <Brand tagline={user ? undefined : t.ui.kicker} />
-        <nav aria-label="main" className="hidden min-w-0 flex-1 md:ms-2 md:block lg:ms-4">
-          <NavLinks links={links} moreLabel={t.ui.more} />
+        <nav aria-label={nav.main} className="hidden min-w-0 flex-1 md:ms-2 md:block lg:ms-4">
+          <NavLinks locale={locale} role={role} moreLabel={t.ui.more} />
         </nav>
         <div className="ms-auto flex shrink-0 items-center gap-1.5">
           {user && (
