@@ -119,8 +119,9 @@ tomorrow; didn't know → due now.
   suggests a self-rating; the user still chooses. Latest result per user × item is stored in `AnswerFeedback`
   (additive migration `20261028220000_learning_answer_feedback`) and shown again on return.
 - **AI tutor**: streamed chat (AI SDK `useChat` → `POST /api/learn/tutor`), Socratic, stage- and level-aware,
-  Hebrew by default. History per user × stage; "new conversation" starts a fresh thread. Shows remaining daily AI
-  quota; offline mode (no key / `LLM_PROVIDER=mock`) replies with a stage question instead.
+  Hebrew by default. Commands, SQL, and table or column names stay in English as the real text inside Markdown
+  (inline backticks or a fenced sql block). History per user × stage; "new conversation" starts a fresh thread.
+  Shows remaining daily AI quota; offline mode (no key / `LLM_PROVIDER=mock`) replies with a stage question instead.
 
 Content source, in order: cached `StageContent` row → Gemini on first open (zod-validated, then stored and shared)
 → curated static content (`src/lib/learning/content-static.json`, 16 skills × 3 stages × he/en; drafted with
