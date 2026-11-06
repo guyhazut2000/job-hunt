@@ -1,6 +1,9 @@
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV3 } from "ai/test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { MiniMarkdown } from "@/components/learning/hub/MiniMarkdown";
 import type { AiOutcome, AiStore } from "@/lib/ai/guard";
 import { genericStageContent, normalizeStageContent, stageContentSchema } from "@/lib/learning/content";
 import { STATIC_SKILLS, staticStageContent } from "@/lib/learning/content-static";
@@ -434,5 +437,69 @@ describe("tutor", () => {
     expect(tutorLevel("fundamentals", 0, 2)).toBe("beginner");
     expect(tutorLevel("fundamentals", 2, 2)).toBe("intermediate");
     expect(tutorLevel("applied", 0, 0)).toBe("advanced");
+  });
+
+  it("tells the Hebrew tutor to write real identifiers and SQL, not the word code", () => {
+    const prompt = tutorSystemPrompt({
+      node: GRAPH.byId.get("sql")!,
+      stage: "fundamentals",
+      locale: "he",
+      level: "beginner",
+      content,
+    });
+    expect(prompt).toContain("Always reply in Hebrew.");
+    expect(prompt).toContain("`customers`");
+    expect(prompt).toContain("`id`");
+    expect(prompt).toContain("```sql\nSELECT id, name FROM customers\n```");
+    expect(prompt).toContain('Never substitute the placeholder word "code"');
+    expect(prompt).not.toContain("inside `code`");
+    expect(prompt).toContain("Teach by asking.");
+    expect(prompt).toContain("ask ONE question at a time");
+    expect(prompt.indexOf("```sql")).toBeGreaterThan(prompt.indexOf("Teach by asking."));
+  });
+
+  it("keeps the English tutor prompt on one intro line", () => {
+    const prompt = tutorSystemPrompt({
+      node: docker,
+      stage: "fundamentals",
+      locale: "en",
+      level: "beginner",
+      content,
+    });
+    expect(prompt.split("\n")[0]).toBe(
+      "You are a patient, Socratic tutor on a job-seeker learning platform. Always reply in English.",
+    );
+    expect(prompt).not.toContain("```sql");
+  });
+
+  it("streams and stores Markdown SQL without dropping the code text", async () => {
+    const reply = "טבלת `customers` עם `id` ו-`name`.\n\n```sql\nSELECT id, name FROM customers\n```";
+    const { model } = streamingModel(reply);
+    const { d, threads } = deps({ model });
+    const out = await readStream(await handleTutorTurn(req("איך נתחיל את השאילתה?"), d));
+    expect(out.text).toBe(reply);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(threads[0].messages[1]).toEqual({ role: "assistant", content: reply });
+  });
+});
+
+describe("MiniMarkdown", () => {
+  it("renders real inline identifiers and fenced SQL", () => {
+    const html = renderToStaticMarkup(
+      createElement(MiniMarkdown, {
+        text: [
+          "טבלת `customers` עם העמודות `id` ו-`name`. טבלת `orders` עם `customer_id` ו-`total`.",
+          "",
+          "```sql",
+          "SELECT id, name FROM customers",
+          "```",
+        ].join("\n"),
+      }),
+    );
+    for (const name of ["customers", "id", "name", "orders", "customer_id", "total"]) {
+      expect(html).toContain(`>${name}<`);
+    }
+    expect(html).toContain("SELECT id, name FROM customers");
+    expect(html).not.toContain(">code<");
   });
 });

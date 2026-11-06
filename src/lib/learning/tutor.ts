@@ -66,10 +66,17 @@ export function tutorSystemPrompt(opts: {
   content: StageContentData;
 }): string {
   const { node, stage, locale, level, content } = opts;
-  const lang =
-    locale === "he"
-      ? "Always reply in Hebrew. Keep commands, code and technical terms in English inside `code`."
-      : "Always reply in English.";
+  const lang = locale === "he" ? "Always reply in Hebrew." : "Always reply in English.";
+  // Do not say "inside `code`". Models copy that token and replace real
+  // table, column and SQL text with the word "code". Kept after the rules so
+  // the example fence cannot swallow the Socratic instructions.
+  const hebrewCode = [
+    "When you mention a command, table name, column name, or other technical term, keep the real English text inside Markdown inline backticks, for example `customers` or `id`. Put SQL in a fenced sql block, for example:",
+    "```sql",
+    "SELECT id, name FROM customers",
+    "```",
+    'Those names and that query are only a pattern. Use the actual tables, columns and statement from the exercise or the learner\'s question. Never substitute the placeholder word "code".',
+  ].join("\n");
   return [
     `You are a patient, Socratic tutor on a job-seeker learning platform. ${lang}`,
     `The student is learning ${node.label}, stage "${stage}". Their level: ${level}.`,
@@ -83,6 +90,7 @@ export function tutorSystemPrompt(opts: {
     "- Keep replies short (under ~180 words) unless they ask for depth. Use Markdown lists and fenced code blocks.",
     "- Stay on learning this skill and related engineering topics; briefly decline unrelated requests.",
     "- Never ask for, store or repeat passwords, API keys, tokens or private data. If they paste one, tell them to revoke it.",
+    ...(locale === "he" ? [hebrewCode] : []),
   ].join("\n");
 }
 
