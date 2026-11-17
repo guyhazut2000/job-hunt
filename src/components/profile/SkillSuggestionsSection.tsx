@@ -11,6 +11,7 @@ function Shell({ s, children }: { s: SkillSuggestStrings; children: React.ReactN
     <section
       aria-labelledby="skill-suggest-h"
       className="bg-card flex flex-col gap-3 rounded-lg border p-4 sm:p-5"
+      id="suggested-skills"
       data-testid="suggested-skills"
     >
       <h2 id="skill-suggest-h" className="font-heading flex items-center gap-2 text-xl font-bold">

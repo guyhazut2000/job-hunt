@@ -34,3 +34,32 @@ export const toCheckView = (c: StandardCheck): CheckView => ({
   lang: c.lang,
   fitError: c.fitError,
 });
+
+export interface EntryInfo {
+  title: string;
+  org: string;
+  period: string;
+}
+
+export const entryInfo = (e: { title: string; org: string; start: string; end: string }): EntryInfo => ({
+  title: e.title,
+  org: e.org,
+  period: [e.start, e.end].filter(Boolean).join(" – "),
+});
+
+/** What the editor rebuilds from after a save (entries added from a CV import are now real). */
+export interface EditorBase {
+  baseContent: import("@/lib/cv-templates/content").CvContent;
+  experience: EntryInfo[];
+  projects: EntryInfo[];
+  education: EntryInfo[];
+}
+
+export function editorBase(c: import("@/lib/cv-templates/content").CvContent): EditorBase {
+  return {
+    baseContent: c,
+    experience: c.experience.map(entryInfo),
+    projects: c.projects.map(entryInfo),
+    education: [...c.education, ...c.military].map(entryInfo),
+  };
+}

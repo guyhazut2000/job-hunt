@@ -3,7 +3,8 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { AlertTriangle, Check, CircleAlert, FileText, Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
-import type { CheckView } from "@/app/cv/standard/view";
+import type { CheckView, EditorBase, EntryInfo } from "@/app/cv/standard/view";
+import { AssistPanel, type TargetJobOption } from "@/components/cv-standard/AssistPanel";
 import { improveAction, recheckAction, saveStandardAction } from "@/app/cv/standard/actions";
 import { CvPreview } from "@/components/cv-templates/CvPreview";
 import { ScaledSheet } from "@/components/cv-templates/ScaledSheet";
@@ -12,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
-import { applyDraft, type Draft } from "@/lib/cv-standard/draft";
+import { applySuggestion, removeAdded, type AssistStep, type Suggestion } from "@/lib/cv-assist/core";
+import { applyDraft, draftPlaceholders, type Draft } from "@/lib/cv-standard/draft";
 import type { ImproveResult } from "@/lib/cv-standard/improve";
 import {
   bulletFeedback,
@@ -21,20 +23,16 @@ import {
   type RuleResult,
   type StandardSection,
 } from "@/lib/cv-standard/rules";
-import type { CvContent } from "@/lib/cv-templates/content";
 import type { LayoutEntry } from "@/lib/cv-templates/sections";
 import { TEMPLATES, TEMPLATE_IDS, type TemplateId } from "@/lib/cv-templates/templates";
+import { cvAssistStrings } from "@/lib/i18n/cv-assist";
 import { cvStandardStrings, fillS } from "@/lib/i18n/cv-standard";
 import { SKILL_CATEGORIES } from "@/lib/profile/schema";
 import { cn } from "@/lib/utils";
 
 const STEPS: StandardSection[] = ["contact", "summary", "experience", "projects", "education", "skills", "page"];
 
-export interface EntryInfo {
-  title: string;
-  org: string;
-  period: string;
-}
+export type { EntryInfo };
 
 export function StandardEditor({
   locale,
@@ -42,11 +40,10 @@ export function StandardEditor({
   email,
   initialDraft,
   initialCheck,
-  baseContent,
+  initialBase,
   layouts,
-  experience,
-  projects,
-  education,
+  cvCount,
+  targetJobs,
   yearsExperience,
   templateNames,
 }: {
@@ -55,16 +52,38 @@ export function StandardEditor({
   email: string | null;
   initialDraft: Draft;
   initialCheck: CheckView;
-  baseContent: CvContent;
+  initialBase: EditorBase;
   layouts: Record<TemplateId, LayoutEntry[]>;
-  experience: EntryInfo[];
-  projects: EntryInfo[];
-  education: EntryInfo[];
+  cvCount: number;
+  targetJobs: TargetJobOption[];
   yearsExperience: number | null;
   templateNames: Record<TemplateId, string>;
 }) {
   const t = cvStandardStrings(locale);
+  const a = cvAssistStrings(locale);
   const [draft, setDraft] = useState<Draft>(initialDraft);
+  const [base, setBase] = useState<EditorBase>(initialBase);
+  const [jobId, setJobId] = useState("");
+  const { baseContent } = base;
+  const period = (x: { start: string; end: string }) => [x.start, x.end].filter(Boolean).join(" – ");
+  // Profile entries plus the ones accepted from the CV import (flagged "added" until saved).
+  const withAdded = (infos: EntryInfo[], list: Draft["experience"]) =>
+    list.map((d, i) =>
+      d.add
+        ? { title: d.add.title, org: d.add.org, period: period(d.add), added: true }
+        : { ...(infos[i] ?? { title: "", org: "", period: "" }), added: false },
+    );
+  const experience = withAdded(base.experience, draft.experience);
+  const projects = withAdded(base.projects, draft.projects);
+  const education = [
+    ...base.education.map((e) => ({ ...e, added: false })),
+    ...(draft.education ?? []).map((e) => ({ title: e.title, org: e.institution, period: period(e), added: true })),
+  ];
+  const addedCount =
+    draft.experience.filter((e) => e.add).length +
+    draft.projects.filter((e) => e.add).length +
+    (draft.education ?? []).length;
+  const placeholders = draftPlaceholders(draft);
   const [check, setCheck] = useState<CheckView>(initialCheck);
   const [savedDraft, setSavedDraft] = useState(JSON.stringify(initialDraft));
   const [step, setStep] = useState<StandardSection>(() => {
@@ -96,28 +115,40 @@ export function StandardEditor({
   const setBullet = (sec: "experience" | "projects", i: number, b: number, v: string) =>
     setDraft((d) => ({
       ...d,
-      [sec]: d[sec].map((e, ei) => (ei === i ? { bullets: e.bullets.map((x, bi) => (bi === b ? v : x)) } : e)),
+      [sec]: d[sec].map((e, ei) => (ei === i ? { ...e, bullets: e.bullets.map((x, bi) => (bi === b ? v : x)) } : e)),
     }));
   const addBullet = (sec: "experience" | "projects", i: number) =>
-    setDraft((d) => ({ ...d, [sec]: d[sec].map((e, ei) => (ei === i ? { bullets: [...e.bullets, ""] } : e)) }));
+    setDraft((d) => ({ ...d, [sec]: d[sec].map((e, ei) => (ei === i ? { ...e, bullets: [...e.bullets, ""] } : e)) }));
   const removeBullet = (sec: "experience" | "projects", i: number, b: number) =>
     setDraft((d) => ({
       ...d,
-      [sec]: d[sec].map((e, ei) => (ei === i ? { bullets: e.bullets.filter((_, bi) => bi !== b) } : e)),
+      [sec]: d[sec].map((e, ei) => (ei === i ? { ...e, bullets: e.bullets.filter((_, bi) => bi !== b) } : e)),
     }));
 
   const save = () =>
     startSave(async () => {
       setMsg(null);
+      if (placeholders) return setMsg({ kind: "error", text: fillS(a.placeholdersBlock, { n: placeholders }) });
       const r = await saveStandardAction(draft);
-      if (!r.ok) return setMsg({ kind: "error", text: `${t.saveError}${r.path ? ` (${r.path})` : ""}` });
+      if (!r.ok)
+        return setMsg({
+          kind: "error",
+          text:
+            r.error === "placeholders"
+              ? fillS(a.placeholdersBlock, { n: r.count })
+              : `${t.saveError}${r.path ? ` (${r.path})` : ""}`,
+        });
       setCheck(r.check);
-      setSavedDraft(JSON.stringify(draft));
+      // Imported entries are real profile entries now: rebuild from the saved profile.
+      setBase(r.base);
+      setDraft(r.draft);
+      setSavedDraft(JSON.stringify(r.draft));
       setMsg({ kind: "ok", text: t.saved });
     });
   const recheck = (template: TemplateId, lang: "he" | "en") =>
     startRecheck(async () => setCheck(await recheckAction(template, lang)));
 
+  const accept = (sug: Suggestion, edited?: string) => setDraft((d) => applySuggestion(d, sug, edited));
   const idx = STEPS.indexOf(step);
   const passed = !dirty && check.passed && live.passed;
 
@@ -174,6 +205,20 @@ export function StandardEditor({
             </h2>
             <p className="text-muted-foreground text-sm">{t.stepTips[step]}</p>
           </header>
+
+          {step !== "page" && (
+            <AssistPanel
+              key={step}
+              locale={locale}
+              step={step as AssistStep}
+              draft={draft}
+              cvCount={cvCount}
+              targetJobs={targetJobs}
+              jobId={jobId}
+              onJob={setJobId}
+              onAccept={accept}
+            />
+          )}
 
           {step === "contact" && (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -277,16 +322,47 @@ export function StandardEditor({
               onBullet={(i, b, v) => setBullet(step, i, b, v)}
               onAdd={(i) => addBullet(step, i)}
               onRemove={(i, b) => removeBullet(step, i, b)}
+              onRemoveEntry={(i) => setDraft((d) => removeAdded(d, step, i))}
+              addedLabel={a.added}
+              removeLabel={a.removeAdded}
             />
           )}
 
           {step === "education" && (
             <ul className="flex flex-col gap-2">
               {education.map((e, i) => (
-                <li key={i} className="rounded-md border p-3 text-sm">
-                  <span className="font-semibold">{e.title || e.org}</span>
-                  {e.title && e.org ? <span className="text-muted-foreground"> · {e.org}</span> : null}
-                  {e.period ? <bdi className="text-muted-foreground ms-2 font-mono text-xs">{e.period}</bdi> : null}
+                <li
+                  key={i}
+                  className="flex flex-wrap items-center gap-2 rounded-md border p-3 text-sm"
+                  data-testid={`cvs-education-${i}`}
+                >
+                  <span>
+                    <span className="font-semibold">{e.title || e.org}</span>
+                    {e.title && e.org ? <span className="text-muted-foreground"> · {e.org}</span> : null}
+                    {e.period ? <bdi className="text-muted-foreground ms-2 font-mono text-xs">{e.period}</bdi> : null}
+                  </span>
+                  {e.added && (
+                    <>
+                      <span className="bg-primary/10 text-primary rounded-full px-2 text-xs font-semibold">
+                        {a.added}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="ms-auto"
+                        onClick={() =>
+                          setDraft((d) => ({
+                            ...d,
+                            education: (d.education ?? []).filter((_, j) => j !== i - base.education.length),
+                          }))
+                        }
+                      >
+                        <Trash2 data-icon="inline-start" />
+                        {a.removeAdded}
+                      </Button>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
@@ -315,6 +391,18 @@ export function StandardEditor({
           )}
 
           <RuleList t={t} results={failed(step)} />
+
+          {(placeholders > 0 || addedCount > 0) && (
+            <div className="flex flex-col gap-1 text-sm" data-testid="cvs-pending">
+              {placeholders > 0 && (
+                <p className="text-caution flex items-center gap-1.5" data-testid="cvs-placeholders">
+                  <AlertTriangle aria-hidden className="size-4" />
+                  {fillS(a.placeholdersBlock, { n: placeholders })}
+                </p>
+              )}
+              {addedCount > 0 && <p className="text-muted-foreground">{fillS(a.addedNote, { n: addedCount })}</p>}
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-2 border-t pt-3">
             <Button type="button" onClick={save} disabled={saving} data-testid="cvs-save">
@@ -504,15 +592,21 @@ function EntriesEditor({
   onBullet,
   onAdd,
   onRemove,
+  onRemoveEntry,
+  addedLabel,
+  removeLabel,
 }: {
   t: T;
   locale: "he" | "en";
   section: "experience" | "projects";
-  entries: EntryInfo[];
+  entries: (EntryInfo & { added: boolean })[];
   draft: { bullets: string[] }[];
   onBullet: (i: number, b: number, v: string) => void;
   onAdd: (i: number) => void;
   onRemove: (i: number, b: number) => void;
+  onRemoveEntry: (i: number) => void;
+  addedLabel: string;
+  removeLabel: string;
 }) {
   if (!entries.length) return null;
   return (
@@ -525,7 +619,25 @@ function EntriesEditor({
             {e.period ? (
               <bdi className="text-muted-foreground ms-2 font-mono text-xs font-normal">{e.period}</bdi>
             ) : null}
+            {e.added ? (
+              <span className="bg-primary/10 text-primary ms-2 rounded-full px-2 text-xs font-semibold">
+                {addedLabel}
+              </span>
+            ) : null}
           </p>
+          {e.added && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="self-start"
+              onClick={() => onRemoveEntry(i)}
+              data-testid={`cvs-${section}-${i}-remove`}
+            >
+              <Trash2 data-icon="inline-start" />
+              {removeLabel}
+            </Button>
+          )}
           {(draft[i]?.bullets ?? []).map((b, bi) => (
             <BulletRow
               key={bi}

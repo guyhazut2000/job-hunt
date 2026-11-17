@@ -26,6 +26,7 @@ export type AiFeature =
   | "follow_up"
   | "cv_translate"
   | "cv_improve"
+  | "cv_assist"
   | "work_story"
   | "referral_request"
   | "interview_prep"
