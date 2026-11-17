@@ -96,7 +96,7 @@ describe("work journal — reading entries", () => {
   it("AI off → rules with status off; limit → limited; bad JSON → error", async () => {
     expect((await extractInsights(mock, { text: GUY, role: "", lang: "he" })).status).toBe("off");
     expect(
-      (await extractInsights(llm(new AiLimitError("user_daily", "x")), { text: GUY, role: "", lang: "he" })).status,
+      (await extractInsights(llm(new AiLimitError("user_daily")), { text: GUY, role: "", lang: "he" })).status,
     ).toBe("limited");
     expect((await extractInsights(llm({ nope: 1 }), { text: GUY, role: "", lang: "he" })).status).toBe("error");
   });
