@@ -911,3 +911,38 @@ test("offer reply email: accept and counter drafts from the saved offer, fits 39
     await done(page);
   }
 });
+
+test("header user menu: shows the signed-in user, links to profile, fits 390px, logs out", async () => {
+  const page = await newPage();
+  await login(page);
+  const trigger = page.getByTestId("user-menu-trigger");
+  await trigger.waitFor();
+  const box = await trigger.boundingBox();
+  assert.ok(box && box.width >= 44 && box.height >= 44, `touch target ≥ 44px, got ${JSON.stringify(box)}`);
+  assert.match((await page.getByTestId("user-avatar").first().innerText()).trim(), /^\S{1,2}$/u);
+  await trigger.click();
+  const menu = page.getByTestId("user-menu");
+  await menu.waitFor();
+  assert.equal((await page.getByTestId("user-menu-email").innerText()).trim(), DEMO.email);
+  assert.ok((await page.getByTestId("user-menu-name").innerText()).trim().length > 0);
+  const m = await menu.boundingBox();
+  assert.ok(m && m.x >= 0 && m.x + m.width <= 390, `menu inside the 390px viewport: ${JSON.stringify(m)}`);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  assert.ok(overflow <= 0, `no horizontal overflow (${overflow}px)`);
+  await page.waitForTimeout(250); // let the open animation finish before the screenshot
+  await shot(page, "user-menu-mobile");
+  await Promise.all([page.waitForURL(/\/profile/), page.getByTestId("user-menu-link-profile").click()]);
+  await done(page);
+
+  const desk = await newPage({ width: 1280, height: 800 });
+  await login(desk);
+  await desk.getByTestId("user-menu-trigger").click();
+  await desk.getByTestId("user-menu").waitFor();
+  await desk.waitForTimeout(250);
+  await shot(desk, "user-menu-desktop");
+  await desk.getByTestId("user-menu-logout").click();
+  await desk.waitForURL((u) => u.pathname === "/");
+  await desk.getByRole("link", { name: "הרשמה" }).first().waitFor();
+  assert.equal(await desk.getByTestId("user-menu-trigger").count(), 0, "signed out: no user button");
+  await done(desk);
+});
