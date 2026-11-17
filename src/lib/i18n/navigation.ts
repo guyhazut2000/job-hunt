@@ -19,6 +19,7 @@ const he = {
     email: "חיבור מייל",
     places: "מקומות שמורים",
     admin: "ניהול",
+    activity: "יומן פעילות",
     logout: "התנתקות",
   },
   sections: {
@@ -82,6 +83,7 @@ const en: typeof he = {
     email: "Email connection",
     places: "Saved places",
     admin: "Admin",
+    activity: "Activity log",
     logout: "Log out",
   },
   sections: {

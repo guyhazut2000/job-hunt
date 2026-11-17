@@ -125,6 +125,7 @@ model User {
   chatThreads          ChatThread[]
   learningPrefs        LearningPrefs?
   hiringProcesses      HiringProcess[]
+  activityEvents       ActivityEvent[]
   answerFeedback       AnswerFeedback[]
   patternAttempts      PatternAttempt[]
   notifications        Notification[]
@@ -1993,4 +1994,34 @@ model ApplyDraft {
   @@unique([userId, jobId])
   @@index([userId, status])
   @@index([userId, submittedAt])
+}
+
+/// In-app activity log (sign-ins, sign-outs, sign-ups, page views, key actions), viewable only by the
+/// allowlisted owner at /admin/activity. Privacy: no raw IPs (a salted, truncated hash only), coarse
+/// device info and Vercel's approximate geo headers. Rows older than 90 days are purged by the hourly cron.
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  /// sign_in | sign_in_failed | sign_out | sign_up | page_view | job_saved | application_status | cv_uploaded
+  type      String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Copied at write time (also kept for failed sign-ins, which have no user).
+  email     String?
+  /// Pathname only, never the query string.
+  path      String?
+  country   String?
+  region    String?
+  city      String?
+  /// mobile | tablet | desktop
+  device    String?
+  browser   String?
+  os        String?
+  /// sha256(ip + secret), first 16 hex chars — tells sessions apart without storing the IP.
+  ipHash    String?
+  meta      Json?
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
 }

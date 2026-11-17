@@ -8,6 +8,7 @@ import { navigationStrings } from "@/lib/i18n/navigation";
 import { db } from "@/lib/db";
 import { notificationStrings } from "@/lib/i18n/notifications";
 import { navRole } from "@/lib/nav/config";
+import { canViewActivity } from "@/lib/activity/access";
 import { NotificationBell } from "./notifications/NotificationBell";
 import { Brand } from "./Brand";
 import { NavLinks } from "./NavLinks";
@@ -60,6 +61,7 @@ export async function Header() {
                 email: user.email,
                 image: (user as { image?: string | null }).image ?? null,
                 role: user.role,
+                canViewActivity: canViewActivity(user),
               }}
             />
           ) : (

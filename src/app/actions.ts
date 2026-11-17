@@ -14,6 +14,7 @@ import { guardedLLM } from "@/lib/ai";
 import { generateCvSuggestions } from "@/lib/ai/cv-suggestions";
 import type { CvSuggestion } from "@/lib/ai/types";
 import { track } from "@/lib/analytics";
+import { recordActivity } from "@/lib/activity/record";
 import { db } from "@/lib/db";
 import { logStatusChange } from "@/lib/email/auto-apply";
 import { getDictionary, LOCALE_COOKIE } from "@/lib/i18n";
@@ -50,10 +51,12 @@ export async function register(_: FormState, formData: FormData): Promise<FormSt
   }
   const { name, email, password } = parsed.data;
   if (await db.user.findUnique({ where: { email } })) return { error: t.auth.exists };
-  await db.user.create({
+  const created = await db.user.create({
+    select: { id: true },
     data: { name, email, passwordHash: await bcrypt.hash(password, 10), profile: { create: { skills: [] } } },
   });
   track("signup");
+  await recordActivity({ type: "sign_up", userId: created.id, email });
   formData.set("next", "/onboarding");
   return login(undefined, formData);
 }
@@ -67,7 +70,10 @@ export async function login(_: FormState, formData: FormData): Promise<FormState
       redirectTo: safeNextPath(String(formData.get("next") ?? "")) ?? "/jobs",
     });
   } catch (e) {
-    if (e instanceof AuthError) return { error: t.auth.invalid };
+    if (e instanceof AuthError) {
+      await recordActivity({ type: "sign_in_failed", email: String(formData.get("email") ?? "").slice(0, 160) });
+      return { error: t.auth.invalid };
+    }
     throw e; // NEXT_REDIRECT on success
   }
   return undefined;
@@ -86,6 +92,7 @@ export async function saveJob(jobId: string) {
     update: {},
   });
   track("job_saved", { jobId });
+  await recordActivity({ type: "job_saved", userId: user.id, email: user.email, meta: { jobId } });
   revalidatePath("/dashboard");
   revalidatePath(`/jobs/${jobId}`);
 }
@@ -123,6 +130,7 @@ export async function updateApplicationStatus(
     prevStatusChangedAt: prev.statusChangedAt,
   });
   track("application_status_changed", { status });
+  await recordActivity({ type: "application_status", userId: user.id, email: user.email, meta: { status } });
   revalidatePath("/dashboard");
 }
 

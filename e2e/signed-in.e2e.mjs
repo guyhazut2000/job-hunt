@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { chromium } from "playwright-core";
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const SHOTS = process.env.E2E_SHOTS; // optional screenshot dir
@@ -945,4 +946,52 @@ test("header user menu: shows the signed-in user, links to profile, fits 390px, 
   await desk.getByRole("link", { name: "הרשמה" }).first().waitFor();
   assert.equal(await desk.getByTestId("user-menu-trigger").count(), 0, "signed out: no user button");
   await done(desk);
+});
+
+test("activity log: sign-in and page views are recorded; only the owner can open /admin/activity", async () => {
+  const since = new Date();
+  const page = await newPage();
+  await login(page);
+  await page.goto(`${BASE}/jobs`);
+  const until = Date.now() + 15_000;
+  let rows = [];
+  while (Date.now() < until) {
+    rows = await db.activityEvent.findMany({ where: { userId: demoId, createdAt: { gte: since } } });
+    if (rows.some((r) => r.type === "page_view" && r.path === "/jobs")) break;
+    await page.waitForTimeout(300);
+  }
+  assert.ok(
+    rows.some((r) => r.type === "sign_in"),
+    "sign-in recorded",
+  );
+  assert.ok(
+    rows.some((r) => r.type === "page_view" && r.path === "/jobs"),
+    `page view recorded: ${JSON.stringify(rows.map((r) => [r.type, r.path]))}`,
+  );
+  // Not the owner: the page does not exist and the API refuses.
+  const res = await page.goto(`${BASE}/admin/activity`);
+  assert.equal(res?.status(), 404, "non-owner gets 404");
+  const api = await page.evaluate(() => fetch("/api/activity").then((r) => r.status));
+  assert.equal(api, 403, "non-owner API is 403");
+  await done(page);
+
+  // The owner (allowlisted by email) sees the log, with the demo user's events.
+  const owner = { email: "guyhazut2000@gmail.com", password: "e2e-owner-pass" };
+  await db.user.upsert({
+    where: { email: owner.email },
+    create: { email: owner.email, name: "Guy (e2e)", passwordHash: await bcrypt.hash(owner.password, 10) },
+    update: { passwordHash: await bcrypt.hash(owner.password, 10) },
+  });
+  const mob = await newPage();
+  await login(mob, owner);
+  await mob.getByTestId("user-menu-trigger").click();
+  await mob.getByTestId("user-menu-link-activity").click();
+  await mob.getByTestId("activity-page").waitFor();
+  assert.match(mob.url(), /\/admin\/activity/);
+  await mob.getByTestId("activity-list").getByText(DEMO.email.split("@")[0], { exact: false }).first().waitFor();
+  const overflow = await mob.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  assert.ok(overflow <= 0, `no horizontal overflow (${overflow}px)`);
+  await mob.goto(`${BASE}/admin/activity?type=sign_in`);
+  assert.match(await mob.getByTestId("activity-total").innerText(), /\d/);
+  await done(mob);
 });
