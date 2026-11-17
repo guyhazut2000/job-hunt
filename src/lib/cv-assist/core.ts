@@ -20,7 +20,7 @@ import { extractTech } from "@/lib/taxonomy";
 
 export type AssistStep = "contact" | "summary" | "experience" | "projects" | "education" | "skills";
 export const ASSIST_STEPS: AssistStep[] = ["contact", "summary", "experience", "projects", "education", "skills"];
-export type Origin = "import" | "improve" | "tailor";
+export type Origin = "import" | "improve" | "tailor" | "journal";
 export type FieldKey = "headline" | "summary" | "phone" | "location" | "linkedinUrl" | "githubUrl" | "portfolioUrl";
 export type EntrySection = "experience" | "projects";
 

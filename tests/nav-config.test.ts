@@ -123,6 +123,7 @@ describe("secondary hub tabs", () => {
     expect(ats?.tabs.map((tab) => tab.href)).toEqual([
       "/profile",
       "/cv/standard",
+      "/cv/journal",
       "/cv",
       "/cv/tailor",
       "/cv/ats",
