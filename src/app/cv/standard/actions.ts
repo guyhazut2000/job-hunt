@@ -5,22 +5,28 @@ import { revalidatePath } from "next/cache";
 import { contentStrings } from "@/lib/cv-templates/content";
 import { loadCvSource } from "@/lib/cv-templates/server";
 import { isTemplateId } from "@/lib/cv-templates/templates";
-import { draftSchema, mergeDraft, type Draft } from "@/lib/cv-standard/draft";
+import { draftFromProfile, draftPlaceholders, draftSchema, mergeDraft, type Draft } from "@/lib/cv-standard/draft";
 import { improveBullet, type ImproveResult } from "@/lib/cv-standard/improve";
 import { checkCvStandard } from "@/lib/cv-standard/server";
 import { db } from "@/lib/db";
 import { readProfessional } from "@/lib/profile/load";
 import { totalExperienceYears } from "@/lib/profile/score";
 import { requireUser } from "@/lib/session";
-import { toCheckView, type CheckView } from "./view";
+import { editorBase, toCheckView, type CheckView, type EditorBase } from "./view";
 
-export type SaveStandardResult = { ok: true; check: CheckView } | { ok: false; error: "invalid"; path?: string };
+export type SaveStandardResult =
+  | { ok: true; check: CheckView; draft: Draft; base: EditorBase }
+  | { ok: false; error: "invalid"; path?: string }
+  | { ok: false; error: "placeholders"; count: number };
 
 /** Save the guided editor's draft into the profile, then re-run the full check (real PDF). */
 export async function saveStandardAction(draft: Draft): Promise<SaveStandardResult> {
   const user = await requireUser("/cv/standard");
   const parsed = draftSchema.safeParse(draft);
   if (!parsed.success) return { ok: false, error: "invalid", path: parsed.error.issues[0]?.path.join(".") };
+  // An AI suggestion's "[X%]" placeholder must be replaced with the real number first.
+  const placeholders = draftPlaceholders(parsed.data);
+  if (placeholders) return { ok: false, error: "placeholders", count: placeholders };
   const profile = await db.profile.findUnique({ where: { userId: user.id } });
   const merged = mergeDraft(readProfessional(profile), parsed.data);
   if (!merged.ok) return { ok: false, error: "invalid", path: merged.path };
@@ -31,6 +37,7 @@ export async function saveStandardAction(draft: Draft): Promise<SaveStandardResu
     summary: d.summary || null,
     experience: d.experience as Prisma.InputJsonValue,
     projects: d.projects as Prisma.InputJsonValue,
+    education: d.education as Prisma.InputJsonValue,
     skillItems: d.skillItems as Prisma.InputJsonValue,
     skills: [...new Set(d.skillItems.map((s) => s.name))].slice(0, 80),
     linkedinUrl: d.linkedinUrl || null,
@@ -42,11 +49,21 @@ export async function saveStandardAction(draft: Draft): Promise<SaveStandardResu
   };
   await db.profile.upsert({ where: { userId: user.id }, create: { userId: user.id, ...data }, update: data });
   if (parsed.data.name) await db.user.update({ where: { id: user.id }, data: { name: parsed.data.name } });
-  const check = await checkCvStandard(user.id);
+  const [check, source, fresh] = await Promise.all([
+    checkCvStandard(user.id),
+    loadCvSource(user.id),
+    db.profile.findUnique({ where: { userId: user.id } }),
+  ]);
   revalidatePath("/cv/standard");
   revalidatePath("/profile");
   revalidatePath("/onboarding");
-  return { ok: true, check: toCheckView(check) };
+  const name = parsed.data.name || null;
+  return {
+    ok: true,
+    check: toCheckView(check),
+    draft: draftFromProfile(readProfessional(fresh), { name, location: fresh?.location ?? null }),
+    base: editorBase(source.content),
+  };
 }
 
 /** Page check for another template / language (the meter's pickers); does not change the record. */

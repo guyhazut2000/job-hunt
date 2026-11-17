@@ -11,6 +11,7 @@ import {
   TOP_JOBS,
   cacheUsable,
   canonicalSkill,
+  heuristicJobSkills,
   israelDay,
   jobsKey,
   suggestSkills,
@@ -180,4 +181,46 @@ export async function setDismissed(userId: string, key: string | null): Promise<
     create: { userId, day: "", jobsKey: "", source: "rules", dismissed },
     update: { dismissed },
   });
+}
+
+/**
+ * The user's top-matching jobs with their keywords, for CV tailoring (docs/cv-ai-assist.md).
+ * Reuses today's skill-suggest extraction when it covers the same jobs; otherwise the rules reader
+ * (no extra AI call — the tailoring call itself is the one that spends the budget).
+ */
+export async function loadTargetJobs(userId: string, limit = 5): Promise<JobSkills[]> {
+  const [profile, state] = await Promise.all([
+    db.profile.findUnique({ where: { userId } }),
+    db.skillSuggestState.findUnique({ where: { userId } }),
+  ]);
+  if (!profile || !hasScorableProfile(profile)) return [];
+  const top = await topJobs(toCandidate(profile));
+  if (!top.length) return [];
+  const cached: SuggestCache | null = state
+    ? {
+        day: state.day,
+        jobsKey: state.jobsKey,
+        source: state.source === "ai" ? "ai" : "rules",
+        limited: state.limited,
+        jobs: state.jobs as unknown as JobSkills[],
+      }
+    : null;
+  const picked = top.slice(0, limit);
+  if (cacheUsable(cached, israelDay(), jobsKey(top.map((t) => t.j.id)))) {
+    const byId = new Map(cached.jobs.map((j) => [j.id, j]));
+    const all = picked.map((t) => byId.get(t.j.id)).filter((j): j is JobSkills => !!j);
+    if (all.length === picked.length) return all.map((j, i) => ({ ...j, score: picked[i].score }));
+  }
+  const descs = await db.job.findMany({
+    where: { id: { in: picked.map((t) => t.j.id) } },
+    select: { id: true, description: true },
+  });
+  const descOf = new Map(descs.map((d) => [d.id, d.description ?? ""]));
+  return picked.map(({ j, score }) => ({
+    id: j.id,
+    title: j.title,
+    company: j.company.name,
+    score,
+    ...heuristicJobSkills({ techStack: j.techStack, description: descOf.get(j.id) ?? "" }),
+  }));
 }

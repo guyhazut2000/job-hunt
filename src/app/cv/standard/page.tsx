@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { StandardEditor, type EntryInfo } from "@/components/cv-standard/StandardEditor";
+import { StandardEditor } from "@/components/cv-standard/StandardEditor";
 import { Button } from "@/components/ui/button";
 import { draftFromProfile } from "@/lib/cv-standard/draft";
 import { checkCvStandard } from "@/lib/cv-standard/server";
-import type { CvEntry } from "@/lib/cv-templates/content";
 import { loadAllLayouts, loadCvSource } from "@/lib/cv-templates/server";
 import { TEMPLATE_IDS, isTemplateId, type TemplateId } from "@/lib/cv-templates/templates";
 import { db } from "@/lib/db";
@@ -13,19 +12,14 @@ import { cvTemplateStrings } from "@/lib/i18n/cv-templates";
 import { localizedTitle } from "@/lib/i18n/titles";
 import { readProfessional } from "@/lib/profile/load";
 import { requireUser } from "@/lib/session";
-import { toCheckView } from "./view";
+import { editorBase, toCheckView } from "./view";
+import { countUploadedCvs, targetJobs } from "@/lib/cv-assist/server";
 
 export const dynamic = "force-dynamic";
 export const generateMetadata = localizedTitle("cvStandard");
 
 const SOURCES_URL = "https://github.com/guyhazut2000/job-hunt/blob/master/docs/cv-best-practices.md";
 const FROM = ["export", "tailor", "applied", "onboarding", "print"] as const;
-
-const info = (e: CvEntry): EntryInfo => ({
-  title: e.title,
-  org: e.org,
-  period: [e.start, e.end].filter(Boolean).join(" – "),
-});
 
 export default async function CvStandardPage({
   searchParams,
@@ -103,6 +97,7 @@ export default async function CvStandardPage({
       </div>
     );
   const [check, layouts] = loaded;
+  const [cvCount, jobs] = await Promise.all([countUploadedCvs(user.id).catch(() => 0), targetJobs(user.id)]);
   const p = readProfessional(profile);
   const draft = draftFromProfile(p, { name: dbUser?.name ?? null, location: profile?.location ?? null });
   const templateNames = Object.fromEntries(TEMPLATE_IDS.map((id) => [id, tt.templates[id].name])) as Record<
@@ -119,11 +114,10 @@ export default async function CvStandardPage({
         email={dbUser?.email ?? null}
         initialDraft={draft}
         initialCheck={toCheckView(check)}
-        baseContent={source.content}
+        initialBase={editorBase(source.content)}
         layouts={layouts}
-        experience={source.content.experience.map(info)}
-        projects={source.content.projects.map(info)}
-        education={[...source.content.education, ...source.content.military].map(info)}
+        cvCount={cvCount}
+        targetJobs={jobs.map((j) => ({ id: j.id, title: j.title, company: j.company, score: j.score }))}
         yearsExperience={profile?.yearsExperience ?? null}
         templateNames={templateNames}
       />

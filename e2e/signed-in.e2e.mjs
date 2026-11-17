@@ -1067,3 +1067,150 @@ test("suggested skills on the profile: add one, dismiss one, restore, fits 390px
     await db.skillSuggestState.deleteMany({ where: { userId: demoId } });
   }
 });
+
+test("CV builder AI assist: import from an uploaded CV, X-Y-Z tailoring with placeholders, save blocked until filled", async () => {
+  const before = await db.profile.findUniqueOrThrow({ where: { userId: demoId } });
+  await db.profile.update({ where: { userId: demoId }, data: { ...PASSING_CV, projects: [] } });
+  const cv = await db.resume.create({
+    data: {
+      userId: demoId,
+      fileName: "dana-cv-2026.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 1000,
+      isPrimary: false,
+      text: "Backend Developer, Acme Payments. Frontend Developer, Wix. React, Kubernetes. John Bryce Docker & Kubernetes",
+      skills: ["React", "Kubernetes"],
+      extracted: {
+        ...PASSING_CV,
+        headline: "מפתחת Full-Stack",
+        experience: [
+          ...PASSING_CV.experience,
+          {
+            company: "Wix",
+            title: "Frontend Developer",
+            start: "2018-01",
+            end: "2020-05",
+            tech: ["React"],
+            description: "בניתי דשבורדים ב-React",
+          },
+        ],
+        education: [
+          ...PASSING_CV.education,
+          { kind: "COURSE", institution: "John Bryce", title: "Docker & Kubernetes", start: "", end: "2024-06" },
+        ],
+        skillItems: [...PASSING_CV.skillItems, { name: "React", level: "GOOD", category: "frontend" }],
+        targetRoles: [],
+        targetSeniorities: [],
+        source: "llm",
+      },
+    },
+  });
+  try {
+    const page = await newPage();
+    await login(page);
+    await page.goto(`${BASE}/cv/standard`, { waitUntil: "networkidle" });
+    await page.getByTestId("cv-standard-editor").waitFor();
+
+    // Experience: import → a whole new role (dates copied verbatim) previewed, then accepted.
+    await page.getByTestId("cvs-step-experience").click();
+    const panel = page.getByTestId("cv-assist-experience");
+    await panel.getByTestId("cv-assist-import").click();
+    const entry = panel.locator("[data-testid=cv-assist-item][data-kind=entry]");
+    await entry.first().waitFor();
+    assert.match(await entry.first().innerText(), /Wix[\s\S]*2018-01/);
+    assert.ok(await noHScroll(page), "no horizontal scroll at 390px");
+    await entry.first().evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await shot(page, "cv-ai-import-mobile");
+    await entry.first().getByTestId("cv-assist-accept").click();
+    await page.getByTestId("cvs-experience-2").waitFor();
+    assert.match(await page.getByTestId("cvs-experience-2").innerText(), /Frontend Developer/);
+    // Nothing is saved on accept.
+    const mid = await db.profile.findUniqueOrThrow({ where: { userId: demoId } });
+    assert.equal(mid.experience.length, 2, "accepting does not save");
+
+    // X-Y-Z tailored: the number-less imported bullet gets a placeholder, never a guessed number.
+    await panel.getByTestId("cv-assist-tailor").click();
+    await panel.getByTestId("cv-assist-status").waitFor();
+    const xyz = panel.locator("[data-testid=cv-assist-item]", { hasText: "דשבורדים" });
+    await xyz.first().waitFor();
+    assert.ok(await xyz.first().getByTestId("cv-assist-placeholder").count(), "placeholder flagged");
+    await xyz.first().evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await shot(page, "cv-ai-xyz-mobile");
+    await xyz.first().getByTestId("cv-assist-accept").click();
+    await page.getByTestId("cvs-placeholders").waitFor();
+    await page.getByTestId("cvs-save").click();
+    await page.getByRole("status").filter({ hasText: "[X%]" }).first().waitFor();
+    assert.equal((await db.profile.findUniqueOrThrow({ where: { userId: demoId } })).experience.length, 2);
+    // The user types the real number instead of the placeholder.
+    await page.locator("#cvs-experience-2-0").fill("בניתי 4 דשבורדים ב-React לצוות המכירות");
+
+    // Education: the course from the uploaded CV.
+    await page.getByTestId("cvs-step-education").click();
+    const edu = page.getByTestId("cv-assist-education");
+    await edu.getByTestId("cv-assist-import").click();
+    const course = edu.locator("[data-testid=cv-assist-item][data-kind=education]");
+    await course.first().waitFor();
+    assert.match(await course.first().innerText(), /John Bryce/);
+    await course.first().getByTestId("cv-assist-accept").click();
+    await page.locator("[data-testid^=cvs-education-]", { hasText: "John Bryce" }).waitFor();
+
+    // Summary: import the CV headline with an edit before accepting.
+    await page.getByTestId("cvs-step-summary").click();
+    const sum = page.getByTestId("cv-assist-summary");
+    await sum.getByTestId("cv-assist-import").click();
+    const head = sum.locator("[data-testid=cv-assist-item]", { hasText: "Full-Stack" });
+    await head.first().waitFor();
+    await head.first().getByTestId("cv-assist-edit").click();
+    await head.first().getByTestId("cv-assist-edit-input").fill("מפתחת Full-Stack | Node.js, React");
+    await head.first().getByTestId("cv-assist-accept-edit").click();
+    assert.equal(await page.locator("#cvs-headline").inputValue(), "מפתחת Full-Stack | Node.js, React");
+    await sum.scrollIntoViewIfNeeded();
+    await shot(page, "cv-ai-summary-mobile");
+
+    await page.getByTestId("cvs-save").click();
+    let saved = null;
+    for (let i = 0; i < 40 && saved?.experience.length !== 3; i++) {
+      saved = await db.profile.findUniqueOrThrow({ where: { userId: demoId } });
+      if (saved.experience.length !== 3) await page.waitForTimeout(250);
+    }
+    assert.equal(saved.experience.length, 3, "imported role saved");
+    assert.equal(saved.experience[2].company, "Wix");
+    assert.equal(saved.experience[2].start, "2018-01");
+    assert.match(saved.experience[2].description, /4 דשבורדים/);
+    assert.ok(saved.education.some((e) => e.institution === "John Bryce" && e.kind === "COURSE"));
+    assert.equal(saved.headline, "מפתחת Full-Stack | Node.js, React");
+    // After save the role is a normal profile entry (no "new" badge, no double append on a second save).
+    await page.getByTestId("cvs-step-experience").click();
+    await page.getByTestId("cvs-experience-2").waitFor();
+    assert.equal(await page.getByTestId("cvs-experience-2-remove").count(), 0);
+    await done(page);
+
+    const desk = await newPage({ width: 1280, height: 900 });
+    await login(desk);
+    await desk.goto(`${BASE}/cv/standard`, { waitUntil: "networkidle" });
+    await desk.getByTestId("cvs-step-skills").click();
+    await desk.getByTestId("cv-assist-skills").getByTestId("cv-assist-import").click();
+    await desk.getByTestId("cv-assist-status").waitFor();
+    await shot(desk, "cv-ai-skills-desktop");
+    await done(desk);
+  } finally {
+    await db.resume.delete({ where: { id: cv.id } }).catch(() => {});
+    await db.profile.update({
+      where: { userId: demoId },
+      data: {
+        headline: before.headline,
+        summary: before.summary,
+        experience: before.experience ?? [],
+        education: before.education ?? [],
+        projects: before.projects ?? [],
+        skills: before.skills,
+        skillItems: before.skillItems ?? [],
+        phone: before.phone,
+        location: before.location,
+        linkedinUrl: before.linkedinUrl,
+        languages: before.languages ?? [],
+        yearsExperience: before.yearsExperience,
+      },
+    });
+  }
+});
