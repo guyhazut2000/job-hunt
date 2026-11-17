@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { MobileNav } from "@/components/MobileNav";
 import { HubNav } from "@/components/nav/HubNav";
 import { ChatFab } from "@/components/chat/ChatFab";
+import { ActivityBeacon } from "@/components/activity/ActivityBeacon";
 import { CvStandardBanner } from "@/components/cv-standard/CvStandardBanner";
 import { Suspense } from "react";
 import { DirectionProvider } from "@/components/ui/direction";
@@ -74,6 +75,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </main>
             <Footer />
             {user && <ChatFab locale={locale} />}
+            {user && <ActivityBeacon />}
             <MobileNav
               locale={locale}
               role={role}

@@ -21,6 +21,8 @@ import { jobsMapStrings } from "@/lib/i18n/jobs-map";
 import { linkedinStrings } from "@/lib/i18n/linkedin";
 import { SUPPORTED_PROVIDERS } from "@/lib/ingestion/registry";
 import { requireAdmin } from "@/lib/session";
+import Link from "next/link";
+import { canViewActivity } from "@/lib/activity/access";
 import { localizedTitle } from "@/lib/i18n/titles";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +31,7 @@ export const maxDuration = 300;
 export const generateMetadata = localizedTitle("admin");
 
 export default async function AdminPage() {
-  await requireAdmin("/admin");
+  const me = await requireAdmin("/admin");
   const { t, locale } = await getDictionary();
   const [users, jobs, companies, applications, runs, perSource, companyList, manualList, autoList, discovery] =
     await Promise.all([
@@ -59,7 +61,18 @@ export default async function AdminPage() {
   ] as const;
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-title font-black">{t.admin.title}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-title font-black">{t.admin.title}</h1>
+        {canViewActivity(me) && (
+          <Link
+            href="/admin/activity"
+            className="border-input hover:bg-muted inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-semibold"
+            data-testid="admin-activity-link"
+          >
+            {locale === "en" ? "Activity log" : "יומן פעילות"}
+          </Link>
+        )}
+      </div>
       <div className="grid gap-4 sm:grid-cols-4">
         {stats.map(([label, n]) => (
           <div key={label} className="card">

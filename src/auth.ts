@@ -3,6 +3,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { recordActivity } from "@/lib/activity/record";
 
 const credsSchema = z.object({ email: z.string().email(), password: z.string().min(1) });
 
@@ -33,6 +34,20 @@ export const {
       },
     }),
   ],
+  events: {
+    // Activity log (/admin/activity). recordActivity never throws.
+    async signIn({ user }) {
+      await recordActivity({ type: "sign_in", userId: user.id ?? null, email: user.email ?? null });
+    },
+    async signOut(message) {
+      const token = "token" in message ? message.token : null;
+      await recordActivity({
+        type: "sign_out",
+        userId: (token?.uid as string | undefined) ?? null,
+        email: (token?.email as string | undefined) ?? null,
+      });
+    },
+  },
   callbacks: {
     jwt({ token, user }) {
       if (user) {

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { guardedLLM } from "@/lib/ai";
 import { track } from "@/lib/analytics";
+import { recordActivity } from "@/lib/activity/record";
 import { ALLOWED_CV_TYPES, extractText, MAX_CV_BYTES, parseCvText } from "@/lib/cv/parse";
 import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
@@ -192,6 +193,7 @@ export async function uploadCvVersion(_: ActionState, formData: FormData): Promi
     });
   });
   track("cv_uploaded", { mime, skills: extracted.skillItems.length, source: extracted.source });
+  await recordActivity({ type: "cv_uploaded", userId: user.id, email: user.email });
   refresh();
   redirect(formData.get("onboarding") ? `/onboarding?step=2&cv=${resume.id}` : `/profile/review/${resume.id}`);
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Bell, FileUser, LogOut, Mail, MapPin, ShieldCheck } from "lucide-react";
+import { Activity, Bell, FileUser, LogOut, Mail, MapPin, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { logout } from "@/app/actions";
 import {
@@ -24,6 +24,8 @@ export interface UserMenuUser {
   email?: string | null;
   image?: string | null;
   role: "USER" | "ADMIN";
+  /** Only the allowlisted owner sees the activity log link (checked on the server). */
+  canViewActivity?: boolean;
 }
 
 const item = "min-h-11 gap-2.5 px-2.5 text-sm font-semibold md:min-h-9";
@@ -43,6 +45,9 @@ export function UserMenu({ user, strings }: { user: UserMenuUser; strings: Navig
     { id: "places", href: "/settings/places", label: strings.places, icon: MapPin },
   ];
   if (user.role === "ADMIN") links.push({ id: "admin", href: "/admin", label: strings.admin, icon: ShieldCheck });
+  if (user.canViewActivity) {
+    links.push({ id: "activity", href: "/admin/activity", label: strings.activity, icon: Activity });
+  }
 
   return (
     <>

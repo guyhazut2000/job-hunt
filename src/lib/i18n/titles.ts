@@ -4,6 +4,7 @@ import { getLocale, type Locale } from ".";
 /** Browser-tab titles per page, in both UI languages (the layout appends "· job-hunt"). */
 export const PAGE_TITLES = {
   admin: { he: "ניהול", en: "Admin" },
+  adminActivity: { he: "יומן פעילות", en: "Activity log" },
   chat: { he: "העוזר", en: "Assistant" },
   companies: { he: "חברות", en: "Companies" },
   cv: { he: "קורות חיים", en: "CV" },
