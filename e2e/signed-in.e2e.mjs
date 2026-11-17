@@ -984,8 +984,13 @@ test("activity log: sign-in and page views are recorded; only the owner can open
   });
   const mob = await newPage();
   await login(mob, owner);
+  // Settle on a page first (a fresh owner lands mid-redirect) and let the menu finish opening,
+  // otherwise the item is re-rendered under the click (flaky on master CI).
+  await mob.goto(`${BASE}/jobs`, { waitUntil: "networkidle" });
   await mob.getByTestId("user-menu-trigger").click();
-  await mob.getByTestId("user-menu-link-activity").click();
+  await mob.getByTestId("user-menu").waitFor();
+  await mob.waitForTimeout(250);
+  await Promise.all([mob.waitForURL(/\/admin\/activity/), mob.getByTestId("user-menu-link-activity").click()]);
   await mob.getByTestId("activity-page").waitFor();
   assert.match(mob.url(), /\/admin\/activity/);
   await mob.getByTestId("activity-list").getByText(DEMO.email.split("@")[0], { exact: false }).first().waitFor();
