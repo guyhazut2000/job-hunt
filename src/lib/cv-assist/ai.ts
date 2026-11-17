@@ -34,6 +34,8 @@ export interface AssistResult {
   empty?: boolean;
   /** How the uploaded CVs were read (import only). */
   readBy?: "stored" | "ai" | "rules" | "none";
+  /** Work-journal entries used (journal suggestions only); 0 = none for these roles. */
+  journalEntries?: number;
   /** Target-job keywords the user doesn't have anywhere in the CV (shown, never written in). */
   missing?: string[];
   /** Target-job keywords the rewrite may surface (already in the user's CV). */

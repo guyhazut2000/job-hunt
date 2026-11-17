@@ -126,6 +126,8 @@ model User {
   learningPrefs        LearningPrefs?
   hiringProcesses      HiringProcess[]
   activityEvents       ActivityEvent[]
+  workJournalEntries   WorkJournalEntry[]
+  workJournalSettings  WorkJournalSettings?
   answerFeedback       AnswerFeedback[]
   patternAttempts      PatternAttempt[]
   notifications        Notification[]
@@ -2046,4 +2048,45 @@ model SkillSuggestState {
   dismissed  String[] @default([])
   computedAt DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+/// Work journal ("יומן עבודה", docs/work-journal.md): free-text notes of what the user did at work,
+/// tied to one experience role, mined by AI for achievements and CV bullets.
+model WorkJournalEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Stable role key: normalized "company|title" of the profile experience item.
+  roleKey   String
+  /// Role label at write time ("Full Stack Developer · ONE City").
+  roleLabel String
+  /// Israel calendar day the work happened, YYYY-MM-DD.
+  day       String
+  text      String
+  /// AI/rules reading: { achievements: [{action, tech, systems, impact}], questions: [string], source }.
+  insights  Json?
+  /// The user's answers to the follow-up questions: [{ q, a }]. Numbers here are the user's own facts.
+  answers   Json     @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, day])
+  @@index([userId, roleKey])
+}
+
+/// Work-journal reminder settings (off by default).
+model WorkJournalSettings {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reminderOn     Boolean   @default(false)
+  /// daily | weekly
+  frequency      String    @default("weekly")
+  /// Israel weekday for weekly reminders (0 = Sunday); default Thursday.
+  weekday        Int       @default(4)
+  /// Israel hour the reminder may go out (at/after).
+  hour           Int       @default(17)
+  lastRemindedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }

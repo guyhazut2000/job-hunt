@@ -6,8 +6,8 @@
  */
 import { useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Check, FileUp, Loader2, Pencil, Sparkles, Target, X } from "lucide-react";
-import { assistImportAction, assistRewriteAction } from "@/app/cv/standard/assist-actions";
+import { AlertTriangle, Check, FileUp, Loader2, NotebookPen, Pencil, Sparkles, Target, X } from "lucide-react";
+import { assistImportAction, assistJournalAction, assistRewriteAction } from "@/app/cv/standard/assist-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,8 +27,9 @@ export interface TargetJobOption {
 }
 
 type A = ReturnType<typeof cvAssistStrings>;
-type Action = { kind: "import" } | { kind: "rewrite"; mode: Mode; field?: "headline" | "summary" };
-const actionKey = (a: Action) => (a.kind === "import" ? "import" : `${a.mode}-${a.field ?? "bullets"}`);
+type Action =
+  { kind: "import" } | { kind: "journal" } | { kind: "rewrite"; mode: Mode; field?: "headline" | "summary" };
+const actionKey = (a: Action) => (a.kind === "rewrite" ? `${a.mode}-${a.field ?? "bullets"}` : a.kind);
 
 export function AssistPanel({
   locale,
@@ -63,7 +64,9 @@ export function AssistPanel({
       const r =
         act.kind === "import"
           ? await assistImportAction(step, draft)
-          : await assistRewriteAction({ step, draft, mode: act.mode, field: act.field, jobId: jobId || null, lang });
+          : act.kind === "journal"
+            ? await assistJournalAction(draft, lang)
+            : await assistRewriteAction({ step, draft, mode: act.mode, field: act.field, jobId: jobId || null, lang });
       setRes(r);
       setItems(r.suggestions);
     } catch {
@@ -147,6 +150,8 @@ export function AssistPanel({
           <>
             {btn({ kind: "rewrite", mode: "improve" }, a.xyzImprove, spark, "cv-assist-improve")}
             {btn({ kind: "rewrite", mode: "tailor" }, a.xyzTailor, tgt, "cv-assist-tailor")}
+            {step === "experience" &&
+              btn({ kind: "journal" }, a.journal, <NotebookPen data-icon="inline-start" />, "cv-assist-journal")}
           </>
         )}
       </div>
@@ -223,6 +228,7 @@ function ResultHeader({
   if (res.rejected) notes.push(fillS(a.rejected, { n: res.rejected }));
   if (res.same) notes.push(a.same);
   if (res.empty) notes.push(a.empty);
+  if (res.journalEntries === 0) notes.push(a.journalNone);
   if (res.readBy === "ai") notes.push(a.readAi);
   else if (res.readBy === "rules") notes.push(a.readRules);
   return (
@@ -238,6 +244,15 @@ function ResultHeader({
           {n}
         </p>
       ))}
+      {res.journalEntries !== undefined && (
+        <Link
+          href="/cv/journal"
+          className="text-primary w-fit text-xs font-semibold underline"
+          data-testid="cv-assist-journal-link"
+        >
+          {a.journalLink}
+        </Link>
+      )}
       {res.have && res.have.length > 0 && (
         <p className="text-xs">
           <span className="font-semibold">{a.have}</span> <bdi dir="ltr">{res.have.join(", ")}</bdi>
@@ -252,7 +267,7 @@ function ResultHeader({
         <p className="font-semibold" data-testid="cv-assist-count">
           {count
             ? fillS(a.results, { n: count })
-            : res.status !== "ok" || res.empty || res.rejected || res.same
+            : res.status !== "ok" || res.empty || res.rejected || res.same || res.journalEntries === 0
               ? ""
               : res.source === "import"
                 ? a.importEmpty
@@ -322,7 +337,14 @@ function SuggestionCard({
         {s.kind === "bullet" && s.replace == null && s.label ? (
           <span className="text-muted-foreground text-xs">{s.label}</span>
         ) : null}
-        {s.from ? <span className="text-muted-foreground text-xs">{fillS(a.from, { file: s.from })}</span> : null}
+        {s.origin === "journal" ? (
+          <span className="text-muted-foreground text-xs" data-testid="cv-assist-from-journal">
+            {a.journalFrom}
+            {s.from ? <bdi dir="ltr"> · {s.from}</bdi> : null}
+          </span>
+        ) : s.from ? (
+          <span className="text-muted-foreground text-xs">{fillS(a.from, { file: s.from })}</span>
+        ) : null}
       </div>
       {"before" in s && s.before && !editing ? (
         <p className="text-muted-foreground text-xs">

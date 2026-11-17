@@ -12,6 +12,8 @@ import { contentStrings } from "@/lib/cv-templates/content";
 import { loadCvSource } from "@/lib/cv-templates/server";
 import { db } from "@/lib/db";
 import { readProfessional } from "@/lib/profile/load";
+import { israelDayOf, roleKey } from "@/lib/journal/core";
+import { journalBullets } from "@/lib/journal/server";
 import { requireUser } from "@/lib/session";
 
 const EMPTY: AssistResult = { status: "error", source: "import", suggestions: [], rejected: 0 };
@@ -117,4 +119,69 @@ export async function assistRewriteAction(input: {
     });
   } else return EMPTY;
   return mode === "tailor" ? { ...res, have: kw.have, missing: kw.missing } : res;
+}
+
+const JOURNAL_DAYS = 180;
+const MAX_JOURNAL_ROLES = 3;
+
+/**
+ * "Suggestions from your work journal" (docs/work-journal.md): X-Y-Z bullets from the last
+ * 6 months of journal entries of each draft role. Draft-only, like every other assist result.
+ */
+export async function assistJournalAction(rawDraft: Draft, lang?: "he" | "en"): Promise<AssistResult> {
+  const user = await requireUser("/cv/standard");
+  const parsed = draftSchema.safeParse(rawDraft);
+  if (!parsed.success) return { ...EMPTY, source: "rules" };
+  const d = parsed.data;
+  const [profile, counts] = await Promise.all([
+    db.profile.findUnique({ where: { userId: user.id } }),
+    db.workJournalEntry.groupBy({
+      by: ["roleKey"],
+      where: { userId: user.id, day: { gte: israelDayOf(new Date(Date.now() - JOURNAL_DAYS * 86_400_000)) } },
+      _count: true,
+    }),
+  ]);
+  const p = readProfessional(profile);
+  const refs = entryRefs(
+    p.experience.map((e) => ({ title: e.title, org: e.company })),
+    d.experience,
+  );
+  const withEntries = new Set(counts.map((c) => c.roleKey));
+  const targets = refs
+    .map((r, index) => ({ index, ref: r, key: roleKey(r.org, r.title) }))
+    .filter((t) => withEntries.has(t.key))
+    .slice(0, MAX_JOURNAL_ROLES);
+  const out: AssistResult = { status: "ok", source: "ai", suggestions: [], rejected: 0, journalEntries: 0 };
+  if (!targets.length) return out;
+  const from = israelDayOf(new Date(Date.now() - JOURNAL_DAYS * 86_400_000));
+  const useLang = lang === "en" || lang === "he" ? lang : langOf(d);
+  let anyRules = false;
+  for (const t of targets) {
+    const r = await journalBullets(user.id, {
+      roleKey: t.key,
+      from,
+      lang: useLang,
+      existing: d.experience[t.index]?.bullets ?? [],
+    });
+    out.journalEntries! += r.entries;
+    out.rejected += r.rejected;
+    if (r.source === "rules") anyRules = true;
+    if (r.status !== "ok") out.status = r.status;
+    r.bullets.forEach((b, j) =>
+      out.suggestions.push({
+        id: `j-${t.index}-${j}`,
+        kind: "bullet",
+        origin: "journal",
+        section: "experience",
+        index: t.index,
+        replace: null,
+        before: "",
+        text: b.text,
+        label: [t.ref.title, t.ref.org].filter(Boolean).join(" · "),
+        from: b.days.length ? b.days.join(", ") : undefined,
+      }),
+    );
+  }
+  if (anyRules) out.source = "rules";
+  return out;
 }

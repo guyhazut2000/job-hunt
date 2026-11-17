@@ -191,6 +191,7 @@ export const HUBS: readonly HubDef[] = [
     tabs: [
       { id: "documents-profile", href: "/profile", audience: "user", rules: [prefix("/profile")] },
       { id: "documents-standard", href: "/cv/standard", audience: "user", rules: [prefix("/cv/standard")] },
+      { id: "documents-journal", href: "/cv/journal", audience: "user", rules: [prefix("/cv/journal")] },
       {
         id: "documents-templates",
         href: "/cv",

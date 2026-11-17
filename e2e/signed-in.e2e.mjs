@@ -1280,3 +1280,117 @@ test("CV builder with an empty profile but an uploaded CV: editor opens and impo
     await db.user.deleteMany({ where: { email: who.email } });
   }
 });
+
+test("work journal: entry → achievements + questions → bullets added to the role → CV builder journal suggestions, fits 390px", async () => {
+  const who = { email: "e2e-journal@job-hunt.local", password: "password123" };
+  await db.user.deleteMany({ where: { email: who.email } });
+  const u = await db.user.create({
+    data: { email: who.email, name: "Journal User", passwordHash: await bcrypt.hash(who.password, 10) },
+  });
+  await db.profile.create({
+    data: {
+      userId: u.id,
+      headline: "מפתח Full Stack",
+      experience: [
+        {
+          company: "Old Co",
+          title: "Developer",
+          start: "2020-01",
+          end: "2023-12",
+          description: "Built internal tools",
+        },
+        {
+          company: "ONE City",
+          title: "Full Stack Developer",
+          start: "2024-02",
+          end: "",
+          description: "Built Python automation workflows",
+        },
+      ],
+    },
+  });
+  try {
+    const page = await newPage();
+    await login(page, who);
+    await page.goto(`${BASE}/cv/journal`, { waitUntil: "networkidle" });
+    await page.getByTestId("journal-nudge").waitFor();
+    const role = await page.getByTestId("journal-role").inputValue();
+    assert.match(role, /one city/, "defaults to the current role");
+    await page
+      .getByTestId("journal-text")
+      .fill("ביום ראשון פיתחתי אוטומציה שמאפשרת להעביר קבצים משרת לשרת, ועזרתי לפתח מערכת שמתקשרת עם מערכת אחרת.");
+    await page.getByTestId("journal-save").click();
+    const ins = page.getByTestId("journal-insights");
+    await ins.waitFor();
+    assert.equal(await ins.getByTestId("journal-achievement").count(), 2);
+    const answers = ins.getByTestId("journal-answer");
+    assert.ok((await answers.count()) >= 1 && (await answers.count()) <= 3, "1–3 follow-up questions");
+    await answers.first().fill("חוסך 4 שעות בשבוע");
+    await ins.getByTestId("journal-save-answers").click();
+    let e = null;
+    for (let i = 0; i < 40 && !(e?.answers ?? []).length; i++) {
+      e = await db.workJournalEntry.findFirst({ where: { userId: u.id } });
+      if (!(e?.answers ?? []).length) await page.waitForTimeout(250);
+    }
+    assert.equal(e.answers[0].a, "חוסך 4 שעות בשבוע");
+    assert.equal(e.roleLabel, "Full Stack Developer · ONE City");
+    await ins.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await shot(page, "journal-entry-insights");
+
+    const sug = page.getByTestId("journal-suggest");
+    await sug.getByTestId("journal-suggest-run").click();
+    const bullet = sug.getByTestId("journal-bullet");
+    await bullet.first().waitFor();
+    assert.equal(await bullet.count(), 2);
+    const first = await bullet.first().locator("textarea").inputValue();
+    assert.match(first, /4 שעות בשבוע/, "uses the user's own number");
+    assert.match(await bullet.nth(1).locator("textarea").inputValue(), /\[X%\]/, "placeholder, never a guessed number");
+    await bullet.first().evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await shot(page, "journal-suggest");
+    await bullet.first().getByTestId("journal-bullet-accept").click();
+    await bullet.first().getByTestId("journal-bullet-status").waitFor();
+    const p = await db.profile.findUnique({ where: { userId: u.id } });
+    assert.match(p.experience[1].description, /4 שעות בשבוע/);
+    assert.doesNotMatch(p.experience[0].description, /אוטומציה/, "other role untouched");
+
+    await page.getByTestId("journal-reminder-on").check();
+    let st = null;
+    for (let i = 0; i < 40 && !st?.reminderOn; i++) {
+      st = await db.workJournalSettings.findUnique({ where: { userId: u.id } });
+      if (!st?.reminderOn) await page.waitForTimeout(250);
+    }
+    assert.equal(st.frequency, "weekly");
+    await page.getByTestId("journal-reminder").evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await shot(page, "journal-reminder");
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(overflow <= 1, `no horizontal scroll at 390 (${overflow}px)`);
+
+    // CV builder: experience step → "suggestions from your work journal" (draft-only).
+    await page.goto(`${BASE}/cv/standard`, { waitUntil: "networkidle" });
+    await page.getByTestId("cvs-step-experience").click();
+    const panel = page.getByTestId("cv-assist-experience");
+    await panel.getByTestId("cv-assist-journal").click();
+    const item = panel.getByTestId("cv-assist-item");
+    await item.first().waitFor();
+    assert.equal(await item.count(), 1, "the bullet already added isn't suggested again");
+    assert.match(await item.first().innerText(), /מערכת שמתקשרת/);
+    await item.first().getByTestId("cv-assist-from-journal").waitFor();
+    await item.first().evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await shot(page, "journal-builder");
+    await item.first().getByTestId("cv-assist-accept").click();
+    const vals = await page
+      .locator("[data-testid^=cvs-experience-] textarea, [data-testid^=cvs-experience-] input")
+      .evaluateAll((els) => els.map((el) => el.value).join("\n"));
+    assert.match(vals, /מערכת שמתקשרת/, "accepted into the draft");
+    await done(page);
+
+    const desk = await newPage({ width: 1280, height: 900 });
+    await login(desk, who);
+    await desk.goto(`${BASE}/cv/journal`, { waitUntil: "networkidle" });
+    await desk.getByTestId("journal-entry").first().waitFor();
+    await shot(desk, "journal-desktop");
+    await done(desk);
+  } finally {
+    await db.user.deleteMany({ where: { email: who.email } });
+  }
+});
