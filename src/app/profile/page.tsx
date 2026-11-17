@@ -11,6 +11,7 @@ import { CvUploadForm } from "@/components/profile/CvUploadForm";
 import { TailoredCvList } from "@/components/cv-tailor/TailoredCvList";
 import { PreferencesForm } from "@/components/profile/PreferencesForm";
 import { ProfessionalForm } from "@/components/profile/ProfessionalForm";
+import { SkillSuggestionsSection } from "@/components/profile/SkillSuggestionsSection";
 import { Progress } from "@/components/ui/progress";
 import { db } from "@/lib/db";
 import { USER_QUOTA_BYTES } from "@/lib/documents/constants";
@@ -132,7 +133,12 @@ export default async function ProfilePage({
             </nav>
 
             {view.section === "pro" ? (
-              <ProfessionalForm key={profile?.updatedAt.toISOString()} t={p} initial={readProfessional(profile)} />
+              <>
+                {/* Suggested skills from the best-matching jobs (docs/skill-suggestions.md). Not in a
+                    Suspense boundary: a streamed boundary here kept router.refresh() from updating the form. */}
+                <SkillSuggestionsSection userId={user.id} locale={locale} dateLocale={t.dateLocale} />
+                <ProfessionalForm key={profile?.updatedAt.toISOString()} t={p} initial={readProfessional(profile)} />
+              </>
             ) : (
               <PreferencesForm
                 key={profile?.updatedAt.toISOString()}

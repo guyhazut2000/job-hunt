@@ -155,6 +155,7 @@ model User {
   offerClosings        OfferClosing[]
   applySettings        ApplySettings?
   applyDrafts          ApplyDraft[]
+  skillSuggest         SkillSuggestState?
 }
 
 model Profile {
@@ -2024,4 +2025,25 @@ model ActivityEvent {
   @@index([createdAt])
   @@index([userId, createdAt])
   @@index([type, createdAt])
+}
+
+/// Suggested skills on the profile (docs/skill-suggestions.md): the day's cached skill extraction for
+/// the user's best-matching jobs, plus the suggestions they dismissed. One row per user.
+model SkillSuggestState {
+  userId     String   @id
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Israel calendar day (YYYY-MM-DD) the extraction was made; a new day recomputes.
+  day        String
+  /// Fingerprint of the analyzed job ids; a different job set recomputes.
+  jobsKey    String
+  /// "ai" or "rules" (AI off / over the limit / bad response).
+  source     String
+  /// AI limit reason when the rules fallback was used because of a limit.
+  limited    String?
+  /// JobSkills[]: id, title, company, score, required[], preferred[].
+  jobs       Json     @default("[]")
+  /// Canonical keys of dismissed suggestions.
+  dismissed  String[] @default([])
+  computedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

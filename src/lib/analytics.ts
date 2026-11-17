@@ -43,7 +43,8 @@ export type AnalyticsEvent =
   | "contract_scanned"
   | "transition_saved"
   | "offer_accepted"
-  | "offer_accept_undone";
+  | "offer_accept_undone"
+  | "skill_suggestion_added";
 
 type Props = Record<string, string | number | boolean | null | undefined>;
 type Sink = (event: AnalyticsEvent, props: Props) => void;

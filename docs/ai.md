@@ -19,6 +19,7 @@
 | Interview prep summary        | `/prep/[id]` → "צור סיכום"                                | `src/lib/prep/server.ts` (`interview_prep`)                            | Template overview from title, company, stages, tech; labelled "לא מאומת"                                     |
 | Personal study plan           | `/learn/gaps` → "שיפור עם AI" (also linked from `/learn`) | `src/lib/learning/study-plan.ts` (`study_plan`)                        | Week-by-week plan, interview questions and one CV line built from the roadmap nodes, labelled as rules-based |
 | Application screening answers | Job → "הכן הגשה"                                          | `src/lib/auto-apply/answers.ts` (`apply_answers`)                      | Blank + flagged. Sensitive questions (visa, EEO) are never sent to the model                                 |
+| Suggested skills              | Profile → "כישורים מומלצים להוספה"                        | `src/lib/skill-suggest/extract.ts` (`skill_suggest`)                   | Rules: job tech stack + tech in the description, "nice to have / יתרון" blocks as preferred                  |
 
 User-facing output is in the user's locale (Hebrew by default). All calls use structured output
 (zod schemas through the Vercel AI SDK `Output.object`) and are validated again before use; any
