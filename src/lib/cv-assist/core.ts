@@ -119,6 +119,19 @@ const period = (start: string, end: string) => [start, end].filter(Boolean).join
 
 // ---------- import from uploaded CVs ----------
 
+/** A stored extraction is weak when it lost the roles' bullets that the CV text clearly has. */
+export function weakExtraction(p: { experience: { description: string }[] }, text: string): boolean {
+  const bulletLines = text.split("\n").filter((l) => /^\s*[•●○◦▪■►‣➢✓*\-–]\s*\S/.test(l)).length;
+  const described = p.experience.filter((e) => e.description.trim()).length;
+  return !p.experience.length || (bulletLines >= 3 && described === 0);
+}
+
+/**
+ * The user's uploaded CVs (primary first, newest next), as structured profiles. Uses the profile
+ * extracted at upload time (`Resume.extracted`); older uploads without it are re-read from the
+ * stored text — or from the stored file with the same parser as the upload — by the rules parser.
+ */
+
 /** The draft's entries with their labels (profile entries first, then accepted imports). */
 export function entryRefs(base: EntryRef[], draft: Draft["experience"]): EntryRef[] {
   return draft.map((d, i) => (d.add ? { title: d.add.title, org: d.add.org } : (base[i] ?? { title: "", org: "" })));
@@ -200,7 +213,12 @@ export function importSuggestions(input: {
             }));
       for (const it of items) {
         if (!it.title && !it.org) continue;
-        const bullets = toBullets(it.desc ?? "")
+        // "Stack: React · Python" is a tech line, not an achievement bullet.
+        const desc = (it.desc ?? "")
+          .split("\n")
+          .filter((l) => !/^\s*(stack|tech(nologies| stack)?|tools|built with|טכנולוגיות|כלים)\s*:/i.test(l))
+          .join("\n");
+        const bullets = toBullets(desc)
           .map((b) => b.replace(/\s+/g, " ").trim())
           .filter((b) => b.length > 3 && b.length <= LIMITS.bulletMaxChars);
         const at = findEntry(refs, it.title, it.org, sec);
@@ -414,7 +432,7 @@ export function acceptAssist(
   original: string,
   rewrite: string,
   corpus: string,
-  opts: { maxChars: number; allowEmptyOriginal?: boolean } = { maxChars: LIMITS.bulletMaxChars },
+  opts: { maxChars: number; allowEmptyOriginal?: boolean; numbersFrom?: string } = { maxChars: LIMITS.bulletMaxChars },
 ): string | null {
   const r = rewrite
     .replace(/\s+/g, " ")
@@ -423,7 +441,9 @@ export function acceptAssist(
   if (!r || r.length > opts.maxChars) return null;
   if (!original.trim() && !opts.allowEmptyOriginal) return null;
   const allowedTech = new Set(extractTech(`${original}\n${corpus}`));
-  const allowedNums = new Set((original.match(NUM_RE) ?? []).map((n) => n.replace(",", ".")));
+  const allowedNums = new Set(
+    (`${original}\n${opts.numbersFrom ?? ""}`.match(NUM_RE) ?? []).map((n) => n.replace(",", ".")),
+  );
   if (introducesFacts(stripPlaceholders(r), allowedTech, allowedNums)) return null;
   if (hasFirstPersonPronoun(r) && !hasFirstPersonPronoun(original)) return null;
   if (original.trim()) {

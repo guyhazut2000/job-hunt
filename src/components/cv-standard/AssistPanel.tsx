@@ -32,6 +32,7 @@ const actionKey = (a: Action) => (a.kind === "import" ? "import" : `${a.mode}-${
 
 export function AssistPanel({
   locale,
+  lang,
   step,
   draft,
   cvCount,
@@ -41,6 +42,8 @@ export function AssistPanel({
   onAccept,
 }: {
   locale: "he" | "en";
+  /** Language of the CV being built (AI writes in it). */
+  lang: "he" | "en";
   step: AssistStep;
   draft: Draft;
   cvCount: number;
@@ -60,7 +63,7 @@ export function AssistPanel({
       const r =
         act.kind === "import"
           ? await assistImportAction(step, draft)
-          : await assistRewriteAction({ step, draft, mode: act.mode, field: act.field, jobId: jobId || null });
+          : await assistRewriteAction({ step, draft, mode: act.mode, field: act.field, jobId: jobId || null, lang });
       setRes(r);
       setItems(r.suggestions);
     } catch {
@@ -166,7 +169,19 @@ export function AssistPanel({
         </Link>
       )}
 
-      {res && <ResultHeader a={a} res={res} count={items.length} onClear={() => setItems([])} />}
+      {res && (
+        <ResultHeader
+          a={a}
+          res={res}
+          count={items.length}
+          onClear={() => setItems([])}
+          onAcceptAll={() => {
+            // Imports are verbatim copies of the user's own CV, so a bulk accept is safe; still draft-only.
+            for (const s of items) onAccept(s);
+            setItems([]);
+          }}
+        />
+      )}
       {items.length > 0 && (
         <ul className="flex flex-col gap-2" data-testid="cv-assist-list">
           {items.map((s) => (
@@ -192,11 +207,13 @@ function ResultHeader({
   res,
   count,
   onClear,
+  onAcceptAll,
 }: {
   a: A;
   res: AssistResult & { cvs?: number };
   count: number;
   onClear: () => void;
+  onAcceptAll: () => void;
 }) {
   const notes: string[] = [];
   if (res.status === "limited") notes.push(a.limited);
@@ -204,6 +221,10 @@ function ResultHeader({
   else if (res.status === "error") notes.push(a.error);
   else if (res.source === "rules") notes.push(a.rules);
   if (res.rejected) notes.push(fillS(a.rejected, { n: res.rejected }));
+  if (res.same) notes.push(a.same);
+  if (res.empty) notes.push(a.empty);
+  if (res.readBy === "ai") notes.push(a.readAi);
+  else if (res.readBy === "rules") notes.push(a.readRules);
   return (
     <div
       className="flex flex-col gap-1.5 text-sm"
@@ -231,16 +252,29 @@ function ResultHeader({
         <p className="font-semibold" data-testid="cv-assist-count">
           {count
             ? fillS(a.results, { n: count })
-            : res.status === "error"
+            : res.status !== "ok" || res.empty || res.rejected || res.same
               ? ""
               : res.source === "import"
                 ? a.importEmpty
                 : a.none}
         </p>
         {count > 1 && (
-          <Button type="button" size="sm" variant="ghost" onClick={onClear} data-testid="cv-assist-reject-all">
-            {a.rejectAll}
-          </Button>
+          <div className="flex gap-1">
+            {res.source === "import" && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={onAcceptAll}
+                data-testid="cv-assist-accept-all"
+              >
+                {a.acceptAll}
+              </Button>
+            )}
+            <Button type="button" size="sm" variant="ghost" onClick={onClear} data-testid="cv-assist-reject-all">
+              {a.rejectAll}
+            </Button>
+          </div>
         )}
       </div>
       <p className="text-muted-foreground text-xs">{a.never}</p>

@@ -5,7 +5,7 @@
  */
 import { guardedLLM } from "@/lib/ai";
 import { ASSIST_STEPS, entryRefs, importSuggestions, targetKeywords, type AssistStep } from "@/lib/cv-assist/core";
-import { rewriteBullets, rewriteField, type AssistResult, type Mode } from "@/lib/cv-assist/ai";
+import { hebrewGender, rewriteBullets, rewriteField, type AssistResult, type Mode } from "@/lib/cv-assist/ai";
 import { loadUploadedCvs, targetJobs } from "@/lib/cv-assist/server";
 import { draftSchema, type Draft } from "@/lib/cv-standard/draft";
 import { contentStrings } from "@/lib/cv-templates/content";
@@ -27,11 +27,11 @@ export async function assistImportAction(step: AssistStep, rawDraft: Draft): Pro
   const user = await requireUser("/cv/standard");
   const parsed = draftSchema.safeParse(rawDraft);
   if (!parsed.success || !ASSIST_STEPS.includes(step)) return { ...EMPTY, cvs: 0 };
-  const [{ cvs }, profile] = await Promise.all([
-    loadUploadedCvs(user.id),
+  const [{ cvs, readBy }, profile] = await Promise.all([
+    loadUploadedCvs(user.id, { ai: true }),
     db.profile.findUnique({ where: { userId: user.id } }),
   ]);
-  if (!cvs.length) return { status: "ok", source: "import", suggestions: [], rejected: 0, cvs: 0 };
+  if (!cvs.length) return { status: "ok", source: "import", suggestions: [], rejected: 0, cvs: 0, readBy };
   const p = readProfessional(profile);
   const suggestions = importSuggestions({
     step,
@@ -41,7 +41,7 @@ export async function assistImportAction(step: AssistStep, rawDraft: Draft): Pro
     projects: p.projects.map((x) => ({ title: x.name, org: x.role })),
     education: p.education.map((e) => ({ institution: e.institution, title: e.title })),
   });
-  return { status: "ok", source: "import", suggestions, rejected: 0, cvs: cvs.length };
+  return { status: "ok", source: "import", suggestions, rejected: 0, cvs: cvs.length, readBy };
 }
 
 /**
@@ -54,6 +54,8 @@ export async function assistRewriteAction(input: {
   mode: Mode;
   field?: "headline" | "summary";
   jobId?: string | null;
+  /** Language of the CV being built (the page check's language). */
+  lang?: "he" | "en";
 }): Promise<AssistResult> {
   const user = await requireUser("/cv/standard");
   const parsed = draftSchema.safeParse(input.draft);
@@ -76,8 +78,9 @@ export async function assistRewriteAction(input: {
   const chosen = input.jobId ? jobs.filter((j) => j.id === input.jobId) : jobs;
   const kw = mode === "tailor" ? targetKeywords(chosen, corpus) : { have: [], missing: [] };
   const targetTitle = input.jobId && chosen[0] ? `${chosen[0].title} @ ${chosen[0].company}` : undefined;
-  const lang = langOf(d);
+  const lang = input.lang === "en" || input.lang === "he" ? input.lang : langOf(d);
   const p = readProfessional(profile);
+  const gender = hebrewGender([d.headline, d.summary, ...p.experience.map((e) => e.title)]);
   const llm = await guardedLLM("cv_assist", user.id);
 
   let res: AssistResult;
@@ -87,6 +90,7 @@ export async function assistRewriteAction(input: {
       field,
       mode,
       lang,
+      gender,
       text: d[field],
       have: kw.have,
       targetTitle,
@@ -105,6 +109,7 @@ export async function assistRewriteAction(input: {
       section: sec,
       mode,
       lang,
+      gender,
       entries: d[sec].map((e, index) => ({ index, ...refs[index], bullets: e.bullets })),
       have: kw.have,
       targetTitle,

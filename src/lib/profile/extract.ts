@@ -76,6 +76,13 @@ function toYm(token: string): string | undefined {
   return m ? m[1] : undefined;
 }
 
+/** Bullet glyphs seen in PDF/DOCX text: •, ●, ○, ▪, ■, ►, ‣, ➢, ✓ and plain -, *, –. */
+const BULLET = /^[•●○◦▪■□►▸‣⁃∙*\-–➢➤✓✔]\s*/;
+const isBullet = (l: string) => BULLET.test(l);
+const unbullet = (l: string) => l.replace(BULLET, "").trim();
+/** "Stack: React · Python" / "Technologies: …" — a tech line under a project or role, not a new item. */
+const TECH_LINE = /^(stack|tech(nologies| stack)?|tools|built with|טכנולוגיות|כלים)\s*:/i;
+
 const clean = (s: string) =>
   s
     .replace(/[\s|•·,–—-]+$/g, "")
@@ -129,8 +136,10 @@ function parseExperience(lines: string[]): ExperienceItem[] {
       };
       items.push(cur);
       pending = undefined;
-    } else if (cur && /^[•*\-–]/.test(line)) {
-      cur.description += (cur.description ? "\n" : "") + line.replace(/^[•*\-–]\s*/, "");
+    } else if (cur && isBullet(line)) {
+      cur.description += (cur.description ? "\n" : "") + unbullet(line);
+    } else if (cur && TECH_LINE.test(line)) {
+      cur.description += (cur.description ? "\n" : "") + line;
     } else if (cur && cur.company === "—" && !cur.description) {
       cur.company = clean(line);
     } else {
@@ -149,9 +158,14 @@ function parseExperience(lines: string[]): ExperienceItem[] {
 function parseProjects(lines: string[]): ProjectItem[] {
   const out: ProjectItem[] = [];
   for (const line of lines) {
-    const bullet = /^[•*\-–]/.test(line);
-    const text = line.replace(/^[•*\-–]\s*/, "").trim();
+    const bullet = isBullet(line);
+    const text = unbullet(line);
     if (!text) continue;
+    if (out.length && TECH_LINE.test(text)) {
+      const cur = out.at(-1)!;
+      cur.description = (cur.description ? `${cur.description}\n` : "") + text;
+      continue;
+    }
     const url = text.match(/https?:\/\/[^\s)>\]]+|(?:www\.)?github\.com\/[^\s)>\]]+/i)?.[0];
     const startsNew = !out.length || (!bullet && text.length <= 90);
     if (startsNew) {
@@ -181,8 +195,8 @@ function parseProjects(lines: string[]): ProjectItem[] {
 function parseVolunteering(lines: string[]): VolunteerItem[] {
   const out: VolunteerItem[] = [];
   for (const line of lines) {
-    const bullet = /^[•*\-–]/.test(line);
-    const text = line.replace(/^[•*\-–]\s*/, "").trim();
+    const bullet = isBullet(line);
+    const text = unbullet(line);
     if (!text) continue;
     if (bullet && out.length) {
       const cur = out.at(-1)!;
@@ -230,12 +244,25 @@ function educationKind(line: string): EducationKind {
   return "COURSE";
 }
 
+const DEGREE_RE =
+  /\b(b\.?\s?sc|m\.?\s?sc|b\.?a|m\.?a|mba|ph\.?d|bachelor|master|degree|diploma)\b|תואר|הנדסאי|בוגר|מוסמך/i;
+
 function parseEducation(lines: string[], forceKind?: EducationKind): EducationItem[] {
   const out: EducationItem[] = [];
-  for (const line of lines) {
+  for (const raw of lines) {
+    const line = unbullet(raw);
     if (line.length < 4) continue;
+    // Grade lines belong to the previous item, not a new one.
+    if (/^(gpa|grade|average|ממוצע|ציון)\b/i.test(line)) continue;
     const r = line.match(RANGE);
     const year = line.match(/\b(19|20)\d{2}\b/g);
+    const prev = out.at(-1);
+    // "B.Sc. in X  Oct 2018 – Jun 2023" then "ORT Braude College, Karmiel" on the next line.
+    if (!r && !year && prev && !prev.title && (prev.start || prev.end) && DEGREE_RE.test(prev.institution)) {
+      prev.title = prev.institution;
+      prev.institution = clean(line.split(/,\s+/)[0]).slice(0, 160);
+      continue;
+    }
     const body = clean(
       line
         .replace(r?.[0] ?? "", "")
@@ -454,7 +481,8 @@ const PROMPT = `Extract a structured profile from the CV below. Reply with JSON 
  "volunteering":[{"organization":string,"role":string,"start":"YYYY-MM"|"","end":"YYYY-MM"|"","description":string}],
  "targetRoles":string[] (from: backend,frontend,fullstack,mobile,devops,data,ml,qa,security,product,design,hardware,management),
  "targetSeniorities":string[]}
-IDF technology units (8200, Mamram, Talpiot, etc.) go in education with kind MILITARY. Projects and volunteering only if the CV lists them; otherwise empty arrays. Do not invent facts.`;
+IDF technology units (8200, Mamram, Talpiot, etc.) go in education with kind MILITARY. Projects and volunteering only if the CV lists them; otherwise empty arrays. Do not invent facts.
+For every experience and project, "description" holds its bullet points copied VERBATIM from the CV, one bullet per line, without the bullet glyph (keep the original language, numbers and wording). Keep the title and company exactly as written. Dates: "Feb 2024" → "2024-02"; "Present"/"היום" → "".`;
 
 /** Extract with the configured LLM; the mock provider (or any failure) uses the heuristic extractor. */
 export async function extractProfile(text: string, provider: LLMProvider): Promise<ExtractedProfile> {

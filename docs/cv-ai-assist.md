@@ -56,3 +56,26 @@ One model call per click through `guardedLLM("cv_assist")` (daily per-user / glo
 prompt cache). Without AI, or over the limit, bullets get a rules X-Y-Z template with placeholders and
 the tailored headline is built from the user's own title + matching skills; summary rewrites need AI.
 The one-page / standard checks are unchanged and re-run on save.
+
+## Quality fixes (Nov 2026, from real usage)
+
+Found with a real upload (an English PDF from before AI extraction existed) and the real model's cached answers:
+
+- **Old uploads had no structured read** (`Resume.extracted` empty) and the rules parser dropped every
+  `●` bullet, turned "Stack: …" into a project and split a two-line degree into three items — so
+  "import" offered no experience bullets. Now: the rules parser knows `● ○ ▪ ■ ► ‣ ➢ ✓` bullets, tech
+  lines and "degree line + institution line"; and on "import" an upload with no (or a weak) stored
+  extraction is re-read **by the AI once** (`cv_extract`, saved on the resume), rules when AI is off.
+  The extraction prompt now asks for bullets verbatim, one per line.
+- **Empty profile blocked import**: `/cv/standard` showed "fill your profile first" even with an
+  uploaded CV. Now the editor opens with a hint to import on each step.
+- **Summary rewrites came back unchanged** and were reported as "dropped for adding facts". Now an
+  unchanged answer is reported as "nothing to improve"; prompts are stronger (recruiter persona,
+  must differ, concrete facts from the CV, no clichés, Hebrew/English few-shot X-Y-Z examples), and a
+  summary may state a number the CV states (years of experience). Bullets still may not borrow numbers.
+- **Hebrew slash forms** ("מפתח/ת", "בעל/ת") — forbidden; gender follows the user's own words
+  ("מתכנת" → masculine).
+- **Language**: rewrites are written in the CV's language (the page's language picker), translating
+  imported bullets faithfully.
+- **Feedback**: every result shows its source badge (AI / rules / from your CV), and notes for AI off,
+  limit reached, nothing to improve, no bullets yet, CV re-read by AI / by rules. "Accept all" for imports.

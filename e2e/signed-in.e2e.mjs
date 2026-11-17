@@ -1214,3 +1214,69 @@ test("CV builder AI assist: import from an uploaded CV, X-Y-Z tailoring with pla
     });
   }
 });
+
+test("CV builder with an empty profile but an uploaded CV: editor opens and import fills roles (rules re-read)", async () => {
+  const who = { email: "e2e-empty-cv@job-hunt.local", password: "password123" };
+  await db.user.deleteMany({ where: { email: who.email } });
+  const u = await db.user.create({
+    data: { email: who.email, name: "Empty CV", passwordHash: await bcrypt.hash(who.password, 10) },
+  });
+  await db.resume.create({
+    data: {
+      userId: u.id,
+      fileName: "old-upload.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 1000,
+      skills: [],
+      // An upload from before AI extraction: text only, "●" bullets, no extracted profile.
+      text: [
+        "EMPTY CV",
+        "Full Stack Developer | React · Node.js",
+        "EXPERIENCE",
+        "Full Stack Developer — ONE City Feb 2024 – Present | Haifa, Israel",
+        "● Built Python automation workflows that increased operational efficiency by ~80%",
+        "● Designed and deployed RESTful APIs for third-party integrations",
+        "EDUCATION",
+        "B.Sc. in Information Systems Engineering Oct 2018 – Jun 2023",
+        "ORT Braude College of Engineering, Karmiel, Israel",
+      ].join("\n"),
+    },
+  });
+  try {
+    const page = await newPage();
+    await login(page, who);
+    await page.goto(`${BASE}/cv/standard`, { waitUntil: "networkidle" });
+    await page.getByTestId("cvs-empty-import").waitFor();
+    await page.getByTestId("cvs-step-experience").click();
+    const panel = page.getByTestId("cv-assist-experience");
+    await panel.getByTestId("cv-assist-import").click();
+    const entry = panel.locator("[data-testid=cv-assist-item][data-kind=entry]");
+    await entry.first().waitFor();
+    const txt = await entry.first().innerText();
+    assert.match(txt, /ONE City/);
+    assert.match(txt, /~80%/, "bullets kept from the ● list");
+    await entry.first().evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await shot(page, "cv-fix-empty-profile-import");
+    await entry.first().getByTestId("cv-assist-accept").click();
+    await page.getByTestId("cvs-experience-0").waitFor();
+    await page.getByTestId("cvs-step-education").click();
+    const edu = page.getByTestId("cv-assist-education");
+    await edu.getByTestId("cv-assist-import").click();
+    const deg = edu.locator("[data-testid=cv-assist-item][data-kind=education]");
+    await deg.first().waitFor();
+    assert.match(await deg.first().innerText(), /ORT Braude/);
+    await deg.first().getByTestId("cv-assist-accept").click();
+    await page.getByTestId("cvs-save").click();
+    let p = null;
+    for (let i = 0; i < 40 && !(p?.experience ?? []).length; i++) {
+      p = await db.profile.findUnique({ where: { userId: u.id } });
+      if (!(p?.experience ?? []).length) await page.waitForTimeout(250);
+    }
+    assert.equal(p?.experience?.[0]?.company, "ONE City");
+    assert.match(p.experience[0].description, /RESTful APIs/);
+    assert.equal(p.education?.[0]?.institution, "ORT Braude College of Engineering");
+    await done(page);
+  } finally {
+    await db.user.deleteMany({ where: { email: who.email } });
+  }
+});
