@@ -995,3 +995,70 @@ test("activity log: sign-in and page views are recorded; only the owner can open
   assert.match(await mob.getByTestId("activity-total").innerText(), /\d/);
   await done(mob);
 });
+
+test("suggested skills on the profile: add one, dismiss one, restore, fits 390px", async () => {
+  const before = await db.profile.findUniqueOrThrow({ where: { userId: demoId } });
+  await db.skillSuggestState.deleteMany({ where: { userId: demoId } });
+  try {
+    const page = await newPage();
+    await login(page);
+    await page.goto(`${BASE}/profile?tab=profile`, { waitUntil: "networkidle" });
+    const section = page.getByTestId("suggested-skills");
+    await section.waitFor();
+    const items = page.getByTestId("skill-suggestion");
+    await items.first().waitFor();
+    assert.ok(await noHScroll(page), "no horizontal scroll at 390px");
+    await shot(page, "skill-suggestions-mobile");
+
+    // One-click add: the skill lands in the profile and leaves the list.
+    const first = items.first();
+    const skill = await first.getAttribute("data-skill");
+    await first.getByTestId("skill-suggest-add").click();
+    await page.waitForFunction(
+      (s) => !document.querySelector(`[data-testid=skill-suggestion][data-skill="${s}"]`),
+      skill,
+    );
+    let saved = [];
+    for (let i = 0; i < 20 && !saved.includes(skill); i++) {
+      saved = (await db.profile.findUniqueOrThrow({ where: { userId: demoId } })).skills;
+      if (!saved.includes(skill)) await page.waitForTimeout(250);
+    }
+    assert.ok(saved.includes(skill), `${skill} added to the profile skills`);
+    await page
+      .locator("[data-testid=skills-editor] [data-skill-chip]", { hasText: skill })
+      .first()
+      .waitFor({ state: "attached" });
+
+    // Dismiss persists across a reload; "show hidden" brings it back.
+    const idle = () =>
+      page.waitForFunction(() => !document.querySelector("[data-testid=suggested-skills] button:disabled"));
+    await idle();
+    const next = page.getByTestId("skill-suggestion").first();
+    const hiddenSkill = await next.getAttribute("data-skill");
+    await next.getByTestId("skill-suggest-dismiss").click();
+    let state = null;
+    for (let i = 0; i < 20 && !state?.dismissed.length; i++) {
+      state = await db.skillSuggestState.findUnique({ where: { userId: demoId } });
+      if (!state?.dismissed.length) await page.waitForTimeout(250);
+    }
+    assert.equal(state?.dismissed.length, 1, "dismissal saved");
+    await page.reload({ waitUntil: "networkidle" });
+    await page.getByTestId("suggested-skills").waitFor();
+    assert.equal(await page.locator(`[data-testid=skill-suggestion][data-skill="${hiddenSkill}"]`).count(), 0);
+    await page.getByRole("button", { name: "הצגת המוסתרים" }).click();
+    await idle();
+    await page.locator(`[data-testid=skill-suggestion][data-skill="${hiddenSkill}"]`).waitFor();
+    assert.equal(
+      await page.locator('[data-testid=suggested-skills] a[href="/learn/gaps"]').count(),
+      1,
+      "links the study plan",
+    );
+    await done(page);
+  } finally {
+    await db.profile.update({
+      where: { userId: demoId },
+      data: { skills: before.skills, skillItems: before.skillItems ?? [] },
+    });
+    await db.skillSuggestState.deleteMany({ where: { userId: demoId } });
+  }
+});
