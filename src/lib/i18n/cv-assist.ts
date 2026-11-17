@@ -24,6 +24,7 @@ const he = {
   edit: "עריכה",
   reject: "דחייה",
   rejectAll: "דחיית הכול",
+  acceptAll: "אישור הכול",
   editDone: "אישור הנוסח הערוך",
   cancel: "ביטול",
   from: "מתוך: {file}",
@@ -63,6 +64,13 @@ const he = {
     portfolioUrl: "תיק עבודות",
   },
   skillsLink: "מיומנויות שחסרות לך לפי המשרות — בפרופיל",
+  emptyImport:
+    "הפרופיל עדיין ריק, אבל יש לך קו״ח שהעלית — בכל שלב לחץ/י „ייבוא מקו״ח שהעלית” כדי למלא אותו, ואז „שמירה”.",
+  same: "ה-AI לא מצא מה לשפר בניסוח הנוכחי.",
+  empty: "אין עדיין נקודות לנסח — ייבא/י אותן מהקו״ח שהעלית או כתוב/י נקודה ראשונה.",
+  readAi: "קראנו את הקו״ח שהעלית מחדש עם AI (פעם אחת, נשמר).",
+  readRules: "ה-AI לא זמין — קראנו את הקו״ח לפי כללים, ייתכן שחלק מהפרטים חסרים.",
+  sources: { ai: "AI", rules: "לפי כללים (בלי AI)", import: "מהקו״ח שהעלית" },
 };
 
 type Strings = typeof he;
@@ -90,6 +98,7 @@ const en: Strings = {
   edit: "Edit",
   reject: "Reject",
   rejectAll: "Reject all",
+  acceptAll: "Accept all",
   editDone: "Accept edited text",
   cancel: "Cancel",
   from: "From: {file}",
@@ -129,6 +138,13 @@ const en: Strings = {
     portfolioUrl: "Portfolio",
   },
   skillsLink: "Skills you're missing for your jobs — in your profile",
+  emptyImport:
+    "Your profile is still empty, but you have an uploaded CV — on each step press “Import from my uploaded CV” to fill it in, then “Save”.",
+  same: "The AI found nothing to improve in the current wording.",
+  empty: "No bullets to rework yet — import them from your uploaded CV or write a first one.",
+  readAi: "We re-read your uploaded CV with AI (once, saved).",
+  readRules: "AI isn't available — we read your CV with rules, some details may be missing.",
+  sources: { ai: "AI", rules: "Rules (no AI)", import: "From your uploaded CV" },
 };
 
 export const cvAssistStrings = (locale: Locale | string): Strings => (locale === "en" ? en : he);

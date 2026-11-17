@@ -210,6 +210,7 @@ export function StandardEditor({
             <AssistPanel
               key={step}
               locale={locale}
+              lang={check.lang}
               step={step as AssistStep}
               draft={draft}
               cvCount={cvCount}

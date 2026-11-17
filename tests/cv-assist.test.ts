@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { LLMProvider } from "@/lib/ai";
 import { AiLimitError } from "@/lib/ai/errors";
-import { rewriteBullets, rewriteField } from "@/lib/cv-assist/ai";
+import { bulletsPrompt, hebrewGender, rewriteBullets, rewriteField } from "@/lib/cv-assist/ai";
 import {
   acceptAssist,
   applySuggestion,
@@ -12,6 +12,7 @@ import {
   targetKeywords,
   type Suggestion,
   type UploadedCv,
+  weakExtraction,
 } from "@/lib/cv-assist/core";
 import { applyDraft, draftFromProfile, draftPlaceholders, draftSchema, mergeDraft } from "@/lib/cv-standard/draft";
 import { demoContent } from "@/lib/cv-templates/content";
@@ -265,5 +266,105 @@ describe("AI rewrites", () => {
       },
     );
     expect(r.suggestions[0]).toMatchObject({ text: "Developer | React, Node.js" });
+  });
+});
+
+describe("quality fixes (real CV shapes)", () => {
+  const cvText = [
+    "JANE DOE",
+    "Software Engineer | Fullstack Developer",
+    "EXPERIENCE",
+    "Full Stack Developer — Acme City Feb 2024 – Present | Haifa, Israel",
+    "● Modernized legacy MS Access systems into cloud-ready web apps",
+    "● Built Python automation workflows that increased efficiency by ~80%",
+    "▪ Designed RESTful APIs for third-party integrations",
+    "PROJECTS",
+    "Face2BMI",
+    "● Full-stack app estimating BMI from a photo",
+    "Stack: React.js · Python / FastAPI",
+    "EDUCATION",
+    "B.Sc. in Information Systems Engineering Oct 2018 – Jun 2023",
+    "ORT Braude College of Engineering, Karmiel, Israel",
+    "GPA: 84",
+  ].join("\n");
+
+  it("rules parser keeps ● / ▪ bullets, tech lines and two-line degrees", () => {
+    const p = heuristicExtract(cvText);
+    expect(p.experience).toHaveLength(1);
+    expect(p.experience[0].description.split("\n")).toHaveLength(3);
+    expect(p.projects.map((x) => x.name)).toEqual(["Face2BMI"]);
+    expect(p.education).toHaveLength(1);
+    expect(p.education[0]).toMatchObject({
+      title: "B.Sc. in Information Systems Engineering",
+      institution: "ORT Braude College of Engineering",
+      start: "2018-10",
+    });
+  });
+  it("import fills an empty role's bullets even when the profile title is Hebrew", () => {
+    const pro = professionalSchema.parse({
+      experience: [{ company: "ACME CITY", title: "מתכנת פולסטאק", start: "2024-02", description: "" }],
+    });
+    const d = draftFromProfile(pro, { name: "", location: "" });
+    const s = importSuggestions({
+      step: "experience",
+      cvs: [{ label: "cv.pdf", profile: professionalSchema.parse(heuristicExtract(cvText)) }],
+      draft: d,
+      experience: [{ title: "מתכנת פולסטאק", org: "ACME CITY" }],
+      projects: [],
+      education: [],
+    });
+    expect(s.filter((x) => x.kind === "bullet")).toHaveLength(3);
+    const pr = importSuggestions({
+      step: "projects",
+      cvs: [{ label: "cv.pdf", profile: professionalSchema.parse(heuristicExtract(cvText)) }],
+      draft: d,
+      experience: [],
+      projects: [],
+      education: [],
+    });
+    expect(pr[0]).toMatchObject({ kind: "entry", bullets: ["Full-stack app estimating BMI from a photo"] });
+  });
+  it("weak stored extraction is detected", () => {
+    expect(weakExtraction({ experience: [{ description: "" }] }, cvText)).toBe(true);
+    expect(weakExtraction(heuristicExtract(cvText), cvText)).toBe(false);
+  });
+  it("Hebrew gender hint from the user's own words", () => {
+    expect(hebrewGender(["מתכנת פולסטאק"])).toBe("m");
+    expect(hebrewGender(["מפתחת Backend"])).toBe("f");
+    expect(hebrewGender(["Fullstack developer"])).toBeNull();
+  });
+  it("an unchanged model answer is 'same', not 'dropped'", async () => {
+    const base = {
+      field: "summary" as const,
+      mode: "improve" as const,
+      lang: "he" as const,
+      text: "מפתח Fullstack עם ניסיון ב-React",
+      have: [],
+      roleTitle: "",
+      corpus: "React",
+    };
+    const r = await rewriteField(llm({ rewrite: "מפתח Fullstack עם ניסיון ב-React" }), base);
+    expect(r).toMatchObject({ same: 1, rejected: 0, suggestions: [] });
+  });
+  it("a summary may use a number the CV states, a bullet may not", async () => {
+    const base = {
+      field: "summary" as const,
+      mode: "improve" as const,
+      lang: "en" as const,
+      text: "Developer who builds APIs",
+      have: [],
+      roleTitle: "",
+      corpus: "Full-Stack developer with 2+ years of experience. Node.js",
+    };
+    const ok = await rewriteField(llm({ rewrite: "Full-Stack developer with 2+ years building Node.js APIs." }), base);
+    expect(ok.suggestions).toHaveLength(1);
+    expect(acceptAssist("Built APIs", "Built APIs for 2 years", base.corpus)).toBeNull();
+  });
+  it("prompts carry examples, the CV language and no slash forms", () => {
+    const sys = bulletsPrompt({ ...bulletsInput, lang: "he", gender: "m" })[0].content;
+    expect(sys).toMatch(/EXAMPLES/);
+    expect(sys).toMatch(/Write every rewrite in Hebrew/);
+    expect(sys).toMatch(/מפתח\/ת/);
+    expect(sys).toMatch(/masculine/);
   });
 });

@@ -7,6 +7,7 @@ import { loadAllLayouts, loadCvSource } from "@/lib/cv-templates/server";
 import { TEMPLATE_IDS, isTemplateId, type TemplateId } from "@/lib/cv-templates/templates";
 import { db } from "@/lib/db";
 import { getLocale } from "@/lib/i18n";
+import { cvAssistStrings } from "@/lib/i18n/cv-assist";
 import { cvStandardStrings } from "@/lib/i18n/cv-standard";
 import { cvTemplateStrings } from "@/lib/i18n/cv-templates";
 import { localizedTitle } from "@/lib/i18n/titles";
@@ -64,7 +65,9 @@ export default async function CvStandardPage({
     </header>
   );
 
-  if (source.empty) {
+  const cvCount = await countUploadedCvs(user.id).catch(() => 0);
+  // An empty profile with an uploaded CV still opens the editor, so "import from my CV" can fill it.
+  if (source.empty && !cvCount) {
     return (
       <div className="flex flex-col gap-6" data-testid="cv-standard-empty">
         {header}
@@ -97,7 +100,7 @@ export default async function CvStandardPage({
       </div>
     );
   const [check, layouts] = loaded;
-  const [cvCount, jobs] = await Promise.all([countUploadedCvs(user.id).catch(() => 0), targetJobs(user.id)]);
+  const jobs = await targetJobs(user.id);
   const p = readProfessional(profile);
   const draft = draftFromProfile(p, { name: dbUser?.name ?? null, location: profile?.location ?? null });
   const templateNames = Object.fromEntries(TEMPLATE_IDS.map((id) => [id, tt.templates[id].name])) as Record<
@@ -108,6 +111,15 @@ export default async function CvStandardPage({
   return (
     <div className="flex flex-col gap-6" data-testid="cv-standard-page">
       {header}
+      {source.empty && (
+        <p
+          className="border-primary/40 bg-primary/5 rounded-md border p-3 text-sm"
+          role="status"
+          data-testid="cvs-empty-import"
+        >
+          {cvAssistStrings(locale).emptyImport}
+        </p>
+      )}
       <StandardEditor
         locale={locale}
         from={from}
