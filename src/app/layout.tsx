@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Assistant, Frank_Ruhl_Libre, IBM_Plex_Mono } from "next/font/google";
+import { Assistant, IBM_Plex_Mono } from "next/font/google";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { MobileNav } from "@/components/MobileNav";
@@ -17,12 +17,7 @@ import { siteUrl } from "@/lib/notifications/config";
 import "./globals.css";
 
 const body = Assistant({ subsets: ["hebrew", "latin"], variable: "--font-body", display: "swap" });
-const display = Frank_Ruhl_Libre({
-  subsets: ["hebrew", "latin"],
-  weight: ["500", "700", "900"],
-  variable: "--font-display",
-  display: "swap",
-});
+// Frank Ruhl Libre (headings) is self-hosted from /public/fonts via @font-face in globals.css.
 const data = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-data", display: "swap" });
 
 const DESCRIPTION = "משרות הייטק בישראל עם ציון התאמה מוסבר, מעקב מועמדויות והצעות AI לקורות החיים.";
@@ -53,7 +48,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const user = session?.user;
   const role = navRole(user ? { role: user.role } : null);
   return (
-    <html lang={locale} dir={dir} className={cn(body.variable, display.variable, data.variable)}>
+    <html lang={locale} dir={dir} className={cn(body.variable, data.variable)}>
       <body className="flex min-h-dvh flex-col overflow-x-clip">
         <DirectionProvider dir={dir}>
           <TooltipProvider delayDuration={300}>
