@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Languages, LogOut } from "lucide-react";
-import { logout, setLocale } from "@/app/actions";
+import { Languages } from "lucide-react";
+import { setLocale } from "@/app/actions";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { getDictionary } from "@/lib/i18n";
@@ -11,6 +11,7 @@ import { navRole } from "@/lib/nav/config";
 import { NotificationBell } from "./notifications/NotificationBell";
 import { Brand } from "./Brand";
 import { NavLinks } from "./NavLinks";
+import { UserMenu } from "./UserMenu";
 
 export async function Header() {
   const [{ t, locale }, session] = await Promise.all([getDictionary(), auth()]);
@@ -52,12 +53,15 @@ export async function Header() {
             </Button>
           </form>
           {user ? (
-            <form action={logout} className="hidden md:block">
-              <Button variant="ghost" size="sm" type="submit">
-                <LogOut data-icon="inline-start" aria-hidden className="rtl:-scale-x-100" />
-                {t.nav.logout}
-              </Button>
-            </form>
+            <UserMenu
+              strings={nav.userMenu}
+              user={{
+                name: user.name,
+                email: user.email,
+                image: (user as { image?: string | null }).image ?? null,
+                role: user.role,
+              }}
+            />
           ) : (
             <>
               <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
